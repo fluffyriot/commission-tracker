@@ -1,19 +1,30 @@
-.PHONY: run
+-include ./.env
+export
+
+.PHONY: up run build clean stop migrate-up migrate-down migrate-create
 
 up:
-	docker-compose -f docker/docker-compose.yml up -d
+	docker compose --env-file ./.env -f docker/docker-compose.yml up -d
+
+stop:
+	docker compose --env-file ./.env -f docker/docker-compose.yml stop
 
 run:
-	@if [ -f .env ]; then . ./.env; fi; go run ./cmd
+	go run ./cmd
 
-# You might also want a build target for creating a binary
 build:
 	go build -o bin/commission-tracker ./cmd
 
-# And a clean target
 clean:
 	rm -f bin/commission-tracker
 	rm -rf bin/
 
-stop:
-	docker-compose -f docker/docker-compose.yml stop
+migrate-up:
+	goose -dir ./sql/schema postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}?sslmode=disable" up
+
+migrate-down:
+	goose -dir ./sql/schema postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}?sslmode=disable" down
+
+migrate-create:
+	@test -n "$(name)" || (echo "name is required"; exit 1)
+	goose -dir ./sql/schema create $(name) sql
