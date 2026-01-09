@@ -47,7 +47,7 @@ type bskyFeed struct {
 	Cursor string `json:"cursor,omitempty"`
 }
 
-func getApiString(
+func getBskyApiString(
 	dbQueries *database.Queries,
 	uid uuid.UUID,
 	cursor string,
@@ -89,11 +89,10 @@ func FetchBlueskyPosts(
 
 	for page := 0; page < maxPages; page++ {
 
-		url, err := getApiString(dbQueries, uid, cursor)
+		url, err := getBskyApiString(dbQueries, uid, cursor)
 		if err != nil {
 			return err
 		}
-		fmt.Println(url)
 
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -144,9 +143,9 @@ func FetchBlueskyPosts(
 					return errN
 				}
 				intId = newPost.ID
+			} else {
+				intId = post.ID
 			}
-
-			intId = post.ID
 
 			_, err = dbQueries.SyncReactions(context.Background(), database.SyncReactionsParams{
 				ID:       uuid.New(),

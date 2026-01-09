@@ -12,8 +12,7 @@ CREATE TABLE sources (
         FOREIGN KEY (user_id)
         REFERENCES users(id)
         ON DELETE CASCADE,
-    is_active BOOLEAN NOT NULL,
-    hashed_token TEXT
+    is_active BOOLEAN NOT NULL
 );
 
 

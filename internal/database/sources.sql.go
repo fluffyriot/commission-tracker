@@ -7,12 +7,60 @@ package database
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
+const createSource = `-- name: CreateSource :one
+INSERT INTO sources (id, created_at, updated_at, network, user_name, user_id, is_active)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7
+)
+RETURNING id, created_at, updated_at, network, user_name, user_id, is_active
+`
+
+type CreateSourceParams struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Network   string
+	UserName  string
+	UserID    uuid.UUID
+	IsActive  bool
+}
+
+func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Source, error) {
+	row := q.db.QueryRowContext(ctx, createSource,
+		arg.ID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.Network,
+		arg.UserName,
+		arg.UserID,
+		arg.IsActive,
+	)
+	var i Source
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Network,
+		&i.UserName,
+		&i.UserID,
+		&i.IsActive,
+	)
+	return i, err
+}
+
 const getUserActiveSourceByName = `-- name: GetUserActiveSourceByName :one
-SELECT id, created_at, updated_at, network, user_name, user_id, is_active, hashed_token FROM sources
+SELECT id, created_at, updated_at, network, user_name, user_id, is_active FROM sources
 where user_id = $1 and network = $2 and is_active = TRUE
 LIMIT 1
 `
@@ -33,7 +81,6 @@ func (q *Queries) GetUserActiveSourceByName(ctx context.Context, arg GetUserActi
 		&i.UserName,
 		&i.UserID,
 		&i.IsActive,
-		&i.HashedToken,
 	)
 	return i, err
 }

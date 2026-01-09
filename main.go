@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/fluffyriot/commission-tracker/internal/auth"
 	"github.com/fluffyriot/commission-tracker/internal/config"
+	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/fluffyriot/commission-tracker/internal/fetcher"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -27,15 +33,73 @@ func main() {
 		dbStatus = "DOWN"
 	}
 
-	httpClient := fetcher.NewClient(60 * time.Second)
+	// dev temp section
 
-	parse1, _ := uuid.Parse("8f30934e-3135-4fcf-8c59-bc7246171694")
-	parse2, _ := uuid.Parse("2e7a1d09-bfe8-4cdd-9cd1-fdec628fa948")
-
-	err = fetcher.FetchBlueskyPosts(dbQueries, httpClient, parse1, parse2)
+	err = dbQueries.EmptyUsers(context.Background())
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	user, err := dbQueries.CreateUser(context.Background(), database.CreateUserParams{
+		ID:               uuid.New(),
+		Username:         "riot.photos",
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+		SyncMethod:       "CSV",
+		AccessKey:        sql.NullString{},
+		TargetDatabaseID: sql.NullString{},
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	bskySource, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Network:   "Bluesky",
+		UserName:  "riot.photos",
+		UserID:    user.ID,
+		IsActive:  true,
+	})
+
+	instaSource, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Network:   "Instagram",
+		UserName:  "_riotphotos_",
+		UserID:    user.ID,
+		IsActive:  true,
+	})
+
+	httpClient := fetcher.NewClient(60 * time.Second)
+
+	err = fetcher.FetchBlueskyPosts(dbQueries, httpClient, user.ID, bskySource.ID)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	keyB64 := os.Getenv("TOKEN_ENCRYPTION_KEY")
+	if keyB64 == "" {
+		log.Fatal("TOKEN_ENCRYPTION_KEY not set")
+	}
+
+	key, err := base64.StdEncoding.DecodeString(keyB64)
+	if err != nil || len(key) != 32 {
+		log.Fatal("TOKEN_ENCRYPTION_KEY must be 32 bytes (base64)")
+	}
+
+	encryptionKey := key
+
+	err = auth.InsertToken(dbQueries, user.ID, os.Getenv("INSTAGRAM_API"), encryptionKey)
+
+	err = fetcher.FetchInstagramPosts(dbQueries, httpClient, user.ID, instaSource.ID, os.Getenv("INSTAGRAM_API_VERSION"), encryptionKey)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// dev temp section
 
 	r := gin.Default()
 

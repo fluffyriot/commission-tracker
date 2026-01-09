@@ -11,3 +11,5 @@ VALUES (
 )
 RETURNING *;
 
+-- name: EmptyUsers :exec
+DELETE FROM users;
