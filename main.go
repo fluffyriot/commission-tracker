@@ -253,7 +253,14 @@ func syncSourceHandler(encryptKey []byte, dbQueries *database.Queries, client *f
 			return
 		}
 
-		fetcher.SyncBySource(sourceID, dbQueries, client, ver, encryptKey)
+		go func(sid uuid.UUID) {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("panic in background sync: %v", r)
+				}
+			}()
+			fetcher.SyncBySource(sid, dbQueries, client, ver, encryptKey)
+		}(sourceID)
 
 		c.Redirect(http.StatusSeeOther, "/")
 	}

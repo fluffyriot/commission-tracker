@@ -82,20 +82,19 @@
           <div class="source-actions">
 
             <!-- Sync Button -->
-            <form method="POST" action="/sources/sync" style="display:inline;" onsubmit="return submitAndRefresh(this);">
+            <form method="POST" action="/sources/sync" style="display:inline;" onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
               <button type="submit" class="sync" {{if not .IsActive}}disabled{{end}}>Sync</button>
             </form>
 
             <!-- Activate / Deactivate -->
             {{if .IsActive}}
-            <form method="POST" action="/sources/deactivate" onsubmit="return confirm('Deactivate this source?');"
-              style="display:inline;">
+            <form method="POST" action="/sources/deactivate" style="display:inline;" onsubmit="return submitWithConfirm(this, 'Deactivate this source?');">
               <input type="hidden" name="source_id" value="{{.ID}}">
               <button type="submit" class="fail">Deactivate</button>
             </form>
             {{else}}
-            <form method="POST" action="/sources/activate" style="display:inline;" onsubmit="return submitAndRefresh(this);">
+            <form method="POST" action="/sources/activate" style="display:inline;" onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
               <button type="submit" class="ok">Activate</button>
             </form>
@@ -114,7 +113,7 @@
 
     <!-- Add Source Form -->
     <div class="form-section inline-form">
-      <form method="POST" action="/sources/setup" id="source_form" >
+      <form method="POST" action="/sources/setup" id="source_form">
         <input type="hidden" name="user_id" value="{{.user_id}}">
         <select id="network" name="network" required>
           <option value="" disabled selected>Select Network</option>
@@ -173,26 +172,33 @@
       });
     });
 
-    
+
   </script>
 
   <script>
-    function submitAndRefresh(form) {
-  fetch(form.action, {
-    method: form.method,
-    body: new FormData(form)
-  }).then(res => {
-    if (res.ok) {
-      window.location.reload();
-    } else {
-      alert("Operation failed");
+    function submitWithConfirm(form, message) {
+      if (message && !window.confirm(message)) {
+        return false;
+      }
+
+      fetch(form.action, {
+        method: form.method,
+        body: new FormData(form)
+      })
+        .then(res => {
+          if (res.ok) {
+            window.location.reload();
+          } else {
+            alert("Operation failed");
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error performing operation");
+        });
+
+      return false;
     }
-  }).catch(err => {
-    console.error(err);
-    alert("Error performing operation");
-  });
-  return false;
-}
   </script>
 
 </body>
