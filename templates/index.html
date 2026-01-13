@@ -81,14 +81,12 @@
 
           <div class="source-actions">
 
-            <!-- Sync Button -->
             <form method="POST" action="/sources/sync" style="display:inline;"
               onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
               <button type="submit" class="sync" {{if not .IsActive}}disabled{{end}}>Sync</button>
             </form>
 
-            <!-- Activate / Deactivate -->
             {{if .IsActive}}
             <form method="POST" action="/sources/deactivate" style="display:inline;"
               onsubmit="return submitWithConfirm(this, 'Deactivate this source?');">
@@ -102,6 +100,12 @@
               <button type="submit" class="ok">Activate</button>
             </form>
             {{end}}
+
+            <form method="POST" action="/sources/delete" style="display:inline;"
+              onsubmit="return submitWithConfirm(this, 'Delete this source?');">
+              <input type="hidden" name="source_id" value="{{.ID}}">
+              <button type="submit" class="fail">Delete</button>
+            </form>
 
           </div>
 

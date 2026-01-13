@@ -109,6 +109,16 @@ func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Sou
 	return i, err
 }
 
+const deleteSource = `-- name: DeleteSource :exec
+DELETE FROM sources
+WHERE id = $1
+`
+
+func (q *Queries) DeleteSource(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteSource, id)
+	return err
+}
+
 const getSourceById = `-- name: GetSourceById :one
 SELECT id, created_at, updated_at, network, user_name, user_id, is_active, sync_status, status_reason, last_synced FROM sources
 where id = $1

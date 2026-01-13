@@ -31,6 +31,10 @@ where user_id = $1;
 SELECT * FROM sources
 where id = $1;
 
+-- name: DeleteSource :exec
+DELETE FROM sources
+WHERE id = $1;
+
 -- name: ChangeSourceStatusById :one
 UPDATE sources
 SET is_active = $2, sync_status = $3, status_reason = $4

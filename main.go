@@ -30,6 +30,11 @@ func main() {
 		log.Fatal("INSTAGRAM_API_VERSION not set")
 	}
 
+	appPort := ":" + os.Getenv("APP_PORT")
+	if instVer == "" {
+		log.Fatal("INSTAGRAM_API_VERSION not set")
+	}
+
 	keyB64 := os.Getenv("TOKEN_ENCRYPTION_KEY")
 	if keyB64 == "" {
 		log.Fatal("TOKEN_ENCRYPTION_KEY not set")
@@ -58,6 +63,7 @@ func main() {
 	r.POST("/sources/setup", sourcesSetupHandler(encryptKey))
 	r.POST("/sources/deactivate", deactivateSourceHandler)
 	r.POST("/sources/activate", activateSourceHandler)
+	r.POST("/sources/delete", deleteSourceHandler)
 	r.POST("/sources/sync", syncSourceHandler(encryptKey, dbQueries, client, instVer))
 
 	r.POST("/reset", func(c *gin.Context) {
@@ -69,7 +75,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(appPort); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -205,6 +211,26 @@ func deactivateSourceHandler(c *gin.Context) {
 			IsActive: false,
 		},
 	)
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/")
+}
+
+func deleteSourceHandler(c *gin.Context) {
+	sourceID, err := uuid.Parse(c.PostForm("source_id"))
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	err = dbQueries.DeleteSource(context.Background(), sourceID)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": err.Error(),
