@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -200,11 +201,38 @@ func csvExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Expor
 }
 
 func notionExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Export) error {
-	// Placeholder for Notion export logic
-	return nil
+
+	_, err := dbQueries.ChangeExportStatusById(context.Background(), database.ChangeExportStatusByIdParams{
+		ID:            exp.ID,
+		ExportStatus:  "Failed",
+		StatusMessage: sql.NullString{String: "Not implemented yet", Valid: true},
+		CompletedAt:   time.Now(),
+	})
+
+	return err
 }
 
 func testExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Export) error {
-	// Placeholder for testing/dev export logic
-	return nil
+
+	randomInt := rand.Intn(2)
+
+	var err error
+
+	if randomInt == 0 {
+		_, err = dbQueries.ChangeExportStatusById(context.Background(), database.ChangeExportStatusByIdParams{
+			ID:            exp.ID,
+			ExportStatus:  "Failed",
+			StatusMessage: sql.NullString{String: "Random export tester", Valid: true},
+			CompletedAt:   time.Now(),
+		})
+	} else {
+		_, err = dbQueries.ChangeExportStatusById(context.Background(), database.ChangeExportStatusByIdParams{
+			ID:            exp.ID,
+			ExportStatus:  "Succeeded",
+			StatusMessage: sql.NullString{},
+			CompletedAt:   time.Now(),
+		})
+	}
+
+	return err
 }
