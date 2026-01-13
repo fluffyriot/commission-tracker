@@ -10,6 +10,7 @@ import (
 	"github.com/fluffyriot/commission-tracker/internal/auth"
 	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/google/uuid"
+	"github.com/pressly/goose/v3"
 
 	_ "github.com/lib/pq"
 )
@@ -47,6 +48,17 @@ func LoadDatabase() (*database.Queries, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect to the DB. Error: %v", err)
 	}
+
+	migrationsDir := "./sql/schema"
+	if err := goose.Up(db, migrationsDir); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %v", err)
+	}
+
+	version, err := goose.EnsureDBVersion(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DB version: %v", err)
+	}
+	fmt.Printf("Migrations applied successfully. Current DB version: %d\n", version)
 
 	dbQueries := database.New(db)
 

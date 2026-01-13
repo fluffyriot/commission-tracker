@@ -1,5 +1,8 @@
 # Stage 1: Builder
-FROM golang:1.25.5 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25.5 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -10,27 +13,17 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o commission-tracker .
-
-# Install Goose CLI into /go/bin
-ENV GOBIN=/go/bin
-RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o commission-tracker .
 
 # Stage 2: Runtime
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Runtime deps
 RUN apt-get update && apt-get install -y bash netcat-openbsd ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Copy app binary
 COPY --from=builder /app/commission-tracker .
 
-# Copy Goose CLI from builder
-COPY --from=builder /go/bin/goose /usr/local/bin/goose
-
-# Copy runtime assets
 COPY templates/ templates/
 COPY sql/schema/ sql/schema/
 COPY static/ static/
@@ -40,7 +33,6 @@ RUN mkdir -p /app/outputs
 
 RUN chmod +x entrypoint.sh
 
-# Add Goose to PATH just in case
 ENV PATH="/usr/local/bin:${PATH}"
 
 ENTRYPOINT ["./entrypoint.sh"]
