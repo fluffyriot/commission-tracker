@@ -29,7 +29,7 @@ PORT=8080
 POSTGRES_HOST=db
 
 INSTAGRAM_API_VERSION=24.0
-TOKEN_ENCRYPTION_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx // Key used for encrypting tokens. Use terminal command "openssl rand -base64 32" to generate a secure key.
+TOKEN_ENCRYPTION_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 POSTGRES_PORT=5435
 APP_PORT=22347
 ```
