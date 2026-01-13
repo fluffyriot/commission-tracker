@@ -65,6 +65,7 @@ func main() {
 	r.POST("/sources/activate", activateSourceHandler)
 	r.POST("/sources/delete", deleteSourceHandler)
 	r.POST("/sources/sync", syncSourceHandler(encryptKey, dbQueries, client, instVer))
+	r.POST("/sources/syncAll", syncAllHandler(encryptKey, dbQueries, client, instVer))
 
 	r.POST("/reset", func(c *gin.Context) {
 		err := dbQueries.EmptyUsers(context.Background())
@@ -287,6 +288,33 @@ func syncSourceHandler(encryptKey []byte, dbQueries *database.Queries, client *f
 			}()
 			fetcher.SyncBySource(sid, dbQueries, client, ver, encryptKey)
 		}(sourceID)
+
+		c.Redirect(http.StatusSeeOther, "/")
+	}
+}
+
+func syncAllHandler(encryptKey []byte, dbQueries *database.Queries, client *fetcher.Client, ver string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, err := uuid.Parse(c.PostForm("user_id"))
+		if err != nil {
+			c.HTML(http.StatusBadRequest, "error.html", gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		sources, err := dbQueries.GetUserActiveSources(context.Background(), userID)
+
+		for _, sourceID := range sources {
+			go func(sid uuid.UUID) {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("panic in background sync: %v", r)
+					}
+				}()
+				fetcher.SyncBySource(sid, dbQueries, client, ver, encryptKey)
+			}(sourceID.ID)
+		}
 
 		c.Redirect(http.StatusSeeOther, "/")
 	}
