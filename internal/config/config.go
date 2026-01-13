@@ -36,13 +36,12 @@ func LoadDatabase() (*database.Queries, error) {
 	dbName := os.Getenv("POSTGRES_DB")
 	dbUserName := os.Getenv("POSTGRES_USER")
 	dbPassword := os.Getenv("POSTGRES_PASSWORD")
-	dbPort := os.Getenv("POSTGRES_PORT")
 
 	if dbName == "" || dbUserName == "" || dbPassword == "" {
 		return nil, fmt.Errorf("Failed to load the environment configuration.")
 	}
 
-	connectDbUrl := fmt.Sprintf("postgres://%v:%v@localhost:%v/%v?sslmode=disable", dbUserName, dbPassword, dbPort, dbName)
+	connectDbUrl := fmt.Sprintf("postgres://%v:%v@db:5432/%v?sslmode=disable", dbUserName, dbPassword, dbName)
 
 	db, err := sql.Open("postgres", connectDbUrl)
 	if err != nil {

@@ -30,9 +30,9 @@ var (
 
 func main() {
 
-	appPort := ":" + os.Getenv("APP_PORT")
+	appPort := ":" + os.Getenv("PORT")
 	if appPort == ":" {
-		log.Fatal("APP_PORT is not set in the .env")
+		log.Fatal("PORT is not set in the .env")
 	}
 
 	instVer := os.Getenv("INSTAGRAM_API_VERSION")

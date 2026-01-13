@@ -5,6 +5,8 @@
   <title>Service Status</title>
 
   <link rel="stylesheet" href="/static/css/index.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 </head>
 
 <body>
@@ -34,22 +36,42 @@
       <div class="form-section inline-form button-group">
 
         <form method="GET" action="/">
-          <button type="submit" class="refresh">Refresh</button>
+          <div class="tooltip">
+            <button class="refresh">
+              <i data-lucide="refresh-cw"></i>
+            </button>
+            <span class="tooltip-text">Refresh Data</span>
+          </div>
         </form>
 
         <form method="POST" action="/sources/syncAll" style="display:inline;"
           onsubmit="return submitWithConfirm(this);">
           <input type="hidden" name="user_id" value="{{.user_id}}">
-          <button type="submit" class="refresh">Sync All Sources</button>
+          <div class="tooltip">
+            <button type="submit" class="refresh">
+              <i data-lucide="cloud-sync"></i>
+            </button>
+            <span class="tooltip-text">Sync All</span>
+          </div>
         </form>
 
         <form method="GET" action="/exports">
-          <button type="submit" class="sync">Exports</button>
+          <div class="tooltip">
+            <button type="submit" class="sync">
+              <i data-lucide="download"></i>
+            </button>
+            <span class="tooltip-text">Exports</span>
+          </div>
         </form>
 
         <form method="POST" action="/reset" style="display:inline;"
           onclick="return submitWithConfirm(this, 'Are you sure you want to reset the configuration? Everything will be deleted and this action cannot be undone.');">
-          <button type="submit" class="fail">Reset Configuration</button>
+          <div class="tooltip">
+            <button type="submit" class="fail">
+              <i data-lucide="octagon-alert"></i>
+            </button>
+            <span class="tooltip-text">Reset Configuration</span>
+          </div>
         </form>
       </div>
     </div>
@@ -73,15 +95,15 @@
               {{if not .IsActive}}status-disabled{{end}}">
 
               {{if not .IsActive}}
-              Disabled
+              Disabled<br>
               {{else}}
-              {{.SyncStatus}}
+              {{.SyncStatus}}<br>
               {{end}}
 
               {{if .StatusReason.Valid}}
               <span class="tooltip">
                 ⓘ
-                <span class="tooltip-text">
+                <span>
                   {{.StatusReason.String}}
                 </span>
               </span>
@@ -90,6 +112,7 @@
 
 
             <span class="last-sync">
+              <br>
               {{if .LastSynced.Valid}}
               Last sync: {{.LastSynced.Time.Format "2006-01-02 15:04"}}
               {{else}}
@@ -103,27 +126,44 @@
             <form method="POST" action="/sources/sync" style="display:inline;"
               onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
-              <button type="submit" class="sync" {{if not .IsActive}}disabled{{end}}>Sync</button>
+
+              <div class="tooltip">
+                <button type="submit" class="sync" {{if not .IsActive}}disabled{{end}}>
+                  <i data-lucide="refresh-cw"></i>
+                </button>
+              </div>
             </form>
 
             {{if .IsActive}}
             <form method="POST" action="/sources/deactivate" style="display:inline;"
               onsubmit="return submitWithConfirm(this, 'Deactivate this source?');">
               <input type="hidden" name="source_id" value="{{.ID}}">
-              <button type="submit" class="fail">Deactivate</button>
+              <div class="tooltip">
+                <button type="submit" class="fail">
+                  <i data-lucide="power-off"></i>
+                </button>
+              </div>
             </form>
             {{else}}
             <form method="POST" action="/sources/activate" style="display:inline;"
               onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
-              <button type="submit" class="ok">Activate</button>
+              <div class="tooltip">
+                <button type="submit" class="ok">
+                  <i data-lucide="power"></i>
+                </button>
+              </div>
             </form>
             {{end}}
 
             <form method="POST" action="/sources/delete" style="display:inline;"
               onsubmit="return submitWithConfirm(this, 'Delete this source?');">
               <input type="hidden" name="source_id" value="{{.ID}}">
-              <button type="submit" class="fail">Delete</button>
+              <div class="tooltip">
+                <button type="submit" class="fail">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
             </form>
 
           </div>
@@ -199,6 +239,11 @@
 
       return false;
     }
+  </script>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    lucide.createIcons();
   </script>
 
 </body>
