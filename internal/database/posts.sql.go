@@ -14,7 +14,7 @@ import (
 )
 
 const createPost = `-- name: CreatePost :one
-INSERT INTO posts (id, created_at, last_synced_at, source_id, is_archived, network_internal_id, content)
+INSERT INTO posts (id, created_at, last_synced_at, source_id, is_archived, network_internal_id, content, post_type, author)
 VALUES (
     $1,
     $2,
@@ -22,9 +22,11 @@ VALUES (
     $4,
     $5,
     $6,
-    $7
+    $7,
+    $8,
+    $9
 )
-RETURNING id, created_at, last_synced_at, source_id, is_archived, network_internal_id, content
+RETURNING id, created_at, last_synced_at, source_id, is_archived, network_internal_id, post_type, author, content
 `
 
 type CreatePostParams struct {
@@ -35,6 +37,8 @@ type CreatePostParams struct {
 	IsArchived        bool
 	NetworkInternalID string
 	Content           sql.NullString
+	PostType          string
+	Author            string
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
@@ -46,6 +50,8 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 		arg.IsArchived,
 		arg.NetworkInternalID,
 		arg.Content,
+		arg.PostType,
+		arg.Author,
 	)
 	var i Post
 	err := row.Scan(
@@ -55,6 +61,8 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 		&i.SourceID,
 		&i.IsArchived,
 		&i.NetworkInternalID,
+		&i.PostType,
+		&i.Author,
 		&i.Content,
 	)
 	return i, err
@@ -68,6 +76,8 @@ SELECT
     p.is_archived,
     p.network_internal_id,
     p.content,
+    p.post_type,
+    p.author,
     s.network AS network,
     u.username AS current_user_name,
     s.user_name AS source_user_name,
@@ -96,6 +106,8 @@ type GetAllPostsWithTheLatestInfoForUserRow struct {
 	IsArchived        bool
 	NetworkInternalID string
 	Content           sql.NullString
+	PostType          string
+	Author            string
 	Network           sql.NullString
 	CurrentUserName   sql.NullString
 	SourceUserName    sql.NullString
@@ -121,6 +133,8 @@ func (q *Queries) GetAllPostsWithTheLatestInfoForUser(ctx context.Context, userI
 			&i.IsArchived,
 			&i.NetworkInternalID,
 			&i.Content,
+			&i.PostType,
+			&i.Author,
 			&i.Network,
 			&i.CurrentUserName,
 			&i.SourceUserName,
@@ -143,7 +157,7 @@ func (q *Queries) GetAllPostsWithTheLatestInfoForUser(ctx context.Context, userI
 }
 
 const getPostByNetworkAndId = `-- name: GetPostByNetworkAndId :one
-SELECT posts.id, posts.created_at, posts.last_synced_at, posts.source_id, posts.is_archived, posts.network_internal_id, posts.content FROM posts
+SELECT posts.id, posts.created_at, posts.last_synced_at, posts.source_id, posts.is_archived, posts.network_internal_id, posts.post_type, posts.author, posts.content FROM posts
 join sources on posts.source_id = sources.id
 where network_internal_id = $1 and sources.network = $2
 `
@@ -163,6 +177,8 @@ func (q *Queries) GetPostByNetworkAndId(ctx context.Context, arg GetPostByNetwor
 		&i.SourceID,
 		&i.IsArchived,
 		&i.NetworkInternalID,
+		&i.PostType,
+		&i.Author,
 		&i.Content,
 	)
 	return i, err

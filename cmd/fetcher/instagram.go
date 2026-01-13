@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/fluffyriot/commission-tracker/internal/auth"
@@ -25,6 +26,8 @@ type instagramFeed struct {
 		Shortcode string `json:"shortcode"`
 		LikeCount int    `json:"like_count"`
 		Timestamp string `json:"timestamp"`
+		MediaType string `json:"media_type"`
+		Username  string `json:"username"`
 		Insights  struct {
 			Data []struct {
 				Values []struct {
@@ -45,7 +48,7 @@ func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next stri
 		return "", err
 	}
 
-	apiString := fmt.Sprintf("https://graph.instagram.com/v%v/me/media?fields=id,caption,shortcode,like_count,timestamp,insights.metric(views)&access_token=%v&limit=25", version, token)
+	apiString := fmt.Sprintf("https://graph.instagram.com/v%v/me/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, token)
 
 	if next != "" {
 		apiString = next
@@ -109,6 +112,11 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *Client, sourceId uuid.U
 			processedLinks[item.Shortcode] = struct{}{}
 
 			timeParse, _ := time.Parse("2006-01-02T15:04:05-0700", item.Timestamp)
+			post_type := strings.ToLower(item.MediaType)
+
+			if item.MediaType == "CAROUSEL_ALBUM" {
+				post_type = "image"
+			}
 
 			post, err := dbQueries.GetPostByNetworkAndId(context.Background(), database.GetPostByNetworkAndIdParams{
 				NetworkInternalID: item.Shortcode,
@@ -122,6 +130,8 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *Client, sourceId uuid.U
 					LastSyncedAt:      time.Now(),
 					SourceID:          sourceId,
 					IsArchived:        false,
+					Author:            item.Username,
+					PostType:          post_type,
 					NetworkInternalID: item.Shortcode,
 					Content: sql.NullString{
 						String: item.Caption,

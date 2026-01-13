@@ -43,6 +43,9 @@ type bskyFeed struct {
 		} `json:"post"`
 		Reason struct {
 			Type string `json:"$type"`
+			By   struct {
+				Handle string `json:"handle"`
+			} `json:"by"`
 		} `json:"reason,omitempty"`
 	} `json:"feed"`
 	Cursor string `json:"cursor,omitempty"`
@@ -126,6 +129,16 @@ func FetchBlueskyPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, so
 
 			processedLinks[interNetId] = struct{}{}
 
+			post_type := "post"
+
+			if item.Post.Record.Embed.Type == "app.bsky.embed.record" || item.Post.Record.Embed.Type == "app.bsky.embed.recordWithMedia" {
+				post_type = "quote"
+			}
+
+			if item.Reason.Type == "app.bsky.feed.defs#reasonRepost" && item.Reason.By.Handle != item.Post.Author.Handle {
+				post_type = "repost"
+			}
+
 			var intId uuid.UUID
 
 			post, err := dbQueries.GetPostByNetworkAndId(context.Background(), database.GetPostByNetworkAndIdParams{
@@ -140,6 +153,8 @@ func FetchBlueskyPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, so
 					LastSyncedAt:      time.Now(),
 					SourceID:          sourceId,
 					IsArchived:        false,
+					Author:            item.Post.Author.Handle,
+					PostType:          post_type,
 					NetworkInternalID: interNetId,
 					Content: sql.NullString{
 						String: item.Post.Record.Text,

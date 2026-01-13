@@ -1,5 +1,5 @@
 -- name: CreatePost :one
-INSERT INTO posts (id, created_at, last_synced_at, source_id, is_archived, network_internal_id, content)
+INSERT INTO posts (id, created_at, last_synced_at, source_id, is_archived, network_internal_id, content, post_type, author)
 VALUES (
     $1,
     $2,
@@ -7,7 +7,9 @@ VALUES (
     $4,
     $5,
     $6,
-    $7
+    $7,
+    $8,
+    $9
 )
 RETURNING *;
 
@@ -24,6 +26,8 @@ SELECT
     p.is_archived,
     p.network_internal_id,
     p.content,
+    p.post_type,
+    p.author,
     s.network AS network,
     u.username AS current_user_name,
     s.user_name AS source_user_name,

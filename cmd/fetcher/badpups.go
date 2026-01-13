@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, error) {
+func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, string, error) {
 
 	username, err := dbQueries.GetUserActiveSourceByName(
 		context.Background(),
@@ -26,7 +26,7 @@ func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, error
 		},
 	)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	urlString := fmt.Sprintf(
@@ -34,7 +34,7 @@ func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, error
 		username.UserName,
 	)
 
-	return urlString, nil
+	return urlString, username.UserName, nil
 
 }
 
@@ -42,7 +42,7 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, so
 
 	processedLinks := make(map[string]struct{})
 
-	profileURL, err := getBadpupsString(dbQueries, uid)
+	profileURL, username, err := getBadpupsString(dbQueries, uid)
 	if err != nil {
 		return err
 	}
@@ -147,6 +147,8 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, so
 				LastSyncedAt:      time.Now(),
 				SourceID:          sourceId,
 				IsArchived:        false,
+				PostType:          "video",
+				Author:            username,
 				NetworkInternalID: id,
 				Content: sql.NullString{
 					String: fmt.Sprintf("%s\n\n%s", title, description),

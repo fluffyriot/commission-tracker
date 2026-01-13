@@ -10,6 +10,8 @@ CREATE TABLE posts (
         ON DELETE CASCADE,
     is_archived BOOLEAN NOT NULL,
     network_internal_id TEXT NOT NULL,
+    post_type TEXT NOT NULL,
+    author TEXT NOT NULL,
     content TEXT
 );
 

@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func getMurrtubeString(dbQueries *database.Queries, uid uuid.UUID) (string, error) {
+func getMurrtubeString(dbQueries *database.Queries, uid uuid.UUID) (string, string, error) {
 
 	username, err := dbQueries.GetUserActiveSourceByName(
 		context.Background(),
@@ -26,7 +26,7 @@ func getMurrtubeString(dbQueries *database.Queries, uid uuid.UUID) (string, erro
 		},
 	)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	urlString := fmt.Sprintf(
@@ -34,13 +34,13 @@ func getMurrtubeString(dbQueries *database.Queries, uid uuid.UUID) (string, erro
 		username.UserName,
 	)
 
-	return urlString, nil
+	return urlString, username.UserName, nil
 }
 
 func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, sourceId uuid.UUID) error {
 	processedLinks := make(map[string]struct{})
 
-	profileURL, err := getMurrtubeString(dbQueries, uid)
+	profileURL, username, err := getMurrtubeString(dbQueries, uid)
 	if err != nil {
 		return err
 	}
@@ -125,6 +125,8 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 				CreatedAt:         time.Now(),
 				LastSyncedAt:      time.Now(),
 				SourceID:          sourceId,
+				PostType:          "video",
+				Author:            username,
 				IsArchived:        false,
 				NetworkInternalID: id,
 				Content: sql.NullString{

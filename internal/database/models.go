@@ -29,6 +29,8 @@ type Post struct {
 	SourceID          uuid.UUID
 	IsArchived        bool
 	NetworkInternalID string
+	PostType          string
+	Author            string
 	Content           sql.NullString
 }
 
