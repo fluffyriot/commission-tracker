@@ -34,6 +34,7 @@ type User struct {
 }
 
 func LoadDatabase() (*database.Queries, error) {
+
 	dbName := os.Getenv("POSTGRES_DB")
 	dbUserName := os.Getenv("POSTGRES_USER")
 	dbPassword := os.Getenv("POSTGRES_PASSWORD")
@@ -82,6 +83,7 @@ func CreateUserFromForm(dbQueries *database.Queries, userName, syncMethod string
 	}
 
 	return u.Username, u.ID.String(), nil
+
 }
 
 func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, token string, encryptionKey []byte) (id, networkName string, e error) {
@@ -116,4 +118,5 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 	}
 
 	return s.ID.String(), s.Network, nil
+
 }

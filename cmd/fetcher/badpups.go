@@ -16,16 +16,13 @@ import (
 	"github.com/google/uuid"
 )
 
-func getMurrtubeString(
-	dbQueries *database.Queries,
-	uid uuid.UUID,
-) (string, error) {
+func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, error) {
 
 	username, err := dbQueries.GetUserActiveSourceByName(
 		context.Background(),
 		database.GetUserActiveSourceByNameParams{
 			UserID:  uid,
-			Network: "Murrtube",
+			Network: "BadPups",
 		},
 	)
 	if err != nil {
@@ -33,17 +30,19 @@ func getMurrtubeString(
 	}
 
 	urlString := fmt.Sprintf(
-		"https://murrtube.net/%s",
+		"https://badpups.com/lite/profile/%s/",
 		username.UserName,
 	)
 
 	return urlString, nil
+
 }
 
-func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, sourceId uuid.UUID) error {
+func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, sourceId uuid.UUID) error {
+
 	processedLinks := make(map[string]struct{})
 
-	profileURL, err := getMurrtubeString(dbQueries, uid)
+	profileURL, err := getBadpupsString(dbQueries, uid)
 	if err != nil {
 		return err
 	}
@@ -70,7 +69,7 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 		return err
 	}
 
-	linkPattern := regexp.MustCompile(`^/v/.{4}$`)
+	linkPattern := regexp.MustCompile(`^https?://[^/]+/lite/video/[^/]+$`)
 
 	doc.Find("a").Each(func(_ int, s *goquery.Selection) {
 		var intId uuid.UUID
@@ -79,14 +78,13 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 			return
 		}
 
-		videoURL := "https://murrtube.net" + href
-		if _, exists := processedLinks[videoURL]; exists {
+		if _, exists := processedLinks[href]; exists {
 			return
 		}
 
-		processedLinks[videoURL] = struct{}{}
+		processedLinks[href] = struct{}{}
 
-		videoReq, err := http.NewRequest("GET", videoURL, nil)
+		videoReq, err := http.NewRequest("GET", href, nil)
 		if err != nil {
 			return
 		}
@@ -109,17 +107,37 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 
 		pageText := videoDoc.Text()
 
-		videoViews, _ := extractMurrNumber(pageText, `([\d,]+)\s+Views`)
-		videoLikes, _ := extractMurrNumber(pageText, `([\d,]+)\s+Likes`)
+		videoViews, _ := extractMurrNumber(pageText, `([\d]+)\s*views`)
 
-		id := strings.TrimPrefix(href, "/v/")
+		likesText := strings.TrimSpace(
+			videoDoc.Find("span.likes_count").First().Text(),
+		)
+
+		dislikesText := strings.TrimSpace(
+			videoDoc.Find("span.dislikes_count").First().Text(),
+		)
+
+		likes := 0
+		dislikes := 0
+
+		if likesText != "" {
+			likes, _ = strconv.Atoi(likesText)
+		}
+
+		if dislikesText != "" {
+			dislikes, _ = strconv.Atoi(dislikesText)
+		}
+
+		videoLikes := likes - dislikes
+
+		id := strings.TrimPrefix(href, "https://badpups.com/lite/video/")
 
 		title, _ := videoDoc.Find(`meta[property="og:title"]`).Attr("content")
 		description, _ := videoDoc.Find(`meta[property="og:description"]`).Attr("content")
 
 		post, err := dbQueries.GetPostByNetworkAndId(context.Background(), database.GetPostByNetworkAndIdParams{
 			NetworkInternalID: id,
-			Network:           "Murrtube",
+			Network:           "BadPups",
 		})
 
 		if err != nil {
@@ -165,9 +183,10 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 	}
 
 	return nil
+
 }
 
-func extractMurrNumber(text, pattern string) (int, error) {
+func extractBpNumber(text, pattern string) (int, error) {
 	re := regexp.MustCompile(pattern)
 	match := re.FindStringSubmatch(text)
 	if len(match) < 2 {
@@ -180,4 +199,5 @@ func extractMurrNumber(text, pattern string) (int, error) {
 		return 0, nil
 	}
 	return value, nil
+
 }

@@ -38,13 +38,7 @@ type instagramFeed struct {
 	} `json:"paging"`
 }
 
-func getInstagramApiString(
-	dbQueries *database.Queries,
-	sid uuid.UUID,
-	next string,
-	version string,
-	encryptionKey []byte,
-) (string, error) {
+func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, error) {
 
 	token, err := auth.GetToken(context.Background(), dbQueries, encryptionKey, sid)
 	if err != nil {
@@ -58,15 +52,10 @@ func getInstagramApiString(
 	}
 
 	return apiString, nil
+
 }
 
-func FetchInstagramPosts(
-	dbQueries *database.Queries,
-	c *Client,
-	sourceId uuid.UUID,
-	version string,
-	encryptionKey []byte,
-) error {
+func FetchInstagramPosts(dbQueries *database.Queries, c *Client, sourceId uuid.UUID, version string, encryptionKey []byte) error {
 
 	processedLinks := make(map[string]struct{})
 
@@ -190,4 +179,5 @@ func FetchInstagramPosts(
 	}
 
 	return nil
+
 }

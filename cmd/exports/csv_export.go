@@ -4,10 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/csv"
-	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -15,63 +13,6 @@ import (
 	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/google/uuid"
 )
-
-func DeleteAllExports(userID uuid.UUID, dbQueries *database.Queries) error {
-
-	exports, err := dbQueries.GetAllExportsByUserId(context.Background(), userID)
-	if err != nil {
-		log.Printf("Error getting all exports records: %v", err)
-		return err
-	}
-	for _, exp := range exports {
-		if exp.DownloadUrl.Valid {
-			err := os.Remove(exp.DownloadUrl.String)
-			if err != nil {
-				log.Printf("Error deleting export file %s: %v", exp.DownloadUrl.String, err)
-			}
-		}
-	}
-
-	err = dbQueries.DeleteAllExportsByUserId(context.Background(), userID)
-	if err != nil {
-		log.Printf("Error deleting all exports records: %v", err)
-		return err
-	}
-
-	return nil
-
-}
-
-func InitiateExport(userID uuid.UUID, syncMethod string, dbQueries *database.Queries) (database.Export, error) {
-
-	export, err := dbQueries.CreateExport(context.Background(), database.CreateExportParams{
-		ID:           uuid.New(),
-		CreatedAt:    time.Now(),
-		ExportStatus: "Requested",
-		UserID:       userID,
-		ExportMethod: syncMethod,
-	})
-
-	if err != nil {
-		log.Printf("Error creating export record: %v", err)
-		return database.Export{}, err
-	}
-
-	switch syncMethod {
-	case "csv":
-		csvExport(userID, dbQueries, export)
-		return database.Export{}, fmt.Errorf("Not implemented")
-	case "notion":
-		notionExport(userID, dbQueries, export)
-		return database.Export{}, fmt.Errorf("Not implemented")
-	case "none":
-		testExport(userID, dbQueries, export)
-		return database.Export{}, fmt.Errorf("Not required - testing/dev only")
-	default:
-		return database.Export{}, errors.New("Unknown sync method")
-	}
-
-}
 
 func csvExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Export) error {
 
@@ -198,41 +139,4 @@ func csvExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Expor
 
 	return writer.Error()
 
-}
-
-func notionExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Export) error {
-
-	_, err := dbQueries.ChangeExportStatusById(context.Background(), database.ChangeExportStatusByIdParams{
-		ID:            exp.ID,
-		ExportStatus:  "Failed",
-		StatusMessage: sql.NullString{String: "Not implemented yet", Valid: true},
-		CompletedAt:   time.Now(),
-	})
-
-	return err
-}
-
-func testExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Export) error {
-
-	randomInt := rand.Intn(2)
-
-	var err error
-
-	if randomInt == 0 {
-		_, err = dbQueries.ChangeExportStatusById(context.Background(), database.ChangeExportStatusByIdParams{
-			ID:            exp.ID,
-			ExportStatus:  "Failed",
-			StatusMessage: sql.NullString{String: "Random export tester", Valid: true},
-			CompletedAt:   time.Now(),
-		})
-	} else {
-		_, err = dbQueries.ChangeExportStatusById(context.Background(), database.ChangeExportStatusByIdParams{
-			ID:            exp.ID,
-			ExportStatus:  "Succeeded",
-			StatusMessage: sql.NullString{},
-			CompletedAt:   time.Now(),
-		})
-	}
-
-	return err
 }

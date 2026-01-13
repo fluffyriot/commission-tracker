@@ -48,11 +48,7 @@ type bskyFeed struct {
 	Cursor string `json:"cursor,omitempty"`
 }
 
-func getBskyApiString(
-	dbQueries *database.Queries,
-	uid uuid.UUID,
-	cursor string,
-) (string, error) {
+func getBskyApiString(dbQueries *database.Queries, uid uuid.UUID, cursor string) (string, error) {
 
 	username, err := dbQueries.GetUserActiveSourceByName(
 		context.Background(),
@@ -61,6 +57,7 @@ func getBskyApiString(
 			Network: "Bluesky",
 		},
 	)
+
 	if err != nil {
 		return "", err
 	}
@@ -75,14 +72,10 @@ func getBskyApiString(
 	}
 
 	return apiString, nil
+
 }
 
-func FetchBlueskyPosts(
-	dbQueries *database.Queries,
-	c *Client,
-	uid uuid.UUID,
-	sourceId uuid.UUID,
-) error {
+func FetchBlueskyPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, sourceId uuid.UUID) error {
 
 	processedLinks := make(map[string]struct{})
 
@@ -192,4 +185,5 @@ func FetchBlueskyPosts(
 	}
 
 	return nil
+
 }

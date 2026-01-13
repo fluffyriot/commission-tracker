@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fluffyriot/commission-tracker/cmd/exports"
+	"github.com/fluffyriot/commission-tracker/cmd/fetcher"
 	"github.com/fluffyriot/commission-tracker/internal/config"
 	"github.com/fluffyriot/commission-tracker/internal/database"
-	"github.com/fluffyriot/commission-tracker/internal/exports"
-	"github.com/fluffyriot/commission-tracker/internal/fetcher"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )

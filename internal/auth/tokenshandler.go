@@ -24,6 +24,7 @@ type Token struct {
 }
 
 func encrypt(plaintext []byte, key []byte) (ciphertext, nonce []byte, err error) {
+
 	if len(key) != 32 {
 		return nil, nil, errors.New("encryption key must be 32 bytes")
 	}
@@ -45,9 +46,11 @@ func encrypt(plaintext []byte, key []byte) (ciphertext, nonce []byte, err error)
 
 	ciphertext = gcm.Seal(nil, nonce, plaintext, nil)
 	return
+
 }
 
 func decrypt(ciphertext, nonce, key []byte) ([]byte, error) {
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -59,14 +62,10 @@ func decrypt(ciphertext, nonce, key []byte) ([]byte, error) {
 	}
 
 	return gcm.Open(nil, nonce, ciphertext, nil)
+
 }
 
-func InsertToken(
-	dbQueries *database.Queries,
-	sid uuid.UUID,
-	accessToken string,
-	encryptionKey []byte,
-) error {
+func InsertToken(dbQueries *database.Queries, sid uuid.UUID, accessToken string, encryptionKey []byte) error {
 
 	ciphertext, nonce, err := encrypt([]byte(accessToken), encryptionKey)
 	if err != nil {
@@ -83,14 +82,11 @@ func InsertToken(
 	})
 
 	return err
+
 }
 
-func GetToken(
-	ctx context.Context,
-	dbQueries *database.Queries,
-	encryptionKey []byte,
-	sid uuid.UUID,
-) (string, error) {
+func GetToken(ctx context.Context, dbQueries *database.Queries, encryptionKey []byte, sid uuid.UUID) (string, error) {
+
 	var (
 		ciphertext []byte
 		nonce      []byte
@@ -110,4 +106,5 @@ func GetToken(
 	}
 
 	return string(plaintext), nil
+
 }

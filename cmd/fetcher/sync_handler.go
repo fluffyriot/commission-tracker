@@ -3,20 +3,11 @@ package fetcher
 import (
 	"context"
 	"database/sql"
-	"net/http"
 	"time"
 
 	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/google/uuid"
 )
-
-func NewClient(timeout time.Duration) *Client {
-	return &Client{
-		httpClient: http.Client{
-			Timeout: timeout,
-		},
-	}
-}
 
 func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *Client, ver string, encryptionKey []byte) error {
 
@@ -34,7 +25,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *Client, ver str
 	}
 
 	switch source.Network {
+
 	case "Bluesky":
+
 		err = FetchBlueskyPosts(dbQueries, c, source.UserID, source.ID)
 		if err != nil {
 			_, err = dbQueries.UpdateSourceSyncStatusById(context.Background(), database.UpdateSourceSyncStatusByIdParams{
@@ -48,7 +41,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *Client, ver str
 			}
 			return err
 		}
+
 	case "Instagram":
+
 		err = FetchInstagramPosts(dbQueries, c, source.ID, ver, encryptionKey)
 		if err != nil {
 			_, err = dbQueries.UpdateSourceSyncStatusById(context.Background(), database.UpdateSourceSyncStatusByIdParams{
@@ -62,7 +57,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *Client, ver str
 			}
 			return err
 		}
+
 	case "Murrtube":
+
 		err = FetchMurrtubePosts(source.UserID, dbQueries, c, source.ID)
 		if err != nil {
 			_, err = dbQueries.UpdateSourceSyncStatusById(context.Background(), database.UpdateSourceSyncStatusByIdParams{
@@ -76,7 +73,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *Client, ver str
 			}
 			return err
 		}
+
 	case "BadPups":
+
 		err = FetchBadpupsPosts(source.UserID, dbQueries, c, source.ID)
 		if err != nil {
 			_, err = dbQueries.UpdateSourceSyncStatusById(context.Background(), database.UpdateSourceSyncStatusByIdParams{
@@ -90,6 +89,7 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *Client, ver str
 			}
 			return err
 		}
+
 	}
 
 	_, err = dbQueries.UpdateSourceSyncStatusById(context.Background(), database.UpdateSourceSyncStatusByIdParams{
