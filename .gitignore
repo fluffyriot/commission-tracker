@@ -34,3 +34,7 @@ outputs*
 .vscode/
 
 sqlc.yaml
+
+Caddyfile
+
+certs*

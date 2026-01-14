@@ -63,6 +63,7 @@ type Token struct {
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 	SourceID             uuid.UUID
+	ProfileID            sql.NullString
 }
 
 type User struct {

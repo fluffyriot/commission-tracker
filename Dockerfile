@@ -16,11 +16,15 @@ COPY . .
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o commission-tracker .
 
 # Stage 2: Runtime
-FROM debian:bookworm-slim
+FROM --platform=$TARGETPLATFORM debian:bookworm
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y bash netcat-openbsd ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+ && apt-get install -y bash netcat-openbsd ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /app/outputs \
+ && mkdir -p /app/certs
 
 COPY --from=builder /app/commission-tracker .
 
@@ -28,8 +32,6 @@ COPY templates/ templates/
 COPY sql/schema/ sql/schema/
 COPY static/ static/
 COPY docker/entrypoint.sh .
-
-RUN mkdir -p /app/outputs
 
 RUN chmod +x entrypoint.sh
 

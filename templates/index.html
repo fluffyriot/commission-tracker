@@ -28,8 +28,8 @@
           <option value="BadPups">BadPups</option>
         </select>
         <input type="text" name="username" placeholder="Username" required>
-        <label for="api_token" id="api_token_label" style="display:none;">API Token</label>
-        <input id="api_token" name="api_token" type="password" placeholder="Add your API token" style="display:none;">
+        <label for="instagram_profile_id" id="instagram_profile_id_label" style="display:none;">Instagram Profile Id</label>
+        <input id="instagram_profile_id" name="instagram_profile_id" placeholder="Your Profile Id" style="display:none;">
         <button type="submit">Add Source</button>
       </form>
 
@@ -183,21 +183,21 @@
     document.addEventListener("DOMContentLoaded", function () {
       const form = document.getElementById("source_form");
       const networkSelect = document.getElementById("network");
-      const tokenInput = document.getElementById("api_token");
-      const tokenLabel = document.getElementById("api_token_label");
+      const profileInput = document.getElementById("instagram_profile_id");
+      const profileLabel = document.getElementById("instagram_profile_id_label");
 
-      if (!form || !networkSelect || !tokenInput || !tokenLabel) return;
+      if (!form || !networkSelect || !profileLabel || !profileLabel) return;
 
       function updateTokenVisibility() {
         if (networkSelect.value === "Instagram") {
-          tokenInput.style.display = "block";
-          tokenLabel.style.display = "block";
-          tokenInput.required = true;
+          profileInput.style.display = "block";
+          profileLabel.style.display = "block";
+          profileInput.required = true;
         } else {
-          tokenInput.style.display = "none";
-          tokenLabel.style.display = "none";
-          tokenInput.required = false;
-          tokenInput.value = "";
+          profileInput.style.display = "none";
+          profileLabel.style.display = "none";
+          profileInput.required = false;
+          profileInput.value = "";
         }
       }
 
@@ -206,7 +206,7 @@
       form.addEventListener("submit", function (e) {
         if (networkSelect.value === "Instagram" && tokenInput.value.trim() === "") {
           e.preventDefault();
-          alert("Instagram requires an API token.");
+          alert("Instagram requires an Profile Page id.");
           tokenInput.focus();
         }
       });

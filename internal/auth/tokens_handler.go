@@ -5,6 +5,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"io"
 	"time"
@@ -65,7 +67,7 @@ func decrypt(ciphertext, nonce, key []byte) ([]byte, error) {
 
 }
 
-func InsertToken(dbQueries *database.Queries, sid uuid.UUID, accessToken string, encryptionKey []byte) error {
+func InsertToken(dbQueries *database.Queries, sid uuid.UUID, accessToken, pid string, encryptionKey []byte) error {
 
 	ciphertext, nonce, err := encrypt([]byte(accessToken), encryptionKey)
 	if err != nil {
@@ -79,13 +81,14 @@ func InsertToken(dbQueries *database.Queries, sid uuid.UUID, accessToken string,
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
 		SourceID:             sid,
+		ProfileID:            sql.NullString{String: pid, Valid: true},
 	})
 
 	return err
 
 }
 
-func GetToken(ctx context.Context, dbQueries *database.Queries, encryptionKey []byte, sid uuid.UUID) (string, error) {
+func GetToken(ctx context.Context, dbQueries *database.Queries, encryptionKey []byte, sid uuid.UUID) (string, string, uuid.UUID, error) {
 
 	var (
 		ciphertext []byte
@@ -94,7 +97,7 @@ func GetToken(ctx context.Context, dbQueries *database.Queries, encryptionKey []
 
 	dbToken, err := dbQueries.GetTokenBySource(context.Background(), sid)
 	if err != nil {
-		return "", err
+		return "", "", uuid.UUID{}, err
 	}
 
 	ciphertext = dbToken.EncryptedAccessToken
@@ -102,9 +105,21 @@ func GetToken(ctx context.Context, dbQueries *database.Queries, encryptionKey []
 
 	plaintext, err := decrypt(ciphertext, nonce, encryptionKey)
 	if err != nil {
-		return "", err
+		return "", "", uuid.UUID{}, err
 	}
 
-	return string(plaintext), nil
+	type TokenResponse struct {
+		AccessToken string `json:"access_token"`
+	}
+
+	var tr TokenResponse
+	err = json.Unmarshal(plaintext, &tr)
+	if err != nil {
+		return "", "", uuid.UUID{}, err
+	}
+
+	accessToken := tr.AccessToken
+
+	return accessToken, dbToken.ProfileID.String, dbToken.ID, nil
 
 }

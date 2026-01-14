@@ -7,22 +7,24 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 const createToken = `-- name: CreateToken :one
-INSERT INTO tokens (id, encrypted_access_token, nonce, created_at, updated_at, source_id)
+INSERT INTO tokens (id, encrypted_access_token, nonce, created_at, updated_at, source_id, profile_id)
 VALUES (
     $1,
     $2,
     $3,
     $4,
     $5,
-    $6
+    $6,
+    $7
 )
-RETURNING id, encrypted_access_token, nonce, created_at, updated_at, source_id
+RETURNING id, encrypted_access_token, nonce, created_at, updated_at, source_id, profile_id
 `
 
 type CreateTokenParams struct {
@@ -32,6 +34,7 @@ type CreateTokenParams struct {
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 	SourceID             uuid.UUID
+	ProfileID            sql.NullString
 }
 
 func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token, error) {
@@ -42,6 +45,7 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.SourceID,
+		arg.ProfileID,
 	)
 	var i Token
 	err := row.Scan(
@@ -51,12 +55,23 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.SourceID,
+		&i.ProfileID,
 	)
 	return i, err
 }
 
+const deleteTokenById = `-- name: DeleteTokenById :exec
+DELETE FROM tokens
+WHERE id = $1
+`
+
+func (q *Queries) DeleteTokenById(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteTokenById, id)
+	return err
+}
+
 const getTokenBySource = `-- name: GetTokenBySource :one
-SELECT id, encrypted_access_token, nonce, created_at, updated_at, source_id FROM tokens
+SELECT id, encrypted_access_token, nonce, created_at, updated_at, source_id, profile_id FROM tokens
 where source_id = $1
 `
 
@@ -70,6 +85,7 @@ func (q *Queries) GetTokenBySource(ctx context.Context, sourceID uuid.UUID) (Tok
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.SourceID,
+		&i.ProfileID,
 	)
 	return i, err
 }
