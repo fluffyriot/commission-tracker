@@ -1,0 +1,38 @@
+# --- Git metadata ---
+.git
+.gitignore
+
+# --- Binaries and build artifacts ---
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin*
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# --- Go workspace ---
+go.work
+go.work.sum
+
+# --- Runtime / generated outputs ---
+outputs*
+certs*
+
+# --- Environment / secrets ---
+.env
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+
+# --- Tooling config not needed at build time ---
+sqlc.yaml
+
+# --- Caddy ---
+Caddyfile
+Caddyfile.template

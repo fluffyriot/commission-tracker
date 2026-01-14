@@ -33,12 +33,12 @@ var (
 func main() {
 
 	httpsPort := os.Getenv("HTTPS_PORT")
-	if httpsPort == ":" {
+	if httpsPort == "" {
 		log.Fatal("HTTPS_PORT is not set in the .env")
 	}
 
 	appPort := os.Getenv("APP_PORT")
-	if appPort == ":" {
+	if appPort == "" {
 		log.Fatal("APP_PORT is not set in the .env")
 	}
 
