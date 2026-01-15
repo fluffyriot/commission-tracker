@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -15,47 +14,38 @@ import (
 	"time"
 
 	"github.com/fluffyriot/commission-tracker/internal/database"
-
 	"github.com/google/uuid"
 )
 
 func getTiktokString(dbQueries *database.Queries, uid uuid.UUID) (string, string, error) {
-
-	username, err := dbQueries.GetUserActiveSourceByName(
-		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "TikTok",
-		},
+	username, err := dbQueries.GetUserActiveSourceByName(context.Background(), database.GetUserActiveSourceByNameParams{
+		UserID:  uid,
+		Network: "TikTok",
+	},
 	)
 	if err != nil {
 		return "", "", err
 	}
 
-	urlString := fmt.Sprintf(
-		"https://www.tiktok.com/@%s",
-		username.UserName,
-	)
-
+	urlString := fmt.Sprintf("https://www.tiktok.com/@%s", username.UserName)
 	return urlString, username.UserName, nil
-
 }
 
 func FetchTikTokPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, sourceId uuid.UUID) error {
 
 	processedLinks := make(map[string]struct{})
 
-	urlString, username, err := getTiktokString(dbQueries, uid)
+	profileURL, username, err := getTiktokString(dbQueries, uid)
 	if err != nil {
 		return err
 	}
 
-	secUid, err := resolveTikTokSecUID(c, username, urlString)
+	secUid, err := resolveTikTokSecUID(c, username, profileURL)
 	if err != nil {
 		return err
 	}
 
-	var cursor string = ""
+	cursor := "0"
 	const maxPages = 500
 
 	for page := 0; page < maxPages; page++ {
@@ -102,7 +92,6 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, sou
 			processedLinks[item.ID] = struct{}{}
 
 			postType := "video"
-
 			if item.ImagePost != nil {
 				postType = "image"
 			}
@@ -110,14 +99,11 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, sou
 			createdAt := time.Unix(item.CreateTime, 0)
 
 			content := strings.TrimSpace(item.Desc)
-
 			if content == "" && item.ImagePost != nil {
 				content = strings.TrimSpace(item.ImagePost.Title)
 			}
 
 			var intId uuid.UUID
-
-			log.Println(item.ID)
 
 			post, err := dbQueries.GetPostByNetworkAndId(
 				context.Background(),
@@ -188,7 +174,6 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, sou
 		}
 
 		cursor = feed.Cursor
-
 		time.Sleep(600 * time.Millisecond)
 	}
 
@@ -241,9 +226,13 @@ func setTikTokHeaders(req *http.Request, username string) {
 		"User-Agent",
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 	)
-	req.Header.Set("Referer", fmt.Sprintf("https://www.tiktok.com/@%s", username))
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set(
+		"Accept",
+		"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+	)
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Referer", fmt.Sprintf("https://www.tiktok.com/@%s", username))
 }
 
 type tiktokPostFeed struct {
