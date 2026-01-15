@@ -108,7 +108,7 @@ func csvExport(userID uuid.UUID, dbQueries *database.Queries, exp database.Expor
 			r.CreatedAt.Format(time.RFC3339),
 			r.SourceID.String(),
 			strconv.FormatBool(r.IsArchived),
-			r.NetworkInternalID,
+			"'" + r.NetworkInternalID,
 			network,
 			content,
 			currentUserName,
