@@ -1,9 +1,7 @@
-/* Base Styles */
 html,
 body {
   font-family: "Segoe UI", sans-serif;
   background-color: #1a1a1a;
-  /* softer dark */
   color: #e0e0e0;
   margin: 0;
   padding: 0;
@@ -23,14 +21,12 @@ body {
   margin: 30px auto;
   padding: 25px;
   background-color: #242424;
-  /* card background */
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 h1 {
   color: #9575cd;
-  /* softer violet */
   text-align: center;
   font-size: 2rem;
   margin-bottom: 25px;
@@ -77,20 +73,17 @@ li:hover {
 
 .ok {
   background-color: #4db6ac;
-  /* soft teal */
   color: #121212;
 }
 
 .fail {
   background-color: #f07178;
-  /* soft red */
   color: #fff !important;
   font-weight: bold !important;
 }
 
 .pending {
   background-color: #ffca28;
-  /* soft gold */
   color: #121212;
 }
 
@@ -109,7 +102,6 @@ input:focus,
 select:focus {
   outline: none;
   border-color: #9575cd;
-  /* violet focus */
 }
 
 .card {
@@ -140,13 +132,11 @@ select:focus {
   color: #fff;
 }
 
-/* Button & Icon Styles */
 button {
   padding: 14px;
   border: none;
   border-radius: 6px;
   background-color: #6a5acd;
-  /* primary violet */
   color: #fff;
   font-weight: bold;
   cursor: pointer;
@@ -177,7 +167,6 @@ button i {
 
 .refresh {
   background-color: #4dd0e1;
-  /* soft teal */
   color: #121212;
 }
 
@@ -185,7 +174,6 @@ button i {
   background-color: #26a69a;
 }
 
-/* Tooltip Styles */
 .tooltip {
   position: relative;
   display: inline-block;
@@ -219,7 +207,6 @@ button i {
   opacity: 1;
 }
 
-/* Responsive & Mobile Optimizations */
 @media (max-width: 768px) {
   .container {
     max-width: 100%;
@@ -244,14 +231,10 @@ button i {
     gap: 12px;
   }
 
-  /* Stretch buttons inside tooltips */
   .tooltip button {
     width: 100%;
-    /* full container width */
     height: 50px;
-    /* touch-friendly height */
     font-size: 22px;
-    /* bigger icon */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -265,7 +248,6 @@ button i {
 
   .tooltip-text {
     visibility: visible;
-    /* always show tooltip on mobile */
     opacity: 1;
     position: relative;
     bottom: 0;
