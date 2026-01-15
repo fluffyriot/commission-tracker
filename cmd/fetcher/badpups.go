@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +16,16 @@ import (
 	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/google/uuid"
 )
+
+type VideoObjectLD struct {
+	Type                 string `json:"@type"`
+	Name                 string `json:"name"`
+	Description          string `json:"description"`
+	UploadDate           string `json:"uploadDate"`
+	InteractionStatistic struct {
+		UserInteractionCount int `json:"userInteractionCount"`
+	} `json:"interactionStatistic"`
+}
 
 func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, string, error) {
 
@@ -36,6 +47,38 @@ func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, strin
 
 	return urlString, username.UserName, nil
 
+}
+
+func extractVideoObjectLD(doc *goquery.Document) (*VideoObjectLD, error) {
+	var result *VideoObjectLD
+
+	doc.Find(`script[type="application/ld+json"]`).EachWithBreak(func(_ int, s *goquery.Selection) bool {
+		raw := strings.TrimSpace(s.Text())
+		if raw == "" {
+			return true
+		}
+
+		var probe map[string]any
+		if err := json.Unmarshal([]byte(raw), &probe); err != nil {
+			return true
+		}
+
+		if t, ok := probe["@type"].(string); ok && t == "VideoObject" {
+			var video VideoObjectLD
+			if err := json.Unmarshal([]byte(raw), &video); err == nil {
+				result = &video
+				return false // stop iteration
+			}
+		}
+
+		return true
+	})
+
+	if result == nil {
+		return nil, errors.New("VideoObject JSON-LD not found")
+	}
+
+	return result, nil
 }
 
 func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, sourceId uuid.UUID) error {
@@ -105,9 +148,45 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, so
 			return
 		}
 
-		pageText := videoDoc.Text()
+		id := strings.TrimPrefix(href, "https://badpups.com/lite/video/")
 
-		videoViews, _ := extractMurrNumber(pageText, `([\d]+)\s*views`)
+		videoLD, err := extractVideoObjectLD(videoDoc)
+		if err != nil {
+			return
+		}
+
+		title := videoLD.Name
+		description := videoLD.Description
+
+		uploadTime, err := time.Parse(time.RFC3339, videoLD.UploadDate)
+		if err != nil {
+			uploadTime = time.Now()
+		}
+
+		post, err := dbQueries.GetPostByNetworkAndId(context.Background(), database.GetPostByNetworkAndIdParams{
+			NetworkInternalID: id,
+			Network:           "BadPups",
+		})
+
+		if err != nil {
+			newPost, _ := dbQueries.CreatePost(context.Background(), database.CreatePostParams{
+				ID:                uuid.New(),
+				CreatedAt:         uploadTime,
+				LastSyncedAt:      time.Now(),
+				SourceID:          sourceId,
+				IsArchived:        false,
+				PostType:          "video",
+				Author:            username,
+				NetworkInternalID: id,
+				Content: sql.NullString{
+					String: fmt.Sprintf("%s\n\n%s", title, description),
+					Valid:  true,
+				},
+			})
+			intId = newPost.ID
+		} else {
+			intId = post.ID
+		}
 
 		likesText := strings.TrimSpace(
 			videoDoc.Find("span.likes_count").First().Text(),
@@ -130,35 +209,7 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, so
 
 		videoLikes := likes - dislikes
 
-		id := strings.TrimPrefix(href, "https://badpups.com/lite/video/")
-
-		title, _ := videoDoc.Find(`meta[property="og:title"]`).Attr("content")
-		description, _ := videoDoc.Find(`meta[property="og:description"]`).Attr("content")
-
-		post, err := dbQueries.GetPostByNetworkAndId(context.Background(), database.GetPostByNetworkAndIdParams{
-			NetworkInternalID: id,
-			Network:           "BadPups",
-		})
-
-		if err != nil {
-			newPost, _ := dbQueries.CreatePost(context.Background(), database.CreatePostParams{
-				ID:                uuid.New(),
-				CreatedAt:         time.Now(),
-				LastSyncedAt:      time.Now(),
-				SourceID:          sourceId,
-				IsArchived:        false,
-				PostType:          "video",
-				Author:            username,
-				NetworkInternalID: id,
-				Content: sql.NullString{
-					String: fmt.Sprintf("%s\n\n%s", title, description),
-					Valid:  true,
-				},
-			})
-			intId = newPost.ID
-		} else {
-			intId = post.ID
-		}
+		videoViews := videoLD.InteractionStatistic.UserInteractionCount
 
 		_, err = dbQueries.SyncReactions(context.Background(), database.SyncReactionsParams{
 			ID:       uuid.New(),

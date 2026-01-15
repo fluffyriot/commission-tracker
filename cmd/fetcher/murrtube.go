@@ -106,13 +106,15 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 
 		pageText := videoDoc.Text()
 
-		videoViews, _ := extractMurrNumber(pageText, `([\d,]+)\s+Views`)
-		videoLikes, _ := extractMurrNumber(pageText, `([\d,]+)\s+Likes`)
-
 		id := strings.TrimPrefix(href, "/v/")
 
 		title, _ := videoDoc.Find(`meta[property="og:title"]`).Attr("content")
 		description, _ := videoDoc.Find(`meta[property="og:description"]`).Attr("content")
+
+		createdAt, err := extractMurrtubeCreatedAt(videoDoc)
+		if err != nil {
+			createdAt = time.Now()
+		}
 
 		post, err := dbQueries.GetPostByNetworkAndId(context.Background(), database.GetPostByNetworkAndIdParams{
 			NetworkInternalID: id,
@@ -122,7 +124,7 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 		if err != nil {
 			newPost, _ := dbQueries.CreatePost(context.Background(), database.CreatePostParams{
 				ID:                uuid.New(),
-				CreatedAt:         time.Now(),
+				CreatedAt:         createdAt,
 				LastSyncedAt:      time.Now(),
 				SourceID:          sourceId,
 				PostType:          "video",
@@ -138,6 +140,9 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 		} else {
 			intId = post.ID
 		}
+
+		videoViews, _ := extractMurrNumber(pageText, `([\d,]+)\s+Views`)
+		videoLikes, _ := extractMurrNumber(pageText, `([\d,]+)\s+Likes`)
 
 		_, err = dbQueries.SyncReactions(context.Background(), database.SyncReactionsParams{
 			ID:       uuid.New(),
@@ -164,6 +169,25 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 	}
 
 	return nil
+}
+
+func extractMurrtubeCreatedAt(doc *goquery.Document) (time.Time, error) {
+	span := doc.Find(`span[data-tooltip]`).First()
+	if span.Length() == 0 {
+		return time.Time{}, errors.New("created date not found")
+	}
+
+	raw, exists := span.Attr("data-tooltip")
+	if !exists || strings.TrimSpace(raw) == "" {
+		return time.Time{}, errors.New("created date empty")
+	}
+
+	t, err := time.Parse("January 2, 2006 - 15:04", raw)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return t, nil
 }
 
 func extractMurrNumber(text, pattern string) (int, error) {
