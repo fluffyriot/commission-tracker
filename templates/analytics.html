@@ -1,98 +1,110 @@
-<!DOCTYPE html>
-<html>
+{{ template "header.html" . }}
 
-<head>
-    <title>Analytics</title>
-    <link rel="stylesheet" href="/static/css/index.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+<div class="flex justify-between items-center mb-4">
+    <h1>Analytics</h1>
+    <a href="/" class="btn btn-secondary">Back to Home</a>
+</div>
 
-<body>
-
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1>Analytics</h1>
-            <a href="/" class="button">Back to Home</a>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Engagement Over Time</div>
-            <div style="padding: 20px; height: 800px;">
-                <canvas id="engagementChart"></canvas>
-            </div>
-        </div>
+<div class="card">
+    <div class="card-header">Engagement Over Time</div>
+    <div style="position: relative; height: 60vh; min-height: 400px; width: 100%;">
+        <canvas id="engagementChart"></canvas>
     </div>
+</div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            fetch('/stats')
-                .then(response => response.json())
-                .then(data => {
-                    if (!data || data.length === 0) {
-                        return;
-                    }
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch('/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (!data || data.length === 0) {
+                    return;
+                }
 
-                    const ctx = document.getElementById('engagementChart').getContext('2d');
+                const ctx = document.getElementById('engagementChart').getContext('2d');
 
-                    // Prepare datasets
-                    const datasets = [];
-                    const allDates = new Set();
+                const datasets = [];
+                const allDates = new Set();
 
-                    data.forEach(source => {
-                        const points = source.points || [];
-                        const dataPoints = points.map(p => {
-                            const dateStr = p.date.split('T')[0];
-                            allDates.add(dateStr);
-                            return {
-                                x: dateStr,
-                                y: p.likes + p.reposts
-                            };
-                        });
+                Chart.defaults.color = '#a0a0a0';
+                Chart.defaults.borderColor = '#333';
 
-                        // Random color generator
-                        const r = Math.floor(Math.random() * 255);
-                        const g = Math.floor(Math.random() * 255);
-                        const b = Math.floor(Math.random() * 255);
-
-                        datasets.push({
-                            label: `${source.network} (${source.username})`,
-                            data: dataPoints,
-                            borderColor: `rgba(${r}, ${g}, ${b}, 1)`,
-                            backgroundColor: `rgba(${r}, ${g}, ${b}, 0.2)`,
-                            fill: false,
-                            tension: 0.1
-                        });
+                data.forEach(source => {
+                    const points = source.points || [];
+                    const dataPoints = points.map(p => {
+                        const dateStr = p.date.split('T')[0];
+                        allDates.add(dateStr);
+                        return {
+                            x: dateStr,
+                            y: p.likes + p.reposts
+                        };
                     });
 
-                    const sortedDates = Array.from(allDates).sort();
+                    let hash = 0;
+                    const str = source.network + source.username;
+                    for (let i = 0; i < str.length; i++) {
+                        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                    }
+                    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                    const color = '#' + "00000".substring(0, 6 - c.length) + c;
 
-                    new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: sortedDates,
-                            datasets: datasets
+                    datasets.push({
+                        label: `${source.network} (${source.username})`,
+                        data: dataPoints,
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        fill: false,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointRadius: 3
+                    });
+                });
+
+                const sortedDates = Array.from(allDates).sort();
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: sortedDates,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: {
-                                    type: 'category',
-                                    title: { display: true, text: 'Date' }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    title: { display: true, text: 'Total Engagement' }
-                                }
+                        scales: {
+                            x: {
+                                type: 'category',
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Total Engagement' },
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { padding: 20, usePointStyle: true }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(20, 20, 30, 0.9)',
+                                titleColor: '#fff',
+                                bodyColor: '#ccc',
+                                padding: 10,
+                                cornerRadius: 8,
+                                displayColors: true
                             }
                         }
-                    });
-                })
-                .catch(err => console.error("Error fetching stats:", err));
-        });
-    </script>
+                    }
+                });
+            })
+            .catch(err => console.error("Error fetching stats:", err));
+    });
+</script>
 
-</body>
-
-</html>
+{{ template "footer.html" . }}

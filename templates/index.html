@@ -1,262 +1,190 @@
-<!DOCTYPE html>
-<html>
+{{ template "header.html" . }}
 
-<head>
-  <title>Service Status</title>
+<div class="flex justify-between items-center mb-4">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="text-muted">Welcome back, {{.username}} <span class="badge badge-neutral">{{.user_id}}</span></p>
+  </div>
 
-  <link rel="stylesheet" href="/static/css/index.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <div class="flex gap-2">
+    <form method="GET" action="/">
+      <button class="btn btn-secondary btn-icon" title="Refresh Page">
+        <i data-lucide="refresh-cw"></i>
+      </button>
+    </form>
 
-</head>
+    <form method="POST" action="/sources/syncAll" onsubmit="return submitWithConfirm(this);">
+      <input type="hidden" name="user_id" value="{{.user_id}}">
+      <button type="submit" class="btn btn-primary" title="Sync All Sources">
+        <i data-lucide="cloud-sync"></i> Sync All
+      </button>
+    </form>
 
-<body>
+    <form method="POST" action="/reset"
+      onclick="return submitWithConfirm(this, 'Are you sure you want to reset the configuration? Everything will be deleted and this action cannot be undone.');">
+      <button type="submit" class="btn btn-danger btn-icon" title="Reset Configuration">
+        <i data-lucide="octagon-alert"></i>
+      </button>
+    </form>
+  </div>
+</div>
 
-  <div class="container">
-    <h1>Setup Status</h1>
-
-    <p>Username: <span class="ok">{{.username}}</span></p>
-    <p>User Id: <span class="ok">{{.user_id}}</span></p>
-
-    <div class="form-section inline-form">
+<div class="grid-responsive">
+  <div>
+    <div class="card">
+      <div class="card-header">Add New Source</div>
       <form method="POST" action="/sources/setup" id="source_form">
         <input type="hidden" name="user_id" value="{{.user_id}}">
-        <select id="network" name="network" required>
-          <option value="" disabled selected>Select Network</option>
-          <option value="Bluesky">Bluesky</option>
-          <option value="Instagram">Instagram</option>
-          <option value="TikTok">TikTok</option>
-          <option value="Mastodon">Mastodon</option>
-          <option value="Murrtube">Murrtube</option>
-          <option value="BadPups">BadPups</option>
-        </select>
-        <input type="text" name="username" placeholder="Username" required>
-        <label for="instagram_profile_id" id="instagram_profile_id_label" style="display:none;">Instagram Profile Id</label>
-        <input id="instagram_profile_id" name="instagram_profile_id" placeholder="Your Profile Id" style="display:none;">
-        <button type="submit">Add Source</button>
+
+        <div class="form-group">
+          <label class="form-label" for="network">Network</label>
+          <select id="network" name="network" class="form-select" required>
+            <option value="" disabled selected>Select Network</option>
+            <option value="Bluesky">Bluesky</option>
+            <option value="Instagram">Instagram</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Mastodon">Mastodon</option>
+            <option value="Murrtube">Murrtube</option>
+            <option value="BadPups">BadPups</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="username_input">Username</label>
+          <input type="text" id="username_input" name="username" class="form-input" placeholder="username (no @)"
+            required>
+        </div>
+
+        <div class="form-group" id="instagram_section" style="display:none;">
+          <label class="form-label" for="instagram_profile_id">Instagram Profile ID</label>
+          <input id="instagram_profile_id" name="instagram_profile_id" class="form-input" placeholder="123456789">
+          <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Found in Meta Business Suite URL</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%">
+          <i data-lucide="plus"></i> Add Source
+        </button>
       </form>
-
-      <div class="form-section inline-form button-group">
-
-        <form method="GET" action="/">
-          <div class="tooltip">
-            <button class="refresh">
-              <i data-lucide="refresh-cw"></i>
-            </button>
-            <span class="tooltip-text">Refresh Data</span>
-          </div>
-        </form>
-
-        <form method="POST" action="/sources/syncAll" style="display:inline;"
-          onsubmit="return submitWithConfirm(this);">
-          <input type="hidden" name="user_id" value="{{.user_id}}">
-          <div class="tooltip">
-            <button type="submit" class="refresh">
-              <i data-lucide="cloud-sync"></i>
-            </button>
-            <span class="tooltip-text">Sync All</span>
-          </div>
-        </form>
-
-        <form method="GET" action="/exports">
-          <div class="tooltip">
-            <button type="submit" class="sync">
-              <i data-lucide="download"></i>
-            </button>
-            <span class="tooltip-text">Exports</span>
-          </div>
-        </form>
-
-        <form method="GET" action="/analytics">
-          <div class="tooltip">
-            <button type="submit" class="sync">
-              <i data-lucide="bar-chart-2"></i>
-            </button>
-            <span class="tooltip-text">Analytics</span>
-          </div>
-        </form>
-
-        <form method="POST" action="/reset" style="display:inline;"
-          onclick="return submitWithConfirm(this, 'Are you sure you want to reset the configuration? Everything will be deleted and this action cannot be undone.');">
-          <div class="tooltip">
-            <button type="submit" class="fail">
-              <i data-lucide="octagon-alert"></i>
-            </button>
-            <span class="tooltip-text">Reset Configuration</span>
-          </div>
-        </form>
-      </div>
     </div>
+  </div>
 
+  <div>
     <div class="card">
-      <div class="card-header">Sync Sources</div>
+      <div class="card-header">Active Sources</div>
 
-      <ul class="source-list">
+      {{if not .sources}}
+      <div class="text-center" style="padding: 2rem; color: var(--color-text-muted);">
+        <i data-lucide="ghost" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+        <p>No sources connected yet.</p>
+      </div>
+      {{else}}
+      <div class="flex flex-col gap-2">
         {{range .sources}}
-        <li class="source-item">
+        <div class="source-item">
+          <div class="source-info">
+            <div class="flex items-center gap-2">
+              <span style="font-weight: bold; font-size: 1.05rem;">{{.UserName}}</span>
+              <span class="badge badge-neutral">{{.Network}}</span>
+            </div>
 
-          <div class="source-main">
-            <strong>{{.UserName}}</strong>
-            <span class="source-network">{{.Network}}</span>
-          </div>
-
-          <div class="source-meta">
-            <span class="sync-status
-  {{if eq .SyncStatus " Initialized"}}status-initialized{{end}} {{if eq .SyncStatus "Syncing" }}status-syncing{{end}}
-              {{if eq .SyncStatus "Synced" }}status-synced{{end}} {{if eq .SyncStatus "Failed" }}status-failed{{end}}
-              {{if not .IsActive}}status-disabled{{end}}">
-
-              {{if not .IsActive}}
-              Disabled<br>
+            <div class="source-meta flex items-center gap-2">
+              {{if .IsActive}}
+              {{if eq .SyncStatus "Synced"}}
+              <span class="badge badge-success">Synced</span>
+              {{else if eq .SyncStatus "Syncing"}}
+              <span class="badge badge-warning">Syncing</span>
+              {{else if eq .SyncStatus "Failed"}}
+              <span class="badge badge-danger">Failed</span>
               {{else}}
-              {{.SyncStatus}}<br>
+              <span class="badge badge-neutral">{{.SyncStatus}}</span>
+              {{end}}
+              {{else}}
+              <span class="badge badge-neutral">Disabled</span>
+              {{end}}
+
+              {{if .LastSynced.Valid}}
+              <span>updated {{.LastSynced.Time.Format "Jan 02 15:04"}}</span>
               {{end}}
 
               {{if .StatusReason.Valid}}
-              <span class="tooltip">
-                ⓘ
-                <span>
-                  {{.StatusReason.String}}
-                </span>
-              </span>
+              <span title="{{.StatusReason.String}}"><i data-lucide="info"
+                  style="width: 14px; height: 14px;"></i></span>
               {{end}}
-            </span>
-
-
-            <span class="last-sync">
-              <br>
-              {{if .LastSynced.Valid}}
-              Last sync: {{.LastSynced.Time.Format "2006-01-02 15:04"}}
-              {{else}}
-              Last sync: never
-              {{end}}
-            </span>
+            </div>
           </div>
 
           <div class="source-actions">
-
-            <form method="POST" action="/sources/sync" style="display:inline;"
-              onsubmit="return submitWithConfirm(this);">
+            <form method="POST" action="/sources/sync" onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
-
-              <div class="tooltip">
-                <button type="submit" class="sync" {{if not .IsActive}}disabled{{end}}>
-                  <i data-lucide="refresh-cw"></i>
-                </button>
-              </div>
+              <button type="submit" class="btn btn-secondary btn-icon" {{if not .IsActive}}disabled{{end}}
+                title="Sync Now">
+                <i data-lucide="cloud-sync"></i>
+              </button>
             </form>
 
             {{if .IsActive}}
-            <form method="POST" action="/sources/deactivate" style="display:inline;"
+            <form method="POST" action="/sources/deactivate"
               onsubmit="return submitWithConfirm(this, 'Deactivate this source?');">
               <input type="hidden" name="source_id" value="{{.ID}}">
-              <div class="tooltip">
-                <button type="submit" class="fail">
-                  <i data-lucide="power-off"></i>
-                </button>
-              </div>
+              <button type="submit" class="btn btn-secondary btn-icon" title="Disable">
+                <i data-lucide="power"></i>
+              </button>
             </form>
             {{else}}
-            <form method="POST" action="/sources/activate" style="display:inline;"
-              onsubmit="return submitWithConfirm(this);">
+            <form method="POST" action="/sources/activate" onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
-              <div class="tooltip">
-                <button type="submit" class="ok">
-                  <i data-lucide="power"></i>
-                </button>
-              </div>
+              <button type="submit" class="btn btn-secondary btn-icon" title="Enable">
+                <i data-lucide="power"></i>
+              </button>
             </form>
             {{end}}
 
-            <form method="POST" action="/sources/delete" style="display:inline;"
+            <form method="POST" action="/sources/delete"
               onsubmit="return submitWithConfirm(this, 'Delete this source?');">
               <input type="hidden" name="source_id" value="{{.ID}}">
-              <div class="tooltip">
-                <button type="submit" class="fail">
-                  <i data-lucide="trash-2"></i>
-                </button>
-              </div>
+              <button type="submit" class="btn btn-danger btn-icon" title="Delete">
+                <i data-lucide="trash-2"></i>
+              </button>
             </form>
-
           </div>
-
-        </li>
+        </div>
         {{end}}
-
-        {{if not .sources}}
-        <p class="fail">No active sources yet.</p>
-        {{end}}
-      </ul>
+      </div>
+      {{end}}
     </div>
-
   </div>
+</div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const form = document.getElementById("source_form");
-      const networkSelect = document.getElementById("network");
-      const profileInput = document.getElementById("instagram_profile_id");
-      const profileLabel = document.getElementById("instagram_profile_id_label");
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const networkSelect = document.getElementById("network");
+    const instagramSection = document.getElementById("instagram_section");
+    const profileInput = document.getElementById("instagram_profile_id");
+    const usernameInput = document.getElementById("username_input");
 
-      if (!form || !networkSelect || !profileLabel || !profileLabel) return;
+    if (!networkSelect) return;
 
-      function updateTokenVisibility() {
-        if (networkSelect.value === "Instagram") {
-          profileInput.style.display = "block";
-          profileLabel.style.display = "block";
-          profileInput.required = true;
-        } else {
-          profileInput.style.display = "none";
-          profileLabel.style.display = "none";
-          profileInput.required = false;
-          profileInput.value = "";
-        }
+    function updateVisibility() {
+      const network = networkSelect.value;
+
+      if (network === "Instagram") {
+        instagramSection.style.display = "block";
+        profileInput.required = true;
+      } else {
+        instagramSection.style.display = "none";
+        profileInput.required = false;
+        profileInput.value = "";
       }
 
-      networkSelect.addEventListener("change", updateTokenVisibility);
-
-      form.addEventListener("submit", function (e) {
-        if (networkSelect.value === "Instagram" && tokenInput.value.trim() === "") {
-          e.preventDefault();
-          alert("Instagram requires an Profile Page id.");
-          tokenInput.focus();
-        }
-      });
-    });
-
-
-  </script>
-
-  <script>
-    function submitWithConfirm(form, message) {
-      if (message && !window.confirm(message)) {
-        return false;
+      if (network === "Mastodon") {
+        usernameInput.placeholder = "username@instance.social";
+      } else {
+        usernameInput.placeholder = "username (no @)";
       }
-
-      fetch(form.action, {
-        method: form.method,
-        body: new FormData(form)
-      })
-        .then(res => {
-          if (res.ok) {
-            window.location.reload();
-          } else {
-            alert("Operation failed");
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          alert("Error performing operation");
-        });
-
-      return false;
     }
-  </script>
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <script>
-    lucide.createIcons();
-  </script>
+    networkSelect.addEventListener("change", updateVisibility);
+  });
+</script>
 
-</body>
-
-</html>
+{{ template "footer.html" . }}

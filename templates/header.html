@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ if .title }}{{ .title }}{{ else }}Commission Tracker{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <nav style="background: var(--color-bg-surface); border-bottom: 1px solid var(--color-border); padding: 1rem 0;">
+        <div class="container"
+            style="padding-top: 0; padding-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
+            <a href="/"
+                style="font-weight: bold; font-size: 1.25rem; color: var(--color-primary-fg); text-decoration: none;">
+                Commission Tracker
+            </a>
+            <div style="display: flex; gap: 1.5rem;">
+                <a href="/" class="text-muted" style="text-decoration:none; font-weight: 500;">Dashboard</a>
+                <a href="/analytics" class="text-muted" style="text-decoration:none; font-weight: 500;">Analytics</a>
+                <a href="/exports" class="text-muted" style="text-decoration:none; font-weight: 500;">Exports</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
