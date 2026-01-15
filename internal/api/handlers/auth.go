@@ -1,0 +1,100 @@
+package handlers
+
+import (
+	"encoding/base64"
+	"net/http"
+	"strings"
+
+	"github.com/fluffyriot/commission-tracker/internal/auth"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
+
+func (h *Handler) FacebookLoginHandler(c *gin.Context) {
+
+	sid, err := uuid.Parse(c.Query("sid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source_id"})
+		return
+	}
+
+	pid := c.Query("pid")
+	if pid == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "profile_id is required"})
+		return
+	}
+
+	payload := base64.URLEncoding.EncodeToString([]byte(sid.String() + ":" + pid))
+
+	state := h.OauthStateString + "|" + payload
+
+	url := h.FBConfig.AuthCodeURL(state)
+	c.Redirect(http.StatusTemporaryRedirect, url)
+
+}
+
+func (h *Handler) FacebookCallbackHandler(c *gin.Context) {
+	rawState := c.Query("state")
+	parts := strings.SplitN(rawState, "|", 2)
+
+	if len(parts) != 2 || parts[0] != h.OauthStateString {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid oauth state"})
+		return
+	}
+
+	decoded, err := base64.URLEncoding.DecodeString(parts[1])
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid state payload"})
+		return
+	}
+
+	values := strings.SplitN(string(decoded), ":", 2)
+	if len(values) != 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid state format"})
+		return
+	}
+
+	sid, err := uuid.Parse(values[0])
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sid in state"})
+		return
+	}
+
+	pid := values[1]
+
+	code := c.Query("code")
+	token, err := h.FBConfig.Exchange(c, code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "token exchange failed", "details": err.Error()})
+		return
+	}
+
+	longLivedToken, err := auth.ExchangeLongLivedToken(token.AccessToken, h.FBConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "long-lived token exchange failed", "details": err.Error()})
+		return
+	}
+	token.AccessToken = longLivedToken
+
+	client := h.FBConfig.Client(c, token)
+	resp, err := client.Get("https://graph.facebook.com/me?fields=id,email")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch user info"})
+		return
+	}
+	defer resp.Body.Close()
+
+	tokenStr, err := auth.OauthTokenToString(token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to serialize token", "details": err.Error()})
+		return
+	}
+
+	err = auth.InsertToken(h.DB, sid, tokenStr, pid, h.EncryptKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store token", "details": err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/")
+}

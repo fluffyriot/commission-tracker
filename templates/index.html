@@ -66,6 +66,15 @@
           </div>
         </form>
 
+        <form method="GET" action="/analytics">
+          <div class="tooltip">
+            <button type="submit" class="sync">
+              <i data-lucide="bar-chart-2"></i>
+            </button>
+            <span class="tooltip-text">Analytics</span>
+          </div>
+        </form>
+
         <form method="POST" action="/reset" style="display:inline;"
           onclick="return submitWithConfirm(this, 'Are you sure you want to reset the configuration? Everything will be deleted and this action cannot be undone.');">
           <div class="tooltip">

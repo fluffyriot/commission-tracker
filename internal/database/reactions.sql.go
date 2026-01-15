@@ -13,6 +13,71 @@ import (
 	"github.com/google/uuid"
 )
 
+const getDailyStats = `-- name: GetDailyStats :many
+SELECT 
+        s.id, s.network, s.user_name, DATE(p.created_at) as date,
+        SUM(prh.likes) as total_likes,
+        SUM(prh.reposts) as total_reposts,
+        SUM(prh.views) as total_views
+ 
+    FROM posts_reactions_history prh
+        JOIN posts p ON prh.post_id = p.id
+        JOIN sources s ON p.source_id = s.id
+
+    WHERE s.user_id = $1
+    AND prh.synced_at = (
+        SELECT MAX(synced_at) 
+        FROM posts_reactions_history 
+        WHERE post_id = prh.post_id 
+        AND DATE(synced_at) = DATE(prh.synced_at)
+    )
+    AND p.post_type <> 'repost'
+
+GROUP BY s.id, s.network, s.user_name, DATE(prh.synced_at), DATE(p.created_at)
+ORDER BY s.id, date ASC
+`
+
+type GetDailyStatsRow struct {
+	ID           uuid.UUID
+	Network      string
+	UserName     string
+	Date         time.Time
+	TotalLikes   int64
+	TotalReposts int64
+	TotalViews   int64
+}
+
+func (q *Queries) GetDailyStats(ctx context.Context, userID uuid.UUID) ([]GetDailyStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDailyStats, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDailyStatsRow
+	for rows.Next() {
+		var i GetDailyStatsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Network,
+			&i.UserName,
+			&i.Date,
+			&i.TotalLikes,
+			&i.TotalReposts,
+			&i.TotalViews,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const syncReactions = `-- name: SyncReactions :one
 INSERT INTO posts_reactions_history (id, synced_at, post_id, likes, reposts, views)
 VALUES (
