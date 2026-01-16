@@ -11,7 +11,9 @@ CREATE TABLE exports (
         REFERENCES users(id)
         ON DELETE CASCADE,
     download_url TEXT,
-    export_method TEXT NOT NULL
+    export_method TEXT NOT NULL,
+    target_id UUID,
+    CONSTRAINT fk_target FOREIGN KEY (target_id) REFERENCES targets(id) ON DELETE CASCADE
 );
 
 

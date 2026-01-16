@@ -12,6 +12,7 @@ import (
 	"github.com/fluffyriot/commission-tracker/internal/auth"
 	"github.com/fluffyriot/commission-tracker/internal/config"
 	"github.com/fluffyriot/commission-tracker/internal/fetcher"
+	"github.com/fluffyriot/commission-tracker/internal/puller"
 	"github.com/fluffyriot/commission-tracker/internal/worker"
 	"github.com/gin-gonic/gin"
 )
@@ -50,7 +51,8 @@ func main() {
 		keyB64Err2 = fmt.Errorf("Error encoding encryption key: %v", keyB64Err2)
 	}
 
-	client := fetcher.NewClient(600 * time.Second)
+	clientFetch := fetcher.NewClient(600 * time.Second)
+	clientPull := puller.NewClient(600 * time.Second)
 
 	r := gin.Default()
 
@@ -73,13 +75,13 @@ func main() {
 		httpsPort,
 	)
 
-	// Start background worker
-	w := worker.NewWorker(dbQueries, client, instVer, encryptKey)
+	w := worker.NewWorker(dbQueries, clientFetch, clientPull, instVer, encryptKey)
 	w.Start(1 * time.Hour) // Sync every hour
 
 	h := handlers.NewHandler(
 		dbQueries,
-		client,
+		clientFetch,
+		clientPull,
 		instVer,
 		encryptKey,
 		oauthStateString,
@@ -108,6 +110,13 @@ func main() {
 	r.POST("/sources/delete", h.DeleteSourceHandler)
 	r.POST("/sources/sync", h.SyncSourceHandler)
 	r.POST("/sources/syncAll", h.SyncAllHandler)
+
+	r.GET("/targets", h.TargetsHandler)
+	r.POST("/targets/setup", h.TargetsSetupHandler)
+	r.POST("/targets/deactivate", h.DeactivateTargetHandler)
+	r.POST("/targets/activate", h.ActivateTargetHandler)
+	r.POST("/targets/delete", h.DeleteTargetHandler)
+	r.POST("/targets/sync", h.SyncTargetHandler)
 
 	r.POST("/reset", h.ResetHandler)
 

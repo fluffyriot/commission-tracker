@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/fluffyriot/commission-tracker/internal/auth"
 	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/google/uuid"
 	"github.com/pressly/goose/v3"
@@ -104,5 +105,39 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username st
 	}
 
 	return s.ID.String(), s.Network, nil
+
+}
+
+func CreateTargetFromForm(dbQueries *database.Queries, uid, target, dbId, period, token, hostUrl string, encryptionKey []byte) (id, targetName string, e error) {
+
+	uidParse, err := uuid.Parse(uid)
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to parse UUID. Error: %v", err)
+	}
+
+	t, err := dbQueries.CreateTarget(context.Background(), database.CreateTargetParams{
+		ID:            uuid.New(),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		TargetType:    target,
+		DbID:          sql.NullString{String: dbId, Valid: true},
+		UserID:        uidParse,
+		IsActive:      true,
+		SyncStatus:    "Initialized",
+		SyncFrequency: period,
+		HostUrl:       sql.NullString{String: hostUrl, Valid: true},
+	})
+
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to create target. Error: %v", err)
+	}
+
+	err = auth.InsertTargetToken(context.Background(), dbQueries, t.ID, token, dbId, encryptionKey)
+
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to store token. Error: %v", err)
+	}
+
+	return t.ID.String(), t.TargetType, nil
 
 }

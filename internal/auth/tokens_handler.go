@@ -15,18 +15,11 @@ import (
 	"github.com/google/uuid"
 )
 
-type Token struct {
-	ID        uuid.UUID
-	UserID    uuid.UUID
-	Cipher    []byte
-	Nonce     []byte
-	KeyID     int16
-	CreatedAt time.Time
-	UpdatedAt time.Time
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
 }
 
-func encrypt(plaintext []byte, key []byte) (ciphertext, nonce []byte, err error) {
-
+func encrypt(plaintext, key []byte) (ciphertext, nonce []byte, err error) {
 	if len(key) != 32 {
 		return nil, nil, errors.New("encryption key must be 32 bytes")
 	}
@@ -48,11 +41,9 @@ func encrypt(plaintext []byte, key []byte) (ciphertext, nonce []byte, err error)
 
 	ciphertext = gcm.Seal(nil, nonce, plaintext, nil)
 	return
-
 }
 
 func decrypt(ciphertext, nonce, key []byte) ([]byte, error) {
-
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -64,62 +55,120 @@ func decrypt(ciphertext, nonce, key []byte) ([]byte, error) {
 	}
 
 	return gcm.Open(nil, nonce, ciphertext, nil)
-
 }
 
-func InsertToken(dbQueries *database.Queries, sid uuid.UUID, accessToken, pid string, encryptionKey []byte) error {
+func insertToken(
+	ctx context.Context,
+	db *database.Queries,
+	accessToken, pid string,
+	encryptionKey []byte,
+	params database.CreateTokenParams,
+) error {
 
 	ciphertext, nonce, err := encrypt([]byte(accessToken), encryptionKey)
 	if err != nil {
 		return err
 	}
 
-	_, err = dbQueries.CreateToken(context.Background(), database.CreateTokenParams{
-		ID:                   uuid.New(),
-		EncryptedAccessToken: ciphertext,
-		Nonce:                nonce,
-		CreatedAt:            time.Now(),
-		UpdatedAt:            time.Now(),
-		SourceID:             sid,
-		ProfileID:            sql.NullString{String: pid, Valid: true},
-	})
+	params.ID = uuid.New()
+	params.EncryptedAccessToken = ciphertext
+	params.Nonce = nonce
+	params.CreatedAt = time.Now()
+	params.UpdatedAt = time.Now()
+	params.ProfileID = sql.NullString{String: pid, Valid: true}
 
+	_, err = db.CreateToken(ctx, params)
 	return err
-
 }
 
-func GetToken(ctx context.Context, dbQueries *database.Queries, encryptionKey []byte, sid uuid.UUID) (string, string, uuid.UUID, error) {
+func InsertSourceToken(
+	ctx context.Context,
+	db *database.Queries,
+	sid uuid.UUID,
+	accessToken, pid string,
+	encryptionKey []byte,
+) error {
 
-	var (
-		ciphertext []byte
-		nonce      []byte
+	return insertToken(ctx, db, accessToken, pid, encryptionKey,
+		database.CreateTokenParams{
+			SourceID: uuid.NullUUID{UUID: sid, Valid: true},
+		},
 	)
+}
 
-	dbToken, err := dbQueries.GetTokenBySource(context.Background(), sid)
+func InsertTargetToken(
+	ctx context.Context,
+	db *database.Queries,
+	tid uuid.UUID,
+	accessToken, pid string,
+	encryptionKey []byte,
+) error {
+
+	return insertToken(ctx, db, accessToken, pid, encryptionKey,
+		database.CreateTokenParams{
+			TargetID: uuid.NullUUID{UUID: tid, Valid: true},
+		},
+	)
+}
+
+func decryptToken(
+	dbToken database.Token,
+	encryptionKey []byte,
+) (string, error) {
+
+	plaintext, err := decrypt(
+		dbToken.EncryptedAccessToken,
+		dbToken.Nonce,
+		encryptionKey,
+	)
 	if err != nil {
-		return "", "", uuid.UUID{}, err
-	}
-
-	ciphertext = dbToken.EncryptedAccessToken
-	nonce = dbToken.Nonce
-
-	plaintext, err := decrypt(ciphertext, nonce, encryptionKey)
-	if err != nil {
-		return "", "", uuid.UUID{}, err
-	}
-
-	type TokenResponse struct {
-		AccessToken string `json:"access_token"`
+		return "", err
 	}
 
 	var tr TokenResponse
-	err = json.Unmarshal(plaintext, &tr)
+	if err := json.Unmarshal(plaintext, &tr); err != nil {
+		return "", err
+	}
+
+	return tr.AccessToken, nil
+}
+
+func GetSourceToken(
+	ctx context.Context,
+	db *database.Queries,
+	encryptionKey []byte,
+	sid uuid.UUID,
+) (accessToken, profileID string, tokenID uuid.UUID, err error) {
+
+	dbToken, err := db.GetTokenBySource(ctx, uuid.NullUUID{UUID: sid, Valid: true})
 	if err != nil {
 		return "", "", uuid.UUID{}, err
 	}
 
-	accessToken := tr.AccessToken
+	accessToken, err = decryptToken(dbToken, encryptionKey)
+	if err != nil {
+		return "", "", uuid.UUID{}, err
+	}
 
 	return accessToken, dbToken.ProfileID.String, dbToken.ID, nil
+}
 
+func GetTargetToken(
+	ctx context.Context,
+	db *database.Queries,
+	encryptionKey []byte,
+	tid uuid.UUID,
+) (accessToken, profileID string, tokenID uuid.UUID, err error) {
+
+	dbToken, err := db.GetTokenByTarget(ctx, uuid.NullUUID{UUID: tid, Valid: true})
+	if err != nil {
+		return "", "", uuid.UUID{}, err
+	}
+
+	accessToken, err = decryptToken(dbToken, encryptionKey)
+	if err != nil {
+		return "", "", uuid.UUID{}, err
+	}
+
+	return accessToken, dbToken.ProfileID.String, dbToken.ID, nil
 }

@@ -58,7 +58,7 @@ type instagramTagsFeed struct {
 
 func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, error) {
 
-	token, pid, _, err := auth.GetToken(context.Background(), dbQueries, encryptionKey, sid)
+	token, pid, _, err := auth.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +75,7 @@ func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next stri
 
 func getInstagramTagstring(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, error) {
 
-	token, pid, _, err := auth.GetToken(context.Background(), dbQueries, encryptionKey, sid)
+	token, pid, _, err := auth.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", err
 	}

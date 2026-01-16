@@ -11,6 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type ColumnMapping struct {
+	ID               uuid.UUID
+	CreatedAt        time.Time
+	TableMappingID   uuid.UUID
+	SourceColumnName string
+	TargetColumnName string
+	TargetColumnCode sql.NullString
+}
+
 type Export struct {
 	ID            uuid.UUID
 	CreatedAt     time.Time
@@ -20,6 +29,7 @@ type Export struct {
 	UserID        uuid.UUID
 	DownloadUrl   sql.NullString
 	ExportMethod  string
+	TargetID      uuid.NullUUID
 }
 
 type Post struct {
@@ -56,6 +66,15 @@ type Source struct {
 	LastSynced   sql.NullTime
 }
 
+type TableMapping struct {
+	ID              uuid.UUID
+	CreatedAt       time.Time
+	SourceTableName string
+	TargetTableName string
+	TargetTableCode sql.NullString
+	TargetID        uuid.UUID
+}
+
 type Target struct {
 	ID            uuid.UUID
 	CreatedAt     time.Time
@@ -68,6 +87,7 @@ type Target struct {
 	SyncStatus    string
 	StatusReason  sql.NullString
 	LastSynced    sql.NullTime
+	HostUrl       sql.NullString
 }
 
 type Token struct {
@@ -77,7 +97,8 @@ type Token struct {
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 	ProfileID            sql.NullString
-	SourceID             uuid.UUID
+	SourceID             uuid.NullUUID
+	TargetID             uuid.NullUUID
 }
 
 type User struct {

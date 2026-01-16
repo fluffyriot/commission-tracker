@@ -14,7 +14,7 @@ import (
 )
 
 const createToken = `-- name: CreateToken :one
-INSERT INTO tokens (id, encrypted_access_token, nonce, created_at, updated_at, source_id, profile_id)
+INSERT INTO tokens (id, encrypted_access_token, nonce, created_at, updated_at, source_id, target_id, profile_id)
 VALUES (
     $1,
     $2,
@@ -22,9 +22,10 @@ VALUES (
     $4,
     $5,
     $6,
-    $7
+    $7,
+    $8
 )
-RETURNING id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id
+RETURNING id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id
 `
 
 type CreateTokenParams struct {
@@ -33,7 +34,8 @@ type CreateTokenParams struct {
 	Nonce                []byte
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
-	SourceID             uuid.UUID
+	SourceID             uuid.NullUUID
+	TargetID             uuid.NullUUID
 	ProfileID            sql.NullString
 }
 
@@ -45,6 +47,7 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.SourceID,
+		arg.TargetID,
 		arg.ProfileID,
 	)
 	var i Token
@@ -56,6 +59,7 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token
 		&i.UpdatedAt,
 		&i.ProfileID,
 		&i.SourceID,
+		&i.TargetID,
 	)
 	return i, err
 }
@@ -71,11 +75,11 @@ func (q *Queries) DeleteTokenById(ctx context.Context, id uuid.UUID) error {
 }
 
 const getTokenBySource = `-- name: GetTokenBySource :one
-SELECT id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id FROM tokens
+SELECT id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id FROM tokens
 where source_id = $1
 `
 
-func (q *Queries) GetTokenBySource(ctx context.Context, sourceID uuid.UUID) (Token, error) {
+func (q *Queries) GetTokenBySource(ctx context.Context, sourceID uuid.NullUUID) (Token, error) {
 	row := q.db.QueryRowContext(ctx, getTokenBySource, sourceID)
 	var i Token
 	err := row.Scan(
@@ -86,6 +90,28 @@ func (q *Queries) GetTokenBySource(ctx context.Context, sourceID uuid.UUID) (Tok
 		&i.UpdatedAt,
 		&i.ProfileID,
 		&i.SourceID,
+		&i.TargetID,
+	)
+	return i, err
+}
+
+const getTokenByTarget = `-- name: GetTokenByTarget :one
+SELECT id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id FROM tokens
+where target_id = $1
+`
+
+func (q *Queries) GetTokenByTarget(ctx context.Context, targetID uuid.NullUUID) (Token, error) {
+	row := q.db.QueryRowContext(ctx, getTokenByTarget, targetID)
+	var i Token
+	err := row.Scan(
+		&i.ID,
+		&i.EncryptedAccessToken,
+		&i.Nonce,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProfileID,
+		&i.SourceID,
+		&i.TargetID,
 	)
 	return i, err
 }

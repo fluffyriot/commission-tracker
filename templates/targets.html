@@ -1,0 +1,176 @@
+{{ template "header.html" . }}
+
+<div class="flex justify-between items-center mb-4">
+  <div>
+    <h1>Targets</h1>
+  </div>
+
+  <div class="flex gap-2">
+    <form method="GET" action="/targets">
+      <button class="btn btn-secondary btn-icon" title="Refresh Page">
+        <i data-lucide="refresh-cw"></i>
+      </button>
+    </form>
+
+  </div>
+</div>
+
+<div class="grid-responsive">
+  <div>
+    <div class="card">
+      <div class="card-header">Add New Target</div>
+      <form method="POST" action="/targets/setup" id="targets_form">
+        <input type="hidden" name="user_id" value="{{.user_id}}">
+
+        <div class="form-group">
+          <label class="form-label" for="target">Target</label>
+          <select id="target" name="target" class="form-select" required>
+            <option value="" disabled selected>Select Target</option>
+            <option value="NocoDB">NocoDB</option>
+            <option value="Notion" disabled>Notion - coming soon</option>
+            <option value="CSV">CSV</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="db_id">Database Id</label>
+          <input type="text" id="db_id" name="db_id" class="form-input" placeholder="Database Id"
+            required>
+        </div>
+
+        <div class="form-group" id="tokenized_db" style="display:none;">
+          <label class="form-label" for="api_token">API Bearer Token</label>
+          <input id="api_token" name="api_token" class="form-input" placeholder="xxxxxxxxxxxxxxxxxxxxxx">
+        </div>
+
+        <div class="form-group" id="db_with_url" style="display:none;">
+          <label class="form-label" for="host_url">Host Url</label>
+          <input id="host_url" name="host_url" class="form-input" placeholder="http://127.0.0.1">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%">
+          <i data-lucide="plus"></i> Add Target
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header">Active Targets</div>
+
+      {{if not .targets}}
+      <div class="text-center" style="padding: 2rem; color: var(--color-text-muted);">
+        <i data-lucide="ghost" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+        <p>No targets added yet.</p>
+      </div>
+      {{else}}
+      <div class="flex flex-col gap-2">
+        {{range .targets}}
+        <div class="source-item">
+          <div class="source-info">
+            <div class="flex items-center gap-2">
+              <span style="font-weight: bold; font-size: 1.05rem;">{{.DbID.String}}</span>
+              <span class="badge badge-neutral">{{.TargetType}}</span>
+            </div>
+
+            <div class="source-meta flex items-center gap-2">
+              {{if .IsActive}}
+              {{if eq .SyncStatus "Synced"}}
+              <span class="badge badge-success">Synced</span>
+              {{else if eq .SyncStatus "Syncing"}}
+              <span class="badge badge-warning">Syncing</span>
+              {{else if eq .SyncStatus "Failed"}}
+              <span class="badge badge-danger">Failed</span>
+              {{else}}
+              <span class="badge badge-neutral">{{.SyncStatus}}</span>
+              {{end}}
+              {{else}}
+              <span class="badge badge-neutral">Disabled</span>
+              {{end}}
+
+              {{if .LastSynced.Valid}}
+              <span>updated {{.LastSynced.Time.Format "Jan 02 15:04"}}</span>
+              {{end}}
+
+              {{if .StatusReason.Valid}}
+              <span title="{{.StatusReason.String}}"><i data-lucide="info"
+                  style="width: 14px; height: 14px;"></i></span>
+              {{end}}
+            </div>
+          </div>
+
+          <div class="source-actions">
+            <form method="POST" action="/targets/sync" onsubmit="return submitWithConfirm(this);">
+              <input type="hidden" name="target_id" value="{{.ID}}">
+              <button type="submit" class="btn btn-secondary btn-icon" {{if not .IsActive}}disabled{{end}}
+                title="Sync Now">
+                <i data-lucide="cloud-sync"></i>
+              </button>
+            </form>
+
+            {{if .IsActive}}
+            <form method="POST" action="/targets/deactivate"
+              onsubmit="return submitWithConfirm(this, 'Deactivate this source?');">
+              <input type="hidden" name="target_id" value="{{.ID}}">
+              <button type="submit" class="btn btn-secondary btn-icon" title="Disable">
+                <i data-lucide="power"></i>
+              </button>
+            </form>
+            {{else}}
+            <form method="POST" action="/targets/activate" onsubmit="return submitWithConfirm(this);">
+              <input type="hidden" name="target_id" value="{{.ID}}">
+              <button type="submit" class="btn btn-secondary btn-icon" title="Enable">
+                <i data-lucide="power"></i>
+              </button>
+            </form>
+            {{end}}
+
+            <form method="POST" action="/targets/delete"
+              onsubmit="return submitWithConfirm(this, 'Delete this source?');">
+              <input type="hidden" name="target_id" value="{{.ID}}">
+              <button type="submit" class="btn btn-danger btn-icon" title="Delete">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {{end}}
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const targetSelect = document.getElementById("target");
+    const tokenizedSection = document.getElementById("tokenized_db");
+    const urlSection = document.getElementById("db_with_url");
+    const tokenInput = document.getElementById("api_token");
+    const urlInput = document.getElementById("host_url");
+
+    if (!targetSelect) return;
+
+    function updateVisibility() {
+      const target = targetSelect.value;
+
+      if (target === "CSV") {
+        tokenizedSection.style.display = "none";
+        urlSection.style.display = "none";
+        tokenInput.required = false;
+        tokenInput.value = "";
+      } else {
+        tokenizedSection.style.display = "block";
+        urlSection.style.display = "block";
+        tokenInput.required = true;
+        urlInput.required = true;
+      }
+
+    }
+
+    targetSelect.addEventListener("change", updateVisibility);
+  });
+</script>
+
+{{ template "footer.html" . }}

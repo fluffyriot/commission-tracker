@@ -16,7 +16,8 @@ CREATE TABLE targets (
     sync_frequency TEXT NOT NULL,
     sync_status TEXT NOT NULL,
     status_reason TEXT,
-    last_synced TIMESTAMP
+    last_synced TIMESTAMP,
+    host_url TEXT
 );
 
 -- +goose Down

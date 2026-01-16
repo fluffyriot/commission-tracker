@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/base64"
 	"net/http"
 	"strings"
@@ -90,7 +91,7 @@ func (h *Handler) FacebookCallbackHandler(c *gin.Context) {
 		return
 	}
 
-	err = auth.InsertToken(h.DB, sid, tokenStr, pid, h.EncryptKey)
+	err = auth.InsertSourceToken(context.Background(), h.DB, sid, tokenStr, pid, h.EncryptKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store token", "details": err.Error()})
 		return

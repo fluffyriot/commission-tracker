@@ -13,45 +13,26 @@ import (
 	"github.com/google/uuid"
 )
 
-const createTarget = `-- name: CreateTarget :one
-INSERT INTO targets (id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8,
-    $9
-)
-RETURNING id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced
+const changeTargetStatusById = `-- name: ChangeTargetStatusById :one
+UPDATE targets
+SET is_active = $2, sync_status = $3, status_reason = $4, updated_at = NOW()
+WHERE id = $1
+RETURNING id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced, host_url
 `
 
-type CreateTargetParams struct {
-	ID            uuid.UUID
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	TargetType    string
-	UserID        uuid.UUID
-	DbID          sql.NullString
-	IsActive      bool
-	SyncFrequency string
-	SyncStatus    string
+type ChangeTargetStatusByIdParams struct {
+	ID           uuid.UUID
+	IsActive     bool
+	SyncStatus   string
+	StatusReason sql.NullString
 }
 
-func (q *Queries) CreateTarget(ctx context.Context, arg CreateTargetParams) (Target, error) {
-	row := q.db.QueryRowContext(ctx, createTarget,
+func (q *Queries) ChangeTargetStatusById(ctx context.Context, arg ChangeTargetStatusByIdParams) (Target, error) {
+	row := q.db.QueryRowContext(ctx, changeTargetStatusById,
 		arg.ID,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-		arg.TargetType,
-		arg.UserID,
-		arg.DbID,
 		arg.IsActive,
-		arg.SyncFrequency,
 		arg.SyncStatus,
+		arg.StatusReason,
 	)
 	var i Target
 	err := row.Scan(
@@ -66,17 +47,114 @@ func (q *Queries) CreateTarget(ctx context.Context, arg CreateTargetParams) (Tar
 		&i.SyncStatus,
 		&i.StatusReason,
 		&i.LastSynced,
+		&i.HostUrl,
 	)
 	return i, err
 }
 
-const getAllActiveTargets = `-- name: GetAllActiveTargets :many
-SELECT id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced FROM targets
-where is_active = TRUE
+const createTarget = `-- name: CreateTarget :one
+INSERT INTO targets (id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, host_url)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10
+)
+RETURNING id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced, host_url
 `
 
-func (q *Queries) GetAllActiveTargets(ctx context.Context) ([]Target, error) {
-	rows, err := q.db.QueryContext(ctx, getAllActiveTargets)
+type CreateTargetParams struct {
+	ID            uuid.UUID
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	TargetType    string
+	UserID        uuid.UUID
+	DbID          sql.NullString
+	IsActive      bool
+	SyncFrequency string
+	SyncStatus    string
+	HostUrl       sql.NullString
+}
+
+func (q *Queries) CreateTarget(ctx context.Context, arg CreateTargetParams) (Target, error) {
+	row := q.db.QueryRowContext(ctx, createTarget,
+		arg.ID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.TargetType,
+		arg.UserID,
+		arg.DbID,
+		arg.IsActive,
+		arg.SyncFrequency,
+		arg.SyncStatus,
+		arg.HostUrl,
+	)
+	var i Target
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.TargetType,
+		&i.UserID,
+		&i.DbID,
+		&i.IsActive,
+		&i.SyncFrequency,
+		&i.SyncStatus,
+		&i.StatusReason,
+		&i.LastSynced,
+		&i.HostUrl,
+	)
+	return i, err
+}
+
+const deleteTarget = `-- name: DeleteTarget :exec
+DELETE FROM targets
+WHERE id = $1
+`
+
+func (q *Queries) DeleteTarget(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteTarget, id)
+	return err
+}
+
+const getTargetById = `-- name: GetTargetById :one
+SELECT id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced, host_url FROM targets
+where id = $1
+`
+
+func (q *Queries) GetTargetById(ctx context.Context, id uuid.UUID) (Target, error) {
+	row := q.db.QueryRowContext(ctx, getTargetById, id)
+	var i Target
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.TargetType,
+		&i.UserID,
+		&i.DbID,
+		&i.IsActive,
+		&i.SyncFrequency,
+		&i.SyncStatus,
+		&i.StatusReason,
+		&i.LastSynced,
+		&i.HostUrl,
+	)
+	return i, err
+}
+
+const getUserActiveTargets = `-- name: GetUserActiveTargets :many
+SELECT id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced, host_url FROM targets
+where is_active = TRUE and user_id = $1
+`
+
+func (q *Queries) GetUserActiveTargets(ctx context.Context, userID uuid.UUID) ([]Target, error) {
+	rows, err := q.db.QueryContext(ctx, getUserActiveTargets, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +174,7 @@ func (q *Queries) GetAllActiveTargets(ctx context.Context) ([]Target, error) {
 			&i.SyncStatus,
 			&i.StatusReason,
 			&i.LastSynced,
+			&i.HostUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -110,12 +189,13 @@ func (q *Queries) GetAllActiveTargets(ctx context.Context) ([]Target, error) {
 	return items, nil
 }
 
-const getAllTargets = `-- name: GetAllTargets :many
-SELECT id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced FROM targets
+const getUserTargets = `-- name: GetUserTargets :many
+SELECT id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced, host_url FROM targets
+where user_id = $1
 `
 
-func (q *Queries) GetAllTargets(ctx context.Context) ([]Target, error) {
-	rows, err := q.db.QueryContext(ctx, getAllTargets)
+func (q *Queries) GetUserTargets(ctx context.Context, userID uuid.UUID) ([]Target, error) {
+	rows, err := q.db.QueryContext(ctx, getUserTargets, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +215,7 @@ func (q *Queries) GetAllTargets(ctx context.Context) ([]Target, error) {
 			&i.SyncStatus,
 			&i.StatusReason,
 			&i.LastSynced,
+			&i.HostUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -147,4 +228,43 @@ func (q *Queries) GetAllTargets(ctx context.Context) ([]Target, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateTargetSyncStatusById = `-- name: UpdateTargetSyncStatusById :one
+UPDATE targets
+SET sync_status = $2, status_reason = $3, last_synced = $4
+WHERE id = $1
+RETURNING id, created_at, updated_at, target_type, user_id, db_id, is_active, sync_frequency, sync_status, status_reason, last_synced, host_url
+`
+
+type UpdateTargetSyncStatusByIdParams struct {
+	ID           uuid.UUID
+	SyncStatus   string
+	StatusReason sql.NullString
+	LastSynced   sql.NullTime
+}
+
+func (q *Queries) UpdateTargetSyncStatusById(ctx context.Context, arg UpdateTargetSyncStatusByIdParams) (Target, error) {
+	row := q.db.QueryRowContext(ctx, updateTargetSyncStatusById,
+		arg.ID,
+		arg.SyncStatus,
+		arg.StatusReason,
+		arg.LastSynced,
+	)
+	var i Target
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.TargetType,
+		&i.UserID,
+		&i.DbID,
+		&i.IsActive,
+		&i.SyncFrequency,
+		&i.SyncStatus,
+		&i.StatusReason,
+		&i.LastSynced,
+		&i.HostUrl,
+	)
+	return i, err
 }
