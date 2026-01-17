@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -26,7 +28,7 @@ type mastFeed []struct {
 	QuotesCount     int       `json:"quotes_count"`
 	Content         string    `json:"content"`
 	Account         struct {
-		Username string `json:"username"`
+		Uri string `json:"uri"`
 	} `json:"account"`
 	Reblog *struct {
 		ID string `json:"id"`
@@ -106,12 +108,12 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, s
 
 	for page := 0; page < maxPages; page++ {
 
-		url, err := getMastodonApiString(dbQueries, uid, c, max_id)
+		urlReq, err := getMastodonApiString(dbQueries, uid, c, max_id)
 		if err != nil {
 			return err
 		}
 
-		req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequest("GET", urlReq, nil)
 		if err != nil {
 			return err
 		}
@@ -167,6 +169,14 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, s
 				content = content[:97] + "..."
 			}
 
+			u, err := url.Parse(item.Account.Uri)
+			if err != nil {
+				return err
+			}
+
+			username := path.Base(u.Path)
+			domain := u.Host
+
 			if err != nil {
 				newPost, errN := dbQueries.CreatePost(context.Background(), database.CreatePostParams{
 					ID:                uuid.New(),
@@ -174,7 +184,7 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, s
 					LastSyncedAt:      time.Now(),
 					SourceID:          sourceId,
 					IsArchived:        false,
-					Author:            item.Account.Username,
+					Author:            fmt.Sprintf("%s@%s", username, domain),
 					PostType:          "post",
 					NetworkInternalID: item.ID,
 					Content: sql.NullString{

@@ -24,3 +24,23 @@ func ConvNetworkToURL(network, username string) (string, error) {
 		return "", fmt.Errorf("network %v not recognized", network)
 	}
 }
+
+func ConvPostToURL(network, author, networkId string) (string, error) {
+	switch network {
+	case "Instagram":
+		return "https://instagram.com/p/" + networkId, nil
+	case "Bluesky":
+		return "https://bsky.app/profile/" + author + "/post/" + networkId, nil
+	case "TikTok":
+		return "https://www.tiktok.com/@" + author + "/video/" + networkId, nil
+	case "BadPups":
+		return "https://badpups.com/lite/video/" + networkId, nil
+	case "Murrtube":
+		return "https://murrtube.net/v/" + networkId, nil
+	case "Mastodon":
+		splits := strings.Split(author, "@")
+		return fmt.Sprintf("https://%v/@%v/%v", splits[1], splits[0], networkId), nil
+	default:
+		return "", fmt.Errorf("network %v not recognized", network)
+	}
+}

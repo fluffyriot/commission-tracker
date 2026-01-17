@@ -14,16 +14,25 @@ import (
 	"github.com/google/uuid"
 )
 
-type NocoSourceRecord struct {
-	Fields NocoSourceFields `json:"fields"`
+type NocoTableRecord struct {
+	Fields NocoRecordFields `json:"fields,omitempty"`
 }
 
-type NocoSourceFields struct {
-	ID         string    `json:"id"`
-	Network    string    `json:"network"`
-	Username   string    `json:"username"`
-	URL        string    `json:"URL"`
-	LastSynced time.Time `json:"last_synced"`
+type NocoRecordFields struct {
+	ID                string    `json:"ct_id"`
+	CreatedAt         time.Time `json:"created_at,omitempty"`
+	LastSynced        time.Time `json:"last_synced,omitempty"`
+	IsArchived        bool      `json:"is_archived,omitempty"`
+	NetworkInternalID string    `json:"network_internal_id,omitempty"`
+	Network           string    `json:"network,omitempty"`
+	Username          string    `json:"username,omitempty"`
+	PostType          string    `json:"post_type,omitempty"`
+	Author            string    `json:"author,omitempty"`
+	Content           string    `json:"content,omitempty"`
+	Likes             int32     `json:"likes,omitempty"`
+	Views             int32     `json:"views,omitempty"`
+	Reposts           int32     `json:"reposts,omitempty"`
+	URL               string    `json:"URL,omitempty"`
 }
 
 type NocoColumnTypeOptions struct {
@@ -77,7 +86,7 @@ func InitializeNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte
 		Fields: []NocoColumn{
 			{Title: "ct_id", Type: "SingleLineText", Unique: true},
 			{Title: "created_at", Type: "DateTime"},
-			{Title: "last_synced_at", Type: "DateTime"},
+			{Title: "last_synced", Type: "DateTime"},
 			{Title: "is_archived", Type: "Checkbox"},
 			{Title: "network_internal_id", Type: "SingleLineText"},
 			{Title: "post_type", Type: "SingleLineText"},
@@ -184,12 +193,11 @@ func InitializeNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte
 		}
 	}
 
-	sourcesUrl := target.HostUrl.String +
-		"/api/v3/data/" +
-		target.DbID.String +
-		"/" + sourcesResp.ID + "/records"
-
-	err = createNocoSources(c, dbQueries, encryptionKey, target, sourcesUrl)
+	err = createNocoSources(c, dbQueries, encryptionKey, target, sourcesResp.ID)
+	if err != nil {
+		return err
+	}
+	err = SyncNoco(dbQueries, c, encryptionKey, target)
 	if err != nil {
 		return err
 	}
@@ -232,47 +240,21 @@ func createNocoTable(c *Client, dbQueries *database.Queries, encryptionKey []byt
 	return &result, nil
 }
 
-func createNocoSources(c *Client, dbQueries *database.Queries, encryptionKey []byte, target database.Target, url string) error {
+func createNocoRecords(c *Client, dbQueries *database.Queries, encryptionKey []byte, target database.Target, tableId string, records []NocoTableRecord) error {
 
-	sources, err := dbQueries.GetUserSources(context.Background(), target.UserID)
-	if err != nil {
-		return fmt.Errorf("error fetching user sources: %w", err)
-	}
-	fmt.Println(url)
-
-	var records []NocoSourceRecord
-
-	for _, source := range sources {
-
-		url, err := ConvNetworkToURL(source.Network, source.UserName)
-		if err != nil {
-			return err
-		}
-
-		fieldMap := NocoSourceFields{
-			ID:         source.ID.String(),
-			Network:    source.Network,
-			Username:   source.UserName,
-			URL:        url,
-			LastSynced: source.LastSynced.Time,
-		}
-		records = append(records, NocoSourceRecord{
-			Fields: fieldMap,
-		})
-	}
+	url := target.HostUrl.String +
+		"/api/v3/data/" +
+		target.DbID.String +
+		"/" + tableId + "/records"
 
 	body, err := json.Marshal(records)
 	if err != nil {
 		return fmt.Errorf("marshal records schema: %w", err)
 	}
-	var pretty bytes.Buffer
-	if err := json.Indent(&pretty, body, "", "  "); err == nil {
-		fmt.Println("Noco payload:\n", pretty.String())
-	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
-		return fmt.Errorf("create sources request: %w", err)
+		return fmt.Errorf("create request: %w", err)
 	}
 
 	err = setNocoHeaders(target.ID, req, dbQueries, encryptionKey)
@@ -282,15 +264,80 @@ func createNocoSources(c *Client, dbQueries *database.Queries, encryptionKey []b
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("send sources request: %w", err)
+		return fmt.Errorf("send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("sources: unexpected status code: %d, %v", resp.StatusCode, resp.Status)
+		return fmt.Errorf("unexpected status code: %d, %v", resp.StatusCode, resp.Status)
 	}
 
 	return nil
+}
+
+func createNocoSources(c *Client, dbQueries *database.Queries, encryptionKey []byte, target database.Target, tableId string) error {
+
+	sources, err := dbQueries.GetUserSources(context.Background(), target.UserID)
+	if err != nil {
+		return fmt.Errorf("error fetching user sources: %w", err)
+	}
+
+	const batchSize = 10
+
+	var records []NocoTableRecord
+
+	flush := func() error {
+		if len(records) == 0 {
+			return nil
+		}
+
+		if err := createNocoRecords(
+			c,
+			dbQueries,
+			encryptionKey,
+			target,
+			tableId,
+			records,
+		); err != nil {
+			return err
+		}
+
+		records = records[:0]
+		return nil
+	}
+
+	for _, source := range sources {
+
+		url, err := ConvNetworkToURL(source.Network, source.UserName)
+		if err != nil {
+			return err
+		}
+
+		fieldMap := NocoRecordFields{
+			ID:         source.ID.String(),
+			Network:    source.Network,
+			Username:   source.UserName,
+			URL:        url,
+			LastSynced: source.LastSynced.Time,
+		}
+
+		records = append(records, NocoTableRecord{
+			Fields: fieldMap,
+		})
+
+		if len(records) == batchSize {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := flush(); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func setNocoHeaders(tid uuid.UUID, req *http.Request, dbQueries *database.Queries, encryptionKey []byte) error {
@@ -301,6 +348,75 @@ func setNocoHeaders(tid uuid.UUID, req *http.Request, dbQueries *database.Querie
 	req.Header.Set("xc-auth", token)
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
+
+	return nil
+}
+
+func SyncNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte, target database.Target) error {
+
+	posts, err := dbQueries.GetAllPostsWithTheLatestInfoForUser(context.Background(), target.UserID)
+	if err != nil {
+		return err
+	}
+
+	targetTable, err := dbQueries.GetTableMappingsByTargetAndName(context.Background(), database.GetTableMappingsByTargetAndNameParams{
+		TargetID:        target.ID,
+		TargetTableName: "Posts",
+	})
+
+	const batchSize = 10
+
+	var records []NocoTableRecord
+
+	flush := func() error {
+		if len(records) == 0 {
+			return nil
+		}
+		err := createNocoRecords(c, dbQueries, encryptionKey, target, targetTable.TargetTableCode.String, records)
+		if err != nil {
+			return err
+		}
+
+		records = records[:0]
+		return nil
+	}
+
+	for _, post := range posts {
+
+		url, err := ConvPostToURL(post.Network.String, post.Author, post.NetworkInternalID)
+		if err != nil {
+			return err
+		}
+
+		fieldMap := NocoRecordFields{
+			ID:                post.ID.String(),
+			CreatedAt:         post.CreatedAt,
+			LastSynced:        time.Now(),
+			IsArchived:        post.IsArchived,
+			NetworkInternalID: post.NetworkInternalID,
+			PostType:          post.PostType,
+			Author:            post.Author,
+			Content:           post.Content.String,
+			Likes:             post.Likes.Int32,
+			Views:             post.Views.Int32,
+			Reposts:           post.Reposts.Int32,
+			URL:               url,
+		}
+
+		records = append(records, NocoTableRecord{
+			Fields: fieldMap,
+		})
+
+		if len(records) == batchSize {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := flush(); err != nil {
+		return err
+	}
 
 	return nil
 }
