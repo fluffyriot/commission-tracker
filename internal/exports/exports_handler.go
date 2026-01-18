@@ -2,7 +2,7 @@ package exports
 
 import (
 	"context"
-	"errors"
+	"database/sql"
 	"log"
 	"os"
 	"time"
@@ -37,14 +37,14 @@ func DeleteAllExports(userID uuid.UUID, dbQueries *database.Queries) error {
 
 }
 
-func InitiateExport(userID uuid.UUID, syncMethod string, dbQueries *database.Queries) (database.Export, error) {
+func InitiateCsvExport(userID uuid.UUID, dbQueries *database.Queries) (database.Export, error) {
 
 	export, err := dbQueries.CreateExport(context.Background(), database.CreateExportParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
 		ExportStatus: "Requested",
 		UserID:       userID,
-		ExportMethod: syncMethod,
+		ExportMethod: "csv",
 	})
 
 	if err != nil {
@@ -52,36 +52,41 @@ func InitiateExport(userID uuid.UUID, syncMethod string, dbQueries *database.Que
 		return database.Export{}, err
 	}
 
-	switch syncMethod {
-	case "csv":
-
-		err = csvExport(userID, dbQueries, export)
-		if err != nil {
-			return database.Export{}, err
-		}
-
-		return export, nil
-
-	case "notion":
-
-		err = notionExport(userID, dbQueries, export)
-		if err != nil {
-			return database.Export{}, err
-		}
-
-		return export, nil
-
-	case "none":
-
-		err = testExport(userID, dbQueries, export)
-		if err != nil {
-			return database.Export{}, err
-		}
-
-		return export, nil
-
-	default:
-		return database.Export{}, errors.New("Unknown sync method")
+	err = csvExport(userID, dbQueries, export)
+	if err != nil {
+		return database.Export{}, err
 	}
 
+	return export, nil
+
+}
+
+func CreateLogAutoExport(userID uuid.UUID, dbQueries *database.Queries, method string, targetId uuid.UUID) (database.Export, error) {
+
+	export, err := dbQueries.CreateExport(context.Background(), database.CreateExportParams{
+		ID:           uuid.New(),
+		CreatedAt:    time.Now(),
+		ExportStatus: "Requested",
+		UserID:       userID,
+		ExportMethod: method,
+		TargetID:     uuid.NullUUID{UUID: targetId, Valid: true},
+	})
+
+	return export, err
+}
+
+func UpdateLogAutoExport(export database.Export, dbQueries *database.Queries, status, statusReason string) error {
+	var completedDate time.Time
+	if status == "Completed" {
+		completedDate = time.Now()
+	}
+
+	_, err := dbQueries.ChangeExportStatusById(context.Background(), database.ChangeExportStatusByIdParams{
+		ID:            export.ID,
+		ExportStatus:  status,
+		StatusMessage: sql.NullString{String: statusReason, Valid: false},
+		CompletedAt:   completedDate,
+	})
+
+	return err
 }

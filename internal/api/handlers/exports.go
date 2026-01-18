@@ -50,7 +50,7 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 	})
 }
 
-func (h *Handler) ExportStartHandler(c *gin.Context) {
+func (h *Handler) ExportStartCsvHandler(c *gin.Context) {
 	userId, err := uuid.Parse(c.PostForm("user_id"))
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
@@ -59,22 +59,14 @@ func (h *Handler) ExportStartHandler(c *gin.Context) {
 		return
 	}
 
-	syncMethod := c.PostForm("sync_method")
-	if syncMethod == "" {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error": "Sync method is required",
-		})
-		return
-	}
-
-	go func(uid uuid.UUID, method string) {
+	go func(uid uuid.UUID) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Printf("panic in background sync: %v", r)
 			}
 		}()
-		exports.InitiateExport(uid, method, h.DB)
-	}(userId, syncMethod)
+		exports.InitiateCsvExport(uid, h.DB)
+	}(userId)
 
 	c.Redirect(http.StatusSeeOther, "/")
 }

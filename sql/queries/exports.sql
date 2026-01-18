@@ -1,5 +1,5 @@
 -- name: CreateExport :one
-INSERT INTO exports (id, created_at, completed_at, export_status, status_message, user_id, download_url, export_method)
+INSERT INTO exports (id, created_at, completed_at, export_status, status_message, user_id, download_url, export_method, target_id)
 VALUES (
     $1,
     $2,
@@ -8,7 +8,8 @@ VALUES (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9
 )
 RETURNING *;
 

@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/fluffyriot/commission-tracker/internal/database"
+	"github.com/fluffyriot/commission-tracker/internal/exports"
 	"github.com/google/uuid"
 )
 
@@ -37,6 +39,11 @@ func PullByTarget(tid uuid.UUID, dbQueries *database.Queries, c *Client, encrypt
 		return err
 	}
 
+	export, err := exports.CreateLogAutoExport(target.UserID, dbQueries, target.TargetType, target.ID)
+	if err != nil {
+		log.Println(err)
+	}
+
 	_, err = dbQueries.UpdateTargetSyncStatusById(context.Background(), database.UpdateTargetSyncStatusByIdParams{
 		ID:         target.ID,
 		SyncStatus: "Syncing",
@@ -51,6 +58,9 @@ func PullByTarget(tid uuid.UUID, dbQueries *database.Queries, c *Client, encrypt
 
 		err = startDbSync(dbQueries, c, encryptionKey, target)
 		if err != nil {
+
+			exports.UpdateLogAutoExport(export, dbQueries, "Failed", err.Error())
+
 			_, err = dbQueries.UpdateTargetSyncStatusById(context.Background(), database.UpdateTargetSyncStatusByIdParams{
 				ID:           target.ID,
 				SyncStatus:   "Failed",
@@ -67,6 +77,9 @@ func PullByTarget(tid uuid.UUID, dbQueries *database.Queries, c *Client, encrypt
 
 		err = startFileSync(dbQueries, target.ID)
 		if err != nil {
+
+			exports.UpdateLogAutoExport(export, dbQueries, "Completed", "")
+
 			_, err = dbQueries.UpdateSourceSyncStatusById(context.Background(), database.UpdateSourceSyncStatusByIdParams{
 				ID:           target.ID,
 				SyncStatus:   "Failed",
@@ -87,6 +100,8 @@ func PullByTarget(tid uuid.UUID, dbQueries *database.Queries, c *Client, encrypt
 		StatusReason: sql.NullString{},
 		LastSynced:   sql.NullTime{Time: time.Now(), Valid: true},
 	})
+
+	exports.UpdateLogAutoExport(export, dbQueries, "Completed", "")
 
 	return nil
 }

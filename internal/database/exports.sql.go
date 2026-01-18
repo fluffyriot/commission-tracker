@@ -52,7 +52,7 @@ func (q *Queries) ChangeExportStatusById(ctx context.Context, arg ChangeExportSt
 }
 
 const createExport = `-- name: CreateExport :one
-INSERT INTO exports (id, created_at, completed_at, export_status, status_message, user_id, download_url, export_method)
+INSERT INTO exports (id, created_at, completed_at, export_status, status_message, user_id, download_url, export_method, target_id)
 VALUES (
     $1,
     $2,
@@ -61,7 +61,8 @@ VALUES (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9
 )
 RETURNING id, created_at, completed_at, export_status, status_message, user_id, download_url, export_method, target_id
 `
@@ -75,6 +76,7 @@ type CreateExportParams struct {
 	UserID        uuid.UUID
 	DownloadUrl   sql.NullString
 	ExportMethod  string
+	TargetID      uuid.NullUUID
 }
 
 func (q *Queries) CreateExport(ctx context.Context, arg CreateExportParams) (Export, error) {
@@ -87,6 +89,7 @@ func (q *Queries) CreateExport(ctx context.Context, arg CreateExportParams) (Exp
 		arg.UserID,
 		arg.DownloadUrl,
 		arg.ExportMethod,
+		arg.TargetID,
 	)
 	var i Export
 	err := row.Scan(
