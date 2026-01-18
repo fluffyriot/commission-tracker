@@ -67,7 +67,7 @@ func extractVideoObjectLD(doc *goquery.Document) (*VideoObjectLD, error) {
 			var video VideoObjectLD
 			if err := json.Unmarshal([]byte(raw), &video); err == nil {
 				result = &video
-				return false // stop iteration
+				return false
 			}
 		}
 

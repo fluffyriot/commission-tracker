@@ -268,7 +268,7 @@ func SyncNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte, targ
 
 	var records []NocoTableRecord
 
-	flush := func() error {
+	flush := func(postsInBatch []database.GetAllPostsWithTheLatestInfoForUserRow) error {
 		if len(records) == 0 {
 			return nil
 		}
@@ -277,6 +277,12 @@ func SyncNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte, targ
 			return err
 		}
 
+		type postInfo struct {
+			nocoPostId int32
+			sourceId   uuid.UUID
+		}
+		postMapping := make(map[string]postInfo)
+
 		for _, rec := range createdRecords {
 			var id float64
 			if val, ok := rec["Id"].(float64); ok {
@@ -284,19 +290,16 @@ func SyncNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte, targ
 			} else if val, ok := rec["id"].(float64); ok {
 				id = val
 			} else {
-				fmt.Printf("DEBUG: Post mapping failed - missing 'Id' or 'id'. Record keys: %+v\n", rec)
 				continue
 			}
 
 			fields, ok := rec["fields"].(map[string]interface{})
 			if !ok {
-				fmt.Printf("DEBUG: Post mapping failed - missing 'fields'. Record keys: %+v\n", rec)
 				continue
 			}
 
 			ctId, ok := fields["ct_id"].(string)
 			if !ok {
-				fmt.Printf("DEBUG: Post mapping failed - missing 'ct_id' in fields. Fields: %+v\n", fields)
 				continue
 			}
 
@@ -316,11 +319,51 @@ func SyncNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte, targ
 			if err != nil {
 				return fmt.Errorf("failed to map post: %w", err)
 			}
+
+			for _, post := range postsInBatch {
+				if post.ID == parsedCtId {
+					postMapping[ctId] = postInfo{
+						nocoPostId: int32(id),
+						sourceId:   post.SourceID,
+					}
+					break
+				}
+			}
+		}
+
+		postsBySource := make(map[uuid.UUID][]int32)
+		for _, info := range postMapping {
+			postsBySource[info.sourceId] = append(postsBySource[info.sourceId], info.nocoPostId)
+		}
+
+		for sourceId, postIds := range postsBySource {
+			sourceMapping, err := dbQueries.GetTargetSourceBySource(context.Background(), database.GetTargetSourceBySourceParams{
+				TargetID: target.ID,
+				SourceID: sourceId,
+			})
+			if err != nil {
+				continue
+			}
+
+			err = linkPostsToSource(
+				c,
+				dbQueries,
+				encryptionKey,
+				target,
+				sourceMapping.TargetSourceID,
+				sourcesTable,
+				postIds,
+			)
+			if err != nil {
+				return err
+			}
 		}
 
 		records = records[:0]
 		return nil
 	}
+
+	var currentBatch []database.GetAllPostsWithTheLatestInfoForUserRow
 
 	for _, post := range createPosts {
 
@@ -347,15 +390,17 @@ func SyncNoco(dbQueries *database.Queries, c *Client, encryptionKey []byte, targ
 		records = append(records, NocoTableRecord{
 			Fields: fieldMap,
 		})
+		currentBatch = append(currentBatch, post)
 
 		if len(records) == batchSize {
-			if err := flush(); err != nil {
+			if err := flush(currentBatch); err != nil {
 				return err
 			}
+			currentBatch = currentBatch[:0]
 		}
 	}
 
-	if err := flush(); err != nil {
+	if err := flush(currentBatch); err != nil {
 		return err
 	}
 
@@ -411,7 +456,6 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 		SourceID: source.ID,
 	})
 	if err != nil {
-		fmt.Printf("sourceMapping, err:%v", err)
 		return fmt.Errorf("error fetching source mapping: %w", err)
 	}
 
@@ -425,7 +469,6 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 		TargetTableName: "Sources",
 	})
 	if err != nil {
-		fmt.Printf("sourcesTable, err:%v", err)
 		return err
 	}
 
@@ -437,7 +480,6 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 		sourcesTable.TargetTableCode.String,
 		sourceRecords,
 	); err != nil {
-		fmt.Printf("failed to delete source from NocoDB: %w", err)
 		return fmt.Errorf("failed to delete source from NocoDB: %w", err)
 	}
 
@@ -446,7 +488,6 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 		TargetTableName: "Posts",
 	})
 	if err != nil {
-		fmt.Printf("postsTable: %w", err)
 		return err
 	}
 
@@ -477,7 +518,6 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 			postsTable.TargetTableCode.String,
 			recordRemove,
 		); err != nil {
-			fmt.Println(err)
 			return err
 		}
 
@@ -495,14 +535,12 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 
 		if len(recordRemove) == batchSize {
 			if err := flushRemove(); err != nil {
-				fmt.Println(err)
 				return err
 			}
 		}
 	}
 
 	if err := flushRemove(); err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -511,7 +549,6 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 		SourceID: source.ID,
 	})
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -520,7 +557,6 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *Client, encryption
 		SourceID: source.ID,
 	})
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -684,19 +720,16 @@ func syncNocoSources(c *Client, dbQueries *database.Queries, encryptionKey []byt
 			} else if val, ok := rec["id"].(float64); ok {
 				id = val
 			} else {
-				fmt.Printf("DEBUG: Source mapping failed - missing 'Id' or 'id'. Record keys: %+v\n", rec)
 				continue
 			}
 
 			fields, ok := rec["fields"].(map[string]interface{})
 			if !ok {
-				fmt.Printf("DEBUG: Source mapping failed - missing 'fields'. Record keys: %+v\n", rec)
 				continue
 			}
 
 			ctId, ok := fields["ct_id"].(string)
 			if !ok {
-				fmt.Printf("DEBUG: Source mapping failed - missing 'ct_id' in fields. Fields: %+v\n", fields)
 				continue
 			}
 
@@ -832,6 +865,65 @@ func deleteNocoRecords(c *Client, dbQueries *database.Queries, encryptionKey []b
 
 	return nil
 
+}
+
+func linkPostsToSource(c *Client, dbQueries *database.Queries, encryptionKey []byte, target database.Target, sourceId string, sourceTableNocoId database.TableMapping, postIds []int32) error {
+
+	postsColumn, err := dbQueries.GetColumnMappingsByTableAndName(context.Background(), database.GetColumnMappingsByTableAndNameParams{
+		TableMappingID:   sourceTableNocoId.ID,
+		TargetColumnName: "posts",
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(postIds) > 10 {
+		return fmt.Errorf("cannot link more than 10 posts per request, got %d", len(postIds))
+	}
+
+	type linkRecord struct {
+		ID int32 `json:"id"`
+	}
+
+	linkRecords := make([]linkRecord, len(postIds))
+	for i, postId := range postIds {
+		linkRecords[i] = linkRecord{ID: postId}
+	}
+
+	url := target.HostUrl.String +
+		"/api/v3/data/" +
+		target.DbID.String +
+		"/" + sourceTableNocoId.TargetTableCode.String +
+		"/links/" + postsColumn.TargetColumnCode.String +
+		"/" + sourceId
+
+	body, err := json.Marshal(linkRecords)
+	if err != nil {
+		return fmt.Errorf("marshal link records: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+
+	err = setNocoHeaders(target.ID, req, dbQueries, encryptionKey)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	return nil
 }
 
 func setNocoHeaders(tid uuid.UUID, req *http.Request, dbQueries *database.Queries, encryptionKey []byte) error {

@@ -14,19 +14,16 @@ func RemoveByTarget(tid, sid uuid.UUID, dbQueries *database.Queries, c *Client, 
 
 	target, err := dbQueries.GetTargetById(context.Background(), tid)
 	if err != nil {
-		fmt.Printf("GetTargetById, err:%v", err)
 		return err
 	}
 
 	source, err := dbQueries.GetSourceById(context.Background(), sid)
 	if err != nil {
-		fmt.Printf("GetSourceById, err:%v", err)
 		return err
 	}
 
 	err = startDbRemoval(dbQueries, c, target.ID, encryptionKey, target, source)
 	if err != nil {
-		fmt.Printf("startDbRemoval, err:%v", err)
 		return err
 	}
 
@@ -126,6 +123,5 @@ func startDbRemoval(dbQueries *database.Queries, c *Client, targetId uuid.UUID, 
 	}
 
 	err := DeletePostsAndSourceNoco(dbQueries, c, encryptionKey, target, source)
-	fmt.Printf("DeletePostsAndSourceNoco, err:%v", err)
 	return err
 }

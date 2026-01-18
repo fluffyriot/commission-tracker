@@ -29,3 +29,8 @@ where target_id = $1 and target_table_name = $2;
 -- name: GetColumnMappingsByTable :many
 SELECT * FROM column_mappings
 where table_mapping_id = $1;
+
+-- name: GetColumnMappingsByTableAndName :one
+SELECT cm.* FROM column_mappings cm
+left join table_mappings tm on cm.table_mapping_id = tm.id
+where cm.table_mapping_id = $1 and cm.target_column_name = $2;

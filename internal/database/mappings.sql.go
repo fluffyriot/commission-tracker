@@ -134,6 +134,31 @@ func (q *Queries) GetColumnMappingsByTable(ctx context.Context, tableMappingID u
 	return items, nil
 }
 
+const getColumnMappingsByTableAndName = `-- name: GetColumnMappingsByTableAndName :one
+SELECT cm.id, cm.created_at, cm.table_mapping_id, cm.source_column_name, cm.target_column_name, cm.target_column_code FROM column_mappings cm
+left join table_mappings tm on cm.table_mapping_id = tm.id
+where cm.table_mapping_id = $1 and cm.target_column_name = $2
+`
+
+type GetColumnMappingsByTableAndNameParams struct {
+	TableMappingID   uuid.UUID
+	TargetColumnName string
+}
+
+func (q *Queries) GetColumnMappingsByTableAndName(ctx context.Context, arg GetColumnMappingsByTableAndNameParams) (ColumnMapping, error) {
+	row := q.db.QueryRowContext(ctx, getColumnMappingsByTableAndName, arg.TableMappingID, arg.TargetColumnName)
+	var i ColumnMapping
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.TableMappingID,
+		&i.SourceColumnName,
+		&i.TargetColumnName,
+		&i.TargetColumnCode,
+	)
+	return i, err
+}
+
 const getTableMappingsByTargetAndName = `-- name: GetTableMappingsByTargetAndName :one
 SELECT id, created_at, source_table_name, target_table_name, target_table_code, target_id FROM table_mappings
 where target_id = $1 and target_table_name = $2

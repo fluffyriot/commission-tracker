@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -136,7 +135,6 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 
 	syncedTargets, err := h.DB.GetSourcesOfTarget(context.Background(), sourceID)
 	if err != nil {
-		fmt.Printf("syncedTargets, err:%v", err)
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": err.Error(),
 		})
@@ -146,7 +144,6 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 	for _, target := range syncedTargets {
 		err = puller.RemoveByTarget(target.TargetID, sourceID, h.DB, h.Puller, h.EncryptKey)
 		if err != nil {
-			fmt.Printf("puller.RemoveByTarget, err:%v", err)
 			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 				"error": err.Error(),
 			})
@@ -156,7 +153,6 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 
 	err = h.DB.DeleteSource(context.Background(), sourceID)
 	if err != nil {
-		fmt.Println(err)
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": err.Error(),
 		})
@@ -198,7 +194,7 @@ func (h *Handler) SyncAllHandler(c *gin.Context) {
 
 	sources, err := h.DB.GetUserActiveSources(context.Background(), userID)
 	if err != nil {
-		log.Printf("Error getting user active sources: %v", err) // Added error logging
+		log.Printf("Error getting user active sources: %v", err)
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": err.Error(),
 		})
