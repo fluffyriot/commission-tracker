@@ -3,12 +3,14 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/fluffyriot/commission-tracker/internal/config"
 	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/fluffyriot/commission-tracker/internal/fetcher"
+	"github.com/fluffyriot/commission-tracker/internal/puller"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -132,8 +134,29 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 		return
 	}
 
+	syncedTargets, err := h.DB.GetSourcesOfTarget(context.Background(), sourceID)
+	if err != nil {
+		fmt.Printf("syncedTargets, err:%v", err)
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	for _, target := range syncedTargets {
+		err = puller.RemoveByTarget(target.TargetID, sourceID, h.DB, h.Puller, h.EncryptKey)
+		if err != nil {
+			fmt.Printf("puller.RemoveByTarget, err:%v", err)
+			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+	}
+
 	err = h.DB.DeleteSource(context.Background(), sourceID)
 	if err != nil {
+		fmt.Println(err)
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": err.Error(),
 		})

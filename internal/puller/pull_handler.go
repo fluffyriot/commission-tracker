@@ -10,6 +10,29 @@ import (
 	"github.com/google/uuid"
 )
 
+func RemoveByTarget(tid, sid uuid.UUID, dbQueries *database.Queries, c *Client, encryptionKey []byte) error {
+
+	target, err := dbQueries.GetTargetById(context.Background(), tid)
+	if err != nil {
+		fmt.Printf("GetTargetById, err:%v", err)
+		return err
+	}
+
+	source, err := dbQueries.GetSourceById(context.Background(), sid)
+	if err != nil {
+		fmt.Printf("GetSourceById, err:%v", err)
+		return err
+	}
+
+	err = startDbRemoval(dbQueries, c, target.ID, encryptionKey, target, source)
+	if err != nil {
+		fmt.Printf("startDbRemoval, err:%v", err)
+		return err
+	}
+
+	return nil
+}
+
 func PullByTarget(tid uuid.UUID, dbQueries *database.Queries, c *Client, encryptionKey []byte) error {
 
 	target, err := dbQueries.GetTargetById(context.Background(), tid)
@@ -29,7 +52,7 @@ func PullByTarget(tid uuid.UUID, dbQueries *database.Queries, c *Client, encrypt
 
 	case "NocoDB", "Notion":
 
-		err = startDbSync(dbQueries, c, target.ID, encryptionKey, target)
+		err = startDbSync(dbQueries, c, encryptionKey, target)
 		if err != nil {
 			_, err = dbQueries.UpdateTargetSyncStatusById(context.Background(), database.UpdateTargetSyncStatusByIdParams{
 				ID:           target.ID,
@@ -71,16 +94,38 @@ func PullByTarget(tid uuid.UUID, dbQueries *database.Queries, c *Client, encrypt
 	return nil
 }
 
-func startDbSync(dbQueries *database.Queries, c *Client, targetId uuid.UUID, encryptionKey []byte, target database.Target) error {
+func startDbSync(dbQueries *database.Queries, c *Client, encryptionKey []byte, target database.Target) error {
+
 	if target.TargetType == "Notion" {
 		return fmt.Errorf("not implemented yet")
 	}
 
-	err := InitializeNoco(dbQueries, c, encryptionKey, target)
+	_, err := dbQueries.GetTableMappingsByTargetAndName(context.Background(), database.GetTableMappingsByTargetAndNameParams{
+		TargetID:        target.ID,
+		TargetTableName: "Sources",
+	})
+	if err != nil {
+		err := InitializeNoco(dbQueries, c, encryptionKey, target)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = SyncNoco(dbQueries, c, encryptionKey, target)
 	return err
 
 }
 
 func startFileSync(dbQueries *database.Queries, targetId uuid.UUID) error {
 	return fmt.Errorf("not implemented yet")
+}
+
+func startDbRemoval(dbQueries *database.Queries, c *Client, targetId uuid.UUID, encryptionKey []byte, target database.Target, source database.Source) error {
+	if target.TargetType == "Notion" || target.TargetType == "CSV" {
+		return nil
+	}
+
+	err := DeletePostsAndSourceNoco(dbQueries, c, encryptionKey, target, source)
+	fmt.Printf("DeletePostsAndSourceNoco, err:%v", err)
+	return err
 }

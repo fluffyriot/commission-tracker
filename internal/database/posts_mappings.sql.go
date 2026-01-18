@@ -51,6 +51,64 @@ func (q *Queries) AddPostToTarget(ctx context.Context, arg AddPostToTargetParams
 	return i, err
 }
 
+const deletePostsOnTargetAndSource = `-- name: DeletePostsOnTargetAndSource :exec
+DELETE FROM posts_on_target pot
+USING posts p
+WHERE pot.post_id = p.id
+  AND pot.target_id = $1
+  AND p.source_id = $2
+`
+
+type DeletePostsOnTargetAndSourceParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+}
+
+func (q *Queries) DeletePostsOnTargetAndSource(ctx context.Context, arg DeletePostsOnTargetAndSourceParams) error {
+	_, err := q.db.ExecContext(ctx, deletePostsOnTargetAndSource, arg.TargetID, arg.SourceID)
+	return err
+}
+
+const getPostsBySourceAndTarget = `-- name: GetPostsBySourceAndTarget :many
+SELECT pot.id, pot.first_synced_at, pot.post_id, pot.target_id, pot.target_post_id FROM posts_on_target pot
+left join posts p on pot.post_id = p.id
+where target_id = $1 and p.source_id = $2
+`
+
+type GetPostsBySourceAndTargetParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+}
+
+func (q *Queries) GetPostsBySourceAndTarget(ctx context.Context, arg GetPostsBySourceAndTargetParams) ([]PostsOnTarget, error) {
+	rows, err := q.db.QueryContext(ctx, getPostsBySourceAndTarget, arg.TargetID, arg.SourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PostsOnTarget
+	for rows.Next() {
+		var i PostsOnTarget
+		if err := rows.Scan(
+			&i.ID,
+			&i.FirstSyncedAt,
+			&i.PostID,
+			&i.TargetID,
+			&i.TargetPostID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPostsPreviouslySynced = `-- name: GetPostsPreviouslySynced :many
 SELECT id, first_synced_at, post_id, target_id, target_post_id FROM posts_on_target
 where target_id = $1

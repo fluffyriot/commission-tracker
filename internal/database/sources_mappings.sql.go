@@ -46,6 +46,77 @@ func (q *Queries) AddSourceToTarget(ctx context.Context, arg AddSourceToTargetPa
 	return i, err
 }
 
+const deleteSourceTarget = `-- name: DeleteSourceTarget :exec
+DELETE FROM sources_on_target
+where target_id = $1 and source_id = $2
+`
+
+type DeleteSourceTargetParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+}
+
+func (q *Queries) DeleteSourceTarget(ctx context.Context, arg DeleteSourceTargetParams) error {
+	_, err := q.db.ExecContext(ctx, deleteSourceTarget, arg.TargetID, arg.SourceID)
+	return err
+}
+
+const getSourcesOfTarget = `-- name: GetSourcesOfTarget :many
+SELECT id, source_id, target_id, target_source_id FROM sources_on_target
+where source_id = $1
+`
+
+func (q *Queries) GetSourcesOfTarget(ctx context.Context, sourceID uuid.UUID) ([]SourcesOnTarget, error) {
+	rows, err := q.db.QueryContext(ctx, getSourcesOfTarget, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SourcesOnTarget
+	for rows.Next() {
+		var i SourcesOnTarget
+		if err := rows.Scan(
+			&i.ID,
+			&i.SourceID,
+			&i.TargetID,
+			&i.TargetSourceID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTargetSourceBySource = `-- name: GetTargetSourceBySource :one
+SELECT id, source_id, target_id, target_source_id FROM sources_on_target
+where target_id = $1 and source_id = $2
+LIMIT 1
+`
+
+type GetTargetSourceBySourceParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+}
+
+func (q *Queries) GetTargetSourceBySource(ctx context.Context, arg GetTargetSourceBySourceParams) (SourcesOnTarget, error) {
+	row := q.db.QueryRowContext(ctx, getTargetSourceBySource, arg.TargetID, arg.SourceID)
+	var i SourcesOnTarget
+	err := row.Scan(
+		&i.ID,
+		&i.SourceID,
+		&i.TargetID,
+		&i.TargetSourceID,
+	)
+	return i, err
+}
+
 const getTargetSources = `-- name: GetTargetSources :many
 SELECT id, source_id, target_id, target_source_id FROM sources_on_target
 where target_id = $1
