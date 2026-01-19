@@ -198,10 +198,6 @@ func resolveTikTokSecUID(c *Client, username, profileURL string) (string, error)
 	}
 	defer resp.Body.Close()
 
-	if cookies := resp.Header["Set-Cookie"]; len(cookies) > 0 {
-		c.tikTokCookie = strings.Join(cookies, "; ")
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
@@ -238,10 +234,6 @@ func setTikTokHeaders(req *http.Request, username string, c *Client) {
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Referer", fmt.Sprintf("https://www.tiktok.com/@%s", username))
-
-	if c.tikTokCookie != "" {
-		req.Header.Set("Cookie", c.tikTokCookie)
-	}
 }
 
 type tiktokPostFeed struct {

@@ -8,8 +8,7 @@ import (
 )
 
 type Client struct {
-	httpClient   http.Client
-	tikTokCookie string
+	httpClient http.Client
 }
 
 type Media struct {
