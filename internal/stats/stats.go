@@ -2,17 +2,15 @@ package stats
 
 import (
 	"context"
-	"time"
 
 	"github.com/fluffyriot/commission-tracker/internal/database"
 	"github.com/google/uuid"
 )
 
 type ValidationPoint struct {
-	Date    time.Time `json:"date"`
-	Likes   int64     `json:"likes"`
-	Reposts int64     `json:"reposts"`
-	Views   int64     `json:"views"`
+	Date    string `json:"date"`
+	Likes   int64  `json:"likes"`
+	Reposts int64  `json:"reposts"`
 }
 
 type SourceStats struct {
@@ -24,7 +22,7 @@ type SourceStats struct {
 
 func GetStats(dbQueries *database.Queries, userID uuid.UUID) ([]SourceStats, error) {
 
-	stats, err := dbQueries.GetDailyStats(context.Background(), userID)
+	stats, err := dbQueries.GetWeeklyStats(context.Background(), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -43,10 +41,9 @@ func GetStats(dbQueries *database.Queries, userID uuid.UUID) ([]SourceStats, err
 		}
 
 		statsMap[row.ID].Points = append(statsMap[row.ID].Points, ValidationPoint{
-			Date:    row.Date,
+			Date:    row.YearWeek,
 			Likes:   row.TotalLikes,
 			Reposts: row.TotalReposts,
-			Views:   row.TotalViews,
 		})
 	}
 

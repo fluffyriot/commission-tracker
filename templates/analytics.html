@@ -32,7 +32,7 @@
                 data.forEach(source => {
                     const points = source.points || [];
                     const dataPoints = points.map(p => {
-                        const dateStr = p.date.split('T')[0];
+                        const dateStr = p.date;
                         allDates.add(dateStr);
                         return {
                             x: dateStr,

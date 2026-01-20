@@ -27,7 +27,7 @@ const (
 	NocoDb SyncMethodEnum = "NocoDb"
 )
 
-const AppVersion = "0.9"
+const AppVersion = "0.10"
 
 type User struct {
 	Id        uuid.UUID

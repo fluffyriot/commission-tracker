@@ -51,6 +51,7 @@ func main() {
 
 	r.GET("/auth/facebook/login", h.FacebookLoginHandler)
 	r.GET("/auth/facebook/callback", h.FacebookCallbackHandler)
+	r.POST("/auth/facebook/refresh", h.FacebookRefreshTokenHandler)
 
 	r.GET("/auth/tiktok/login", h.TikTokLoginHandler)
 	r.GET("/auth/tiktok/check", h.TikTokCheckHandler)

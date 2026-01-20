@@ -145,6 +145,7 @@
           </div>
 
           <div class="source-actions">
+
             <form method="POST" action="/sources/sync" onsubmit="return submitWithConfirm(this);">
               <input type="hidden" name="source_id" value="{{.ID}}">
               <button type="submit" class="btn btn-secondary btn-icon" {{if not .IsActive}}disabled{{end}}
@@ -166,6 +167,17 @@
               <input type="hidden" name="source_id" value="{{.ID}}">
               <button type="submit" class="btn btn-secondary btn-icon" title="Enable">
                 <i data-lucide="power"></i>
+              </button>
+            </form>
+            {{end}}
+
+            {{if eq .Network "Instagram"}}
+            <form method="POST" action="/auth/facebook/refresh"
+              onsubmit="return submitWithConfirm(this, 'Refresh access token for this source?');">
+              <input type="hidden" name="source_id" value="{{.ID}}">
+              <button type="submit" class="btn btn-danger btn-icon" {{if not .IsActive}}disabled{{end}}
+                title="Refresh Token">
+                <i data-lucide="key-round"></i>
               </button>
             </form>
             {{end}}
