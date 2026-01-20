@@ -1,26 +1,53 @@
 # Commission Tracker
 
+
 Collect and track your online presence statistics in a local database that runs entirely on your machine.
 
-This project is designed for digital creators who want insight into their social media performance without relying on expensive or data‑intrusive third‑party tools.
+**Commission Tracker** is your personal, privacy-first command center for social media analytics. Stop relying on fragmented, invasive, and expensive third-party tools. Run this application locally to collect, visualize, and own your data forever.
+
+**Key Benefits:**
+*   **100% Local & Private**: Your data never leaves your machine unless you say so.
+*   **Unified Analytics**: View statistics from Instagram, TikTok, Bluesky, Mastodon, and more in one beautiful dashboard.
+*   **Data Ownership**: Seamlessly export your data to NocoDB and CSV for external analysis.
+*   **No Subscriptions**: Free and open-source.
+
+This app is intended to run in Docker and has both x64 and arm builds. It is intended to run on Debian-like systems and has been tested on Windows using WSL2 Ubuntu and Raspberry Pi running on Raspbian.
+
+## Features
+
+### Data Collection (Sources)
+*   **Instagram**: Syncs public creator/business pages (requires Facebook Page connection).
+*   **TikTok**: Advanced scraping via TikTok Creator Studio.
+*   **Telegram**: Tracks your public channels
+*   **Other Platforms**: Bluesky, Mastodon, Murrtube.net, BadPups.com.
+
+### Data Management (Targets)
+*   **NocoDB Integration**: Automatically syncs your posts and sources to NocoDB for Airtable-like management.
+*   **CSV Exports**: Easy variable data export for offline analysis.
+
+### Important Notes
+*   **Instagram Sync**: Requires a Facebook App and a Facebook Page connected to the Instagram account. [Setup Guide](#setup-for-instagram-sync)
+*   **TikTok Sync**: Uses TikTok Creator Studio page. Ensure you have access to it.
+*   **Telegram Sync**: Requires App creation and Bot setup. [Setup Guide](#setup-for-telegram-sync)
 
 ---
 
 ## Table of Contents
 
-* [Quick Start](#quick-start)
+* [Start Guide](#start-guide)
 * [Environment Configuration](#environment-configuration)
 * [Docker Setup](#docker-setup)
 * [HTTPS and Certificates](#https-and-certificates)
 * [Running the Application](#running-the-application)
 * [Usage](#usage)
 * [Instagram Sync Setup](#setup-for-instagram-sync)
+* [Telegram Sync Setup](#setup-for-telegram-sync)
 * [Motivation](#motivation)
 * [Contributing](#contributing)
 
 ---
 
-## Quick Start
+## Start Guide
 
 ### Prerequisites
 
@@ -52,15 +79,12 @@ cd commission-tracker
 Create a `.env` file in the project root using the template below:
 
 ```env
-BASE_URL=https://${LOCAL_IP}:${HTTPS_PORT}
-
 POSTGRES_DB=commission-tracker-db
 POSTGRES_USER=local-user-ctd
 POSTGRES_PASSWORD=password123
 POSTGRES_PORT=5435
 POSTGRES_HOST=db
 
-PORT=8080
 APP_PORT=22347
 HTTP_PORT=8081
 HTTPS_PORT=8443
@@ -287,6 +311,20 @@ Instagram data synchronization requires additional setup via Meta (Facebook) Dev
 10. Click **Generate Token**, select your Page and Instagram account.
 
 11. Copy and save the numeric Instagram Page ID displayed.
+
+---
+
+## Setup for Telegram Sync
+
+### Steps
+
+1. Head to [https://my.telegram.org/apps](https://my.telegram.org/apps) and create an app.
+
+2. Copy the **API ID** and **API Hash** and save it for later to use in "Add source" process during the setup.
+
+3. In the Telegram App, navigate to [**Botfather**](https://t.me/BotFather) and create a new bot.
+
+4. Copy the **Bot Token** and save it for later to use in "Add source" process during the setup.
 
 ---
 
