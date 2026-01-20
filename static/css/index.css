@@ -303,6 +303,12 @@ a:hover {
   margin-top: 0.25rem;
 }
 
+.source-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 @media (max-width: 600px) {
   .source-item {
     flex-direction: column;
@@ -313,8 +319,13 @@ a:hover {
   .source-actions {
     width: 100%;
     display: flex;
-    justify-content: flex-end;
+    flex-direction: row;
+    justify-content: flex-start;
     gap: 0.5rem;
+  }
+
+  .source-info {
+    width: 100%;
   }
 
   .flex-responsive {
@@ -324,6 +335,14 @@ a:hover {
 
   .grid-responsive {
     grid-template-columns: 1fr !important;
+  }
+
+  .source-info .flex.items-center.gap-2 {
+    width: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
   }
 }
 

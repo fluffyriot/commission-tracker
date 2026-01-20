@@ -15,7 +15,8 @@ import (
 
 const deleteOldStats = `-- name: DeleteOldStats :exec
 DELETE from posts_reactions_history
-where synced_at < now() - INTERVAL '14 days'
+where
+    synced_at < now() - INTERVAL '14 days'
 `
 
 func (q *Queries) DeleteOldStats(ctx context.Context) error {
@@ -24,26 +25,33 @@ func (q *Queries) DeleteOldStats(ctx context.Context) error {
 }
 
 const getDailyStats = `-- name: GetDailyStats :many
-SELECT 
-        s.id, s.network, s.user_name, DATE(p.created_at) as date,
-        SUM(prh.likes) as total_likes,
-        SUM(prh.reposts) as total_reposts,
-        SUM(prh.views) as total_views
- 
-    FROM posts_reactions_history prh
-        JOIN posts p ON prh.post_id = p.id
-        JOIN sources s ON p.source_id = s.id
-
-    WHERE s.user_id = $1
+SELECT
+    s.id,
+    s.network,
+    s.user_name,
+    DATE (p.created_at) as date,
+    SUM(prh.likes) as total_likes,
+    SUM(prh.reposts) as total_reposts
+FROM
+    posts_reactions_history prh
+    JOIN posts p ON prh.post_id = p.id
+    JOIN sources s ON p.source_id = s.id
+WHERE
+    s.user_id = $1
     AND prh.synced_at = (
-        SELECT MAX(synced_at) 
-        FROM posts_reactions_history 
-        WHERE post_id = prh.post_id 
-        AND DATE(synced_at) = DATE(prh.synced_at)
+        SELECT MAX(synced_at)
+        FROM posts_reactions_history
+        WHERE
+            post_id = prh.post_id
+            AND DATE (synced_at) = DATE (prh.synced_at)
     )
     AND p.post_type <> 'repost'
-
-GROUP BY s.id, s.network, s.user_name, DATE(prh.synced_at), DATE(p.created_at)
+GROUP BY
+    s.id,
+    s.network,
+    s.user_name,
+    DATE (prh.synced_at),
+    DATE (p.created_at)
 ORDER BY s.id, date ASC
 `
 
@@ -54,7 +62,6 @@ type GetDailyStatsRow struct {
 	Date         time.Time
 	TotalLikes   int64
 	TotalReposts int64
-	TotalViews   int64
 }
 
 func (q *Queries) GetDailyStats(ctx context.Context, userID uuid.UUID) ([]GetDailyStatsRow, error) {
@@ -73,7 +80,81 @@ func (q *Queries) GetDailyStats(ctx context.Context, userID uuid.UUID) ([]GetDai
 			&i.Date,
 			&i.TotalLikes,
 			&i.TotalReposts,
-			&i.TotalViews,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWeeklyStats = `-- name: GetWeeklyStats :many
+WITH
+    LatestStats AS (
+        SELECT prh.post_id, prh.likes, prh.reposts
+        FROM
+            posts_reactions_history prh
+            JOIN (
+                SELECT post_id, MAX(synced_at) as max_sync
+                FROM posts_reactions_history
+                GROUP BY
+                    post_id
+            ) latest ON prh.post_id = latest.post_id
+            AND prh.synced_at = latest.max_sync
+    )
+SELECT
+    s.id,
+    s.network,
+    s.user_name,
+    TO_CHAR(p.created_at, 'IYYY-IW') as year_week,
+    COALESCE(SUM(ls.likes), 0)::bigint as total_likes,
+    COALESCE(SUM(ls.reposts), 0)::bigint as total_reposts
+FROM
+    posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN LatestStats ls ON p.id = ls.post_id
+WHERE
+    s.user_id = $1
+    AND p.post_type <> 'repost'
+GROUP BY
+    s.id,
+    s.network,
+    s.user_name,
+    year_week
+ORDER BY year_week ASC
+`
+
+type GetWeeklyStatsRow struct {
+	ID           uuid.UUID
+	Network      string
+	UserName     string
+	YearWeek     string
+	TotalLikes   int64
+	TotalReposts int64
+}
+
+func (q *Queries) GetWeeklyStats(ctx context.Context, userID uuid.UUID) ([]GetWeeklyStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWeeklyStats, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWeeklyStatsRow
+	for rows.Next() {
+		var i GetWeeklyStatsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Network,
+			&i.UserName,
+			&i.YearWeek,
+			&i.TotalLikes,
+			&i.TotalReposts,
 		); err != nil {
 			return nil, err
 		}
@@ -89,16 +170,18 @@ func (q *Queries) GetDailyStats(ctx context.Context, userID uuid.UUID) ([]GetDai
 }
 
 const syncReactions = `-- name: SyncReactions :one
-INSERT INTO posts_reactions_history (id, synced_at, post_id, likes, reposts, views)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6
-)
-RETURNING id, synced_at, post_id, likes, reposts, views
+INSERT INTO
+    posts_reactions_history (
+        id,
+        synced_at,
+        post_id,
+        likes,
+        reposts,
+        views
+    )
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING
+    id, synced_at, post_id, likes, reposts, views
 `
 
 type SyncReactionsParams struct {

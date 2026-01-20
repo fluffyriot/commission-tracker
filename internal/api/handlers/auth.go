@@ -9,6 +9,7 @@ import (
 	"github.com/fluffyriot/commission-tracker/internal/authhelp"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/oauth2"
 )
 
 func (h *Handler) FacebookLoginHandler(c *gin.Context) {
@@ -94,6 +95,56 @@ func (h *Handler) FacebookCallbackHandler(c *gin.Context) {
 	err = authhelp.InsertSourceToken(context.Background(), h.DB, sid, tokenStr, pid, h.Config.TokenEncryptionKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store token", "details": err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/")
+}
+
+func (h *Handler) FacebookRefreshTokenHandler(c *gin.Context) {
+	sidStr := c.PostForm("source_id")
+	if sidStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "source_id is required"})
+		return
+	}
+
+	sid, err := uuid.Parse(sidStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source_id"})
+		return
+	}
+
+	currentAccessToken, profileID, _, err := authhelp.GetSourceToken(context.Background(), h.DB, h.Config.TokenEncryptionKey, sid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve existing token", "details": err.Error()})
+		return
+	}
+
+	newLongLivedToken, err := authhelp.ExchangeLongLivedToken(currentAccessToken, h.Config.FBConfig)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to refresh token with Facebook", "details": err.Error()})
+		return
+	}
+
+	newTokenStruct := &oauth2.Token{
+		AccessToken: newLongLivedToken,
+		TokenType:   "bearer",
+	}
+
+	tokenStr, err := authhelp.OauthTokenToString(newTokenStruct)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to serialize new token", "details": err.Error()})
+		return
+	}
+
+	_, _, tokenID, err := authhelp.GetSourceToken(context.Background(), h.DB, h.Config.TokenEncryptionKey, sid)
+	if err == nil {
+		_ = h.DB.DeleteTokenById(context.Background(), tokenID)
+	}
+
+	err = authhelp.InsertSourceToken(context.Background(), h.DB, sid, tokenStr, profileID, h.Config.TokenEncryptionKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store new token", "details": err.Error()})
 		return
 	}
 
