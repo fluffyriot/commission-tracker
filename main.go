@@ -45,6 +45,7 @@ func main() {
 		clientFetch,
 		clientPull,
 		cfg,
+		w,
 	)
 
 	r.GET("/", h.RootHandler)
@@ -68,7 +69,7 @@ func main() {
 	r.POST("/sources/activate", h.ActivateSourceHandler)
 	r.POST("/sources/delete", h.DeleteSourceHandler)
 	r.POST("/sources/sync", h.SyncSourceHandler)
-	r.POST("/sources/syncAll", h.SyncAllHandler)
+	r.POST("/syncAll", h.TriggerSyncHandler)
 
 	r.GET("/targets", h.TargetsHandler)
 	r.POST("/targets/setup", h.TargetsSetupHandler)
