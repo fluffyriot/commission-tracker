@@ -8,7 +8,6 @@ import (
 
 	"github.com/fluffyriot/commission-tracker/internal/config"
 	"github.com/fluffyriot/commission-tracker/internal/database"
-	"github.com/fluffyriot/commission-tracker/internal/fetcher"
 	"github.com/fluffyriot/commission-tracker/internal/puller"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -56,6 +55,36 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 		"sources":     sources,
 		"app_version": config.AppVersion,
 	})
+}
+
+func (h *Handler) HandleGetSourcesAPI(c *gin.Context) {
+	if h.Config.DBInitErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": h.Config.DBInitErr.Error()})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	users, err := h.DB.GetAllUsers(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(users) == 0 {
+		c.JSON(http.StatusOK, []interface{}{})
+		return
+	}
+
+	user := users[0]
+
+	sources, err := h.DB.GetUserSources(ctx, user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, sources)
 }
 
 func (h *Handler) SourcesSetupHandler(c *gin.Context) {
@@ -229,42 +258,8 @@ func (h *Handler) SyncSourceHandler(c *gin.Context) {
 				log.Printf("panic in background sync: %v", r)
 			}
 		}()
-		fetcher.SyncBySource(sid, h.DB, h.Fetcher, h.Config.InstagramAPIVersion, h.Config.TokenEncryptionKey)
+		h.Worker.SyncSource(sid)
 	}(sourceID)
-
-	c.Redirect(http.StatusSeeOther, "/sources")
-}
-
-func (h *Handler) SyncAllHandler(c *gin.Context) {
-	userID, err := uuid.Parse(c.PostForm("user_id"))
-	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
-		return
-	}
-
-	sources, err := h.DB.GetUserActiveSources(context.Background(), userID)
-	if err != nil {
-		log.Printf("Error getting user active sources: %v", err)
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
-		return
-	}
-
-	for _, sourceID := range sources {
-		go func(sid uuid.UUID) {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Printf("panic in background sync: %v", r)
-				}
-			}()
-			fetcher.SyncBySource(sid, h.DB, h.Fetcher, h.Config.InstagramAPIVersion, h.Config.TokenEncryptionKey)
-		}(sourceID.ID)
-	}
 
 	c.Redirect(http.StatusSeeOther, "/sources")
 }

@@ -8,14 +8,7 @@
     <div class="flex gap-2">
         <form method="GET" action="/sources">
             <button class="btn btn-secondary btn-icon" title="Refresh Page">
-                <i data-lucide="refresh-cw"></i>
-            </button>
-        </form>
-
-        <form method="POST" action="/sources/syncAll" onsubmit="return submitWithConfirm(this);">
-            <input type="hidden" name="user_id" value="{{.user_id}}">
-            <button type="submit" class="btn btn-primary" title="Sync All Sources">
-                <i data-lucide="cloud-sync"></i> Sync All
+                <i data-lucide="refresh-cw"></i> Refresh Page
             </button>
         </form>
 

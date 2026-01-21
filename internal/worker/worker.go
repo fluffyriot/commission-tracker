@@ -1,9 +1,6 @@
 package worker
 
 import (
-	"context"
-	"crypto/rand"
-	"encoding/binary"
 	"log"
 	"sync"
 	"time"
@@ -22,24 +19,9 @@ type Worker struct {
 	Config   *config.AppConfig
 	Ticker   *time.Ticker
 	StopChan chan bool
-}
-
-func backoffWithJitter(attempt int) time.Duration {
-	const (
-		baseDelay = 10 * time.Second
-		maxDelay  = 15 * time.Minute
-	)
-
-	delay := baseDelay * (1 << attempt)
-	if delay > maxDelay {
-		delay = maxDelay
-	}
-
-	var b [8]byte
-	_, _ = rand.Read(b[:])
-	jitter := time.Duration(binary.LittleEndian.Uint64(b[:]) % uint64(delay))
-
-	return jitter
+	mu       sync.Mutex
+	running  bool
+	active   bool
 }
 
 func NewWorker(db *database.Queries, fetcher *fetcher.Client, puller *puller.Client, cfg *config.AppConfig) *Worker {
@@ -53,8 +35,22 @@ func NewWorker(db *database.Queries, fetcher *fetcher.Client, puller *puller.Cli
 }
 
 func (w *Worker) Start(interval time.Duration) {
+	w.mu.Lock()
+	if w.active {
+		w.mu.Unlock()
+		log.Println("Worker: Scheduler already active, use Restart to change interval")
+		return
+	}
+	w.active = true
+	w.mu.Unlock()
+
 	w.Ticker = time.NewTicker(interval)
 	go func() {
+		defer func() {
+			w.mu.Lock()
+			w.active = false
+			w.mu.Unlock()
+		}()
 		for {
 			select {
 			case <-w.Ticker.C:
@@ -69,108 +65,70 @@ func (w *Worker) Start(interval time.Duration) {
 }
 
 func (w *Worker) Stop() {
+	w.mu.Lock()
+	if !w.active {
+		w.mu.Unlock()
+		log.Println("Worker: Scheduler not active")
+		return
+	}
+	w.mu.Unlock()
+
 	w.StopChan <- true
 	log.Println("Background worker stopped")
 }
 
-func (w *Worker) SyncAll() {
-	log.Println("Worker: Starting scheduled sync...")
-	ctx := context.Background()
+func (w *Worker) Restart(interval time.Duration) {
+	w.mu.Lock()
+	isActive := w.active
+	w.mu.Unlock()
 
-	err := w.DB.DeleteOldStats(ctx)
-	if err != nil {
-		log.Printf("Worker Data deletion error: %v", err)
+	if isActive {
+		w.Stop()
+		time.Sleep(100 * time.Millisecond)
 	}
+	w.Start(interval)
+}
 
-	users, err := w.DB.GetAllUsers(ctx)
-	if err != nil {
-		log.Printf("Worker Error getting users: %v", err)
+func (w *Worker) IsActive() bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.active
+}
+
+func (w *Worker) SyncAll() {
+	w.mu.Lock()
+	if w.running {
+		w.mu.Unlock()
+		log.Println("Worker: Sync already in progress, skipping...")
 		return
 	}
+	w.running = true
+	w.mu.Unlock()
 
-	var (
-		sourceWG    sync.WaitGroup
-		targetWG    sync.WaitGroup
-		countSource int
-		countTarget int
-	)
+	defer func() {
+		w.mu.Lock()
+		w.running = false
+		w.mu.Unlock()
+	}()
 
-	for _, user := range users {
-		sources, err := w.DB.GetUserActiveSources(ctx, user.ID)
-		if err != nil {
-			log.Printf("Worker Error getting sources for user %s: %v", user.Username, err)
-			continue
-		}
+	RunSync(w.DB, w.Fetcher, w.Puller, w.Config)
+}
 
-		for _, source := range sources {
-			sourceWG.Add(1)
-			countSource++
-
-			go func(sid uuid.UUID) {
-				defer sourceWG.Done()
-
-				const maxRetries = 5
-
-				for attempt := 0; attempt <= maxRetries; attempt++ {
-
-					func() {
-						defer func() {
-							if r := recover(); r != nil {
-								log.Printf("Worker Panic in source sync (source=%s attempt=%d): %v", sid, attempt+1, r)
-							}
-						}()
-
-						err := fetcher.SyncBySource(sid, w.DB, w.Fetcher, w.Config.InstagramAPIVersion, w.Config.TokenEncryptionKey)
-
-						if err == nil {
-							return
-						}
-
-						if attempt == maxRetries {
-							log.Printf("Worker Source sync FAILED after %d attempts (source=%s): %v", attempt+1, sid, err)
-							return
-						}
-
-						delay := backoffWithJitter(attempt)
-						log.Printf("Worker Source sync error (source=%s attempt=%d). Retrying in %s: %v", sid, attempt+1, delay, err)
-						time.Sleep(delay)
-					}()
-				}
-			}(source.ID)
-		}
+func (w *Worker) SyncSource(sid uuid.UUID) {
+	w.mu.Lock()
+	if w.running {
+		w.mu.Unlock()
+		log.Println("Worker: Sync already in progress, skipping...")
+		return
 	}
+	w.running = true
+	w.mu.Unlock()
 
-	sourceWG.Wait()
+	defer func() {
+		w.mu.Lock()
+		w.running = false
+		w.mu.Unlock()
+	}()
 
-	for _, user := range users {
-		targets, err := w.DB.GetUserActiveTargets(ctx, user.ID)
-		if err != nil {
-			log.Printf("Worker Error getting targets for user %s: %v", user.Username, err)
-			continue
-		}
-
-		for _, target := range targets {
-			targetWG.Add(1)
-			countTarget++
-
-			go func(tid uuid.UUID) {
-				defer targetWG.Done()
-				defer func() {
-					if r := recover(); r != nil {
-						log.Printf("Worker Panic in target sync: %v", r)
-					}
-				}()
-
-				puller.PullByTarget(tid, w.DB, w.Puller, w.Config.TokenEncryptionKey)
-			}(target.ID)
-		}
-	}
-
-	targetWG.Wait()
-
-	log.Printf(
-		"Worker: Completed sync for %d sources and %d targets",
-		countSource,
-		countTarget,
-	)
+	RunSyncSource(sid, w.DB, w.Fetcher, w.Config)
 }
