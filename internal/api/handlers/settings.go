@@ -50,6 +50,7 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "sync-settings.html", gin.H{
 		"sync_period":        user.SyncPeriod,
 		"enabled_on_startup": user.EnabledOnStartup,
+		"worker_running":     h.Worker.IsActive(),
 		"app_version":        config.AppVersion,
 	})
 }
