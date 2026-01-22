@@ -71,7 +71,7 @@ func UpdateLogAutoExport(export database.Export, dbQueries *database.Queries, st
 
 	var statusMessage sql.NullString
 	if statusReason != "" {
-		downloadURL = sql.NullString{
+		statusMessage = sql.NullString{
 			String: statusReason,
 			Valid:  true,
 		}
