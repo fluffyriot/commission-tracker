@@ -30,7 +30,7 @@ cd rpsync
 ```
 
 > **IMPORTANT**
-> If you plan to sync Instagram data, complete the [Instagram Setup](./docs/setup/instagram) section first.
+> If you plan to sync Instagram data, complete the [Instagram Setup](./setup/instagram) section first.
 
 ---
 
@@ -91,7 +91,7 @@ FACEBOOK_APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   ```
 
 * **FACEBOOK_APP_ID / FACEBOOK_APP_SECRET**
-  Required for Instagram synchronization. See [Instagram Setup](./docs/setup/instagram).
+  Required for Instagram synchronization. See [Instagram Setup](./setup/instagram).
 
 ---
 
