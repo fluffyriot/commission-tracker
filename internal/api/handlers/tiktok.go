@@ -14,6 +14,7 @@ func (h *Handler) TikTokLoginHandler(c *gin.Context) {
 	if username == "" {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error": "username is required",
+			"title": "Error",
 		})
 		return
 	}
@@ -29,6 +30,7 @@ func (h *Handler) TikTokLoginHandler(c *gin.Context) {
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error": "Failed to start TikTok login session: " + err.Error(),
+			"title": "Error",
 		})
 		return
 	}
@@ -39,6 +41,7 @@ func (h *Handler) TikTokLoginHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "tiktok_login.html", gin.H{
 		"Username": username,
 		"QRCode":   qrBase64,
+		"title":    "TikTok Login",
 	})
 }
 

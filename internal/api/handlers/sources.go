@@ -18,6 +18,7 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       h.Config.DBInitErr.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -29,12 +30,16 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
 
 	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", nil)
+		c.HTML(http.StatusOK, "user-setup.html", gin.H{
+			"app_version": config.AppVersion,
+			"title":       "Setup",
+		})
 		return
 	}
 
@@ -45,6 +50,7 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -54,6 +60,7 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 		"user_id":     user.ID,
 		"sources":     sources,
 		"app_version": config.AppVersion,
+		"title":       "Sources",
 	})
 }
 
@@ -103,6 +110,7 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       "all fields are required",
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -124,6 +132,7 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -147,6 +156,7 @@ func (h *Handler) DeactivateSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -164,6 +174,7 @@ func (h *Handler) DeactivateSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -177,6 +188,7 @@ func (h *Handler) ActivateSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -194,6 +206,7 @@ func (h *Handler) ActivateSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -207,6 +220,7 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -216,6 +230,7 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -225,6 +240,7 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 		if err != nil {
 			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 				"error": err.Error(),
+				"title": "Error",
 			})
 			return
 		}
@@ -235,6 +251,7 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -248,6 +265,7 @@ func (h *Handler) SyncSourceHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}

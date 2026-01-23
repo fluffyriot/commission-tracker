@@ -19,6 +19,7 @@ func (h *Handler) TargetsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       h.Config.DBInitErr.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -30,12 +31,16 @@ func (h *Handler) TargetsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
 
 	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", nil)
+		c.HTML(http.StatusOK, "user-setup.html", gin.H{
+			"app_version": config.AppVersion,
+			"title":       "Setup",
+		})
 		return
 	}
 
@@ -46,6 +51,7 @@ func (h *Handler) TargetsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -54,6 +60,7 @@ func (h *Handler) TargetsHandler(c *gin.Context) {
 		"user_id":     user.ID,
 		"targets":     targets,
 		"app_version": config.AppVersion,
+		"title":       "Targets",
 	})
 }
 
@@ -69,6 +76,7 @@ func (h *Handler) TargetsSetupHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       "all fields are required",
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -87,6 +95,7 @@ func (h *Handler) TargetsSetupHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -100,6 +109,7 @@ func (h *Handler) ActivateTargetHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -117,6 +127,7 @@ func (h *Handler) ActivateTargetHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -130,6 +141,7 @@ func (h *Handler) DeactivateTargetHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -147,6 +159,7 @@ func (h *Handler) DeactivateTargetHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -160,6 +173,7 @@ func (h *Handler) DeleteTargetHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -169,6 +183,7 @@ func (h *Handler) DeleteTargetHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -182,6 +197,7 @@ func (h *Handler) SyncTargetHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}

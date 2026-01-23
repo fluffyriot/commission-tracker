@@ -13,6 +13,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       h.Config.DBInitErr.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -21,6 +22,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       h.Config.KeyB64Err1.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -29,6 +31,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       h.Config.KeyB64Err2.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -37,6 +40,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       h.Config.InstVerErr.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -48,6 +52,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -55,6 +60,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 	if len(users) == 0 {
 		c.HTML(http.StatusOK, "user-setup.html", gin.H{
 			"app_version": config.AppVersion,
+			"title":       "Setup",
 		})
 		return
 	}
@@ -96,5 +102,6 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		"worker_status":           workerStatus,
 		"worker_is_off":           workerIsOff,
 		"sync_period":             user.SyncPeriod,
+		"title":                   "Dashboard",
 	})
 }

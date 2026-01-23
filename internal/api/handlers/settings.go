@@ -15,6 +15,7 @@ func (h *Handler) UserSetupHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       "username is required",
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -24,6 +25,7 @@ func (h *Handler) UserSetupHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -37,6 +39,7 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -52,6 +55,7 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 		"enabled_on_startup": user.EnabledOnStartup,
 		"worker_running":     h.Worker.IsActive(),
 		"app_version":        config.AppVersion,
+		"title":              "Sync Settings",
 	})
 }
 
@@ -65,6 +69,7 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       "Invalid duration format",
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -74,6 +79,7 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -92,6 +98,7 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -111,6 +118,7 @@ func (h *Handler) ResetSyncSettingsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -129,6 +137,7 @@ func (h *Handler) ResetSyncSettingsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -143,6 +152,7 @@ func (h *Handler) StartWorkerHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}

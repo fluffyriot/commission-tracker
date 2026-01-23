@@ -17,6 +17,7 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       h.Config.DBInitErr.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -28,6 +29,7 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -35,6 +37,7 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 	if len(users) == 0 {
 		c.HTML(http.StatusOK, "user-setup.html", gin.H{
 			"app_version": config.AppVersion,
+			"title":       "User Setup",
 		})
 		return
 	}
@@ -46,6 +49,7 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
@@ -54,6 +58,7 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 		"user_id":     user.ID,
 		"exports":     exports,
 		"app_version": config.AppVersion,
+		"title":       "Exports",
 	})
 }
 
@@ -63,6 +68,7 @@ func (h *Handler) ExportDeleteAllHandler(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "error.html", gin.H{
 			"error":       err.Error(),
 			"app_version": config.AppVersion,
+			"title":       "Error",
 		})
 		return
 	}
