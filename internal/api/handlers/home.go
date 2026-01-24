@@ -3,45 +3,40 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/fluffyriot/rpsync/internal/config"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) RootHandler(c *gin.Context) {
 
 	if h.Config.DBInitErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       h.Config.DBInitErr.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": h.Config.DBInitErr.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	if h.Config.KeyB64Err1 != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       h.Config.KeyB64Err1.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": h.Config.KeyB64Err1.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	if h.Config.KeyB64Err2 != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       h.Config.KeyB64Err2.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": h.Config.KeyB64Err2.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	if h.Config.InstVerErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       h.Config.InstVerErr.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": h.Config.InstVerErr.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -49,19 +44,17 @@ func (h *Handler) RootHandler(c *gin.Context) {
 
 	users, err := h.DB.GetAllUsers(ctx)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", gin.H{
-			"app_version": config.AppVersion,
-			"title":       "Setup",
-		})
+		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
+			"title": "Setup",
+		}))
 		return
 	}
 
@@ -84,10 +77,9 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		workerIsOff = false
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{
+	c.HTML(http.StatusOK, "index.html", h.CommonData(gin.H{
 		"username":                user.Username,
 		"user_id":                 user.ID,
-		"app_version":             config.AppVersion,
 		"active_sources":          activeSources,
 		"active_targets":          activeTargets,
 		"total_posts":             totalPosts,
@@ -103,5 +95,5 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		"worker_is_off":           workerIsOff,
 		"sync_period":             user.SyncPeriod,
 		"title":                   "Dashboard",
-	})
+	}))
 }

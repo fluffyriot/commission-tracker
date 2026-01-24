@@ -2,18 +2,36 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
+
+	_ "embed"
 
 	"github.com/fluffyriot/rpsync/internal/api/handlers"
 	"github.com/fluffyriot/rpsync/internal/config"
 	"github.com/fluffyriot/rpsync/internal/fetcher"
 	"github.com/fluffyriot/rpsync/internal/pusher/common"
+	"github.com/fluffyriot/rpsync/internal/updater"
 	"github.com/fluffyriot/rpsync/internal/worker"
 	"github.com/gin-gonic/gin"
 )
 
+var versionFile []byte
+
+type projectVersion struct {
+	Latest string `json:"latest"`
+}
+
 func main() {
+
+	var pv projectVersion
+	if err := json.Unmarshal(versionFile, &pv); err != nil {
+		log.Printf("Error unmarshalling version.json: %v", err)
+		config.AppVersion = "unknown"
+	} else {
+		config.AppVersion = pv.Latest
+	}
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -39,6 +57,9 @@ func main() {
 	cfg.DBInitErr = dbInitErr
 
 	w := worker.NewWorker(dbQueries, clientFetch, clientPull, cfg)
+
+	upd := updater.NewUpdater(config.AppVersion)
+	upd.Start()
 
 	ctx := context.Background()
 	users, err := dbQueries.GetAllUsers(ctx)
@@ -71,6 +92,7 @@ func main() {
 		clientPull,
 		cfg,
 		w,
+		upd,
 	)
 
 	r.GET("/", h.RootHandler)

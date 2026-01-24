@@ -8,44 +8,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TikTokLoginHandler initiates the login session and shows the QR code page
 func (h *Handler) TikTokLoginHandler(c *gin.Context) {
 	username := c.Query("username")
 	if username == "" {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
 			"error": "username is required",
 			"title": "Error",
-		})
+		}))
 		return
 	}
 
-	// Start or get session
-	// Note: StartLoginSession is blocking until QR code is captured, so we might want to do it in a goroutine
-	// or handle it gracefully. However, we need the QR code to render the page.
-	// If the user refreshes, we might want to return existing QR or start new.
-	// For simplicity, let's just start a new one or use existing if status is "initiating".
-
-	// Since StartLoginSession waits for QR code, it might take a few seconds.
 	qrCode, err := fetcher.GlobalTikTokManager.StartLoginSession(username)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
 			"error": "Failed to start TikTok login session: " + err.Error(),
 			"title": "Error",
-		})
+		}))
 		return
 	}
 
-	// Helper to display the image. We'll pass it as base64 string
 	qrBase64 := base64.StdEncoding.EncodeToString(qrCode)
 
-	c.HTML(http.StatusOK, "tiktok_login.html", gin.H{
+	c.HTML(http.StatusOK, "tiktok_login.html", h.CommonData(gin.H{
 		"Username": username,
 		"QRCode":   qrBase64,
 		"title":    "TikTok Login",
-	})
+	}))
 }
 
-// TikTokCheckHandler checks the status of the login
 func (h *Handler) TikTokCheckHandler(c *gin.Context) {
 	username := c.Query("username")
 	if username == "" {

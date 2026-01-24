@@ -15,11 +15,10 @@ import (
 
 func (h *Handler) SourcesHandler(c *gin.Context) {
 	if h.Config.DBInitErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       h.Config.DBInitErr.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": h.Config.DBInitErr.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -27,19 +26,17 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 
 	users, err := h.DB.GetAllUsers(ctx)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", gin.H{
-			"app_version": config.AppVersion,
-			"title":       "Setup",
-		})
+		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
+			"title": "Setup",
+		}))
 		return
 	}
 
@@ -47,21 +44,19 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 
 	sources, err := h.DB.GetUserSources(ctx, user.ID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
-	c.HTML(http.StatusOK, "sources.html", gin.H{
-		"username":    user.Username,
-		"user_id":     user.ID,
-		"sources":     sources,
-		"app_version": config.AppVersion,
-		"title":       "Sources",
-	})
+	c.HTML(http.StatusOK, "sources.html", h.CommonData(gin.H{
+		"username": user.Username,
+		"user_id":  user.ID,
+		"sources":  sources,
+		"title":    "Sources",
+	}))
 }
 
 func (h *Handler) HandleGetSourcesAPI(c *gin.Context) {
@@ -107,11 +102,10 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	googleKey := c.PostForm("google_service_account_key")
 
 	if userID == "" || network == "" || username == "" {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       "all fields are required",
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "All fields are required",
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -129,11 +123,10 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 		h.Config.TokenEncryptionKey,
 	)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -153,11 +146,10 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 func (h *Handler) DeactivateSourceHandler(c *gin.Context) {
 	sourceID, err := uuid.Parse(c.PostForm("source_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -171,11 +163,10 @@ func (h *Handler) DeactivateSourceHandler(c *gin.Context) {
 		},
 	)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -185,11 +176,10 @@ func (h *Handler) DeactivateSourceHandler(c *gin.Context) {
 func (h *Handler) ActivateSourceHandler(c *gin.Context) {
 	sourceID, err := uuid.Parse(c.PostForm("source_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -203,11 +193,10 @@ func (h *Handler) ActivateSourceHandler(c *gin.Context) {
 		},
 	)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -217,42 +206,39 @@ func (h *Handler) ActivateSourceHandler(c *gin.Context) {
 func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 	sourceID, err := uuid.Parse(c.PostForm("source_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	syncedTargets, err := h.DB.GetSourcesOfTarget(context.Background(), sourceID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	for _, target := range syncedTargets {
 		err = pusher.RemoveByTarget(target.TargetID, sourceID, h.DB, h.Puller, h.Config.TokenEncryptionKey)
 		if err != nil {
-			c.HTML(http.StatusInternalServerError, "error.html", gin.H{
+			c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
 				"error": err.Error(),
 				"title": "Error",
-			})
+			}))
 			return
 		}
 	}
 
 	err = h.DB.DeleteSource(context.Background(), sourceID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -262,11 +248,10 @@ func (h *Handler) DeleteSourceHandler(c *gin.Context) {
 func (h *Handler) SyncSourceHandler(c *gin.Context) {
 	sourceID, err := uuid.Parse(c.PostForm("source_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 

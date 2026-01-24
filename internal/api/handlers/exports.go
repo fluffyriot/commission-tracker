@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/fluffyriot/rpsync/internal/config"
 	"github.com/fluffyriot/rpsync/internal/exports"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -14,11 +13,10 @@ import (
 func (h *Handler) ExportsHandler(c *gin.Context) {
 
 	if h.Config.DBInitErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       h.Config.DBInitErr.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": h.Config.DBInitErr.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -26,19 +24,17 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 
 	users, err := h.DB.GetAllUsers(ctx)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", gin.H{
-			"app_version": config.AppVersion,
-			"title":       "User Setup",
-		})
+		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
+			"title": "User Setup",
+		}))
 		return
 	}
 
@@ -46,30 +42,27 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 
 	exports, err := h.DB.GetLast20ExportsByUserId(ctx, user.ID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
-	c.HTML(http.StatusOK, "exports.html", gin.H{
-		"username":    user.Username,
-		"user_id":     user.ID,
-		"exports":     exports,
-		"app_version": config.AppVersion,
-		"title":       "Exports",
-	})
+	c.HTML(http.StatusOK, "exports.html", h.CommonData(gin.H{
+		"username": user.Username,
+		"user_id":  user.ID,
+		"exports":  exports,
+		"title":    "Exports",
+	}))
 }
 
 func (h *Handler) ExportDeleteAllHandler(c *gin.Context) {
 	userId, err := uuid.Parse(c.PostForm("user_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-			"title":       "Error",
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
