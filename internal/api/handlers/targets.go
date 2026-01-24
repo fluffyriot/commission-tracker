@@ -16,10 +16,10 @@ import (
 func (h *Handler) TargetsHandler(c *gin.Context) {
 
 	if h.Config.DBInitErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       h.Config.DBInitErr.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": h.Config.DBInitErr.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -27,15 +27,17 @@ func (h *Handler) TargetsHandler(c *gin.Context) {
 
 	users, err := h.DB.GetAllUsers(ctx)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", nil)
+		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
+			"title": "Setup",
+		}))
 		return
 	}
 
@@ -43,18 +45,18 @@ func (h *Handler) TargetsHandler(c *gin.Context) {
 
 	targets, err := h.DB.GetUserTargets(ctx, user.ID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
-	c.HTML(http.StatusOK, "targets.html", gin.H{
-		"username":    user.Username,
-		"user_id":     user.ID,
-		"targets":     targets,
-		"app_version": config.AppVersion,
-	})
+	c.HTML(http.StatusOK, "targets.html", h.CommonData(gin.H{
+		"username": user.Username,
+		"user_id":  user.ID,
+		"targets":  targets,
+		"title":    "Targets",
+	}))
 }
 
 func (h *Handler) TargetsSetupHandler(c *gin.Context) {
@@ -66,10 +68,10 @@ func (h *Handler) TargetsSetupHandler(c *gin.Context) {
 	period := "PT30M"
 
 	if userID == "" || target == "" || period == "" {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       "all fields are required",
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "All fields are required",
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -84,10 +86,10 @@ func (h *Handler) TargetsSetupHandler(c *gin.Context) {
 		h.Config.TokenEncryptionKey,
 	)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -97,10 +99,10 @@ func (h *Handler) TargetsSetupHandler(c *gin.Context) {
 func (h *Handler) ActivateTargetHandler(c *gin.Context) {
 	targetID, err := uuid.Parse(c.PostForm("target_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -114,10 +116,10 @@ func (h *Handler) ActivateTargetHandler(c *gin.Context) {
 		},
 	)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -127,10 +129,10 @@ func (h *Handler) ActivateTargetHandler(c *gin.Context) {
 func (h *Handler) DeactivateTargetHandler(c *gin.Context) {
 	targetID, err := uuid.Parse(c.PostForm("target_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -144,10 +146,10 @@ func (h *Handler) DeactivateTargetHandler(c *gin.Context) {
 		},
 	)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -157,19 +159,19 @@ func (h *Handler) DeactivateTargetHandler(c *gin.Context) {
 func (h *Handler) DeleteTargetHandler(c *gin.Context) {
 	targetID, err := uuid.Parse(c.PostForm("target_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
 	err = h.DB.DeleteTarget(context.Background(), targetID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -179,10 +181,10 @@ func (h *Handler) DeleteTargetHandler(c *gin.Context) {
 func (h *Handler) SyncTargetHandler(c *gin.Context) {
 	targetID, err := uuid.Parse(c.PostForm("target_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 

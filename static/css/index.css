@@ -168,7 +168,7 @@ a:hover {
 
 .btn-primary {
   background-color: var(--color-primary);
-  color: #1a1523;
+  color: var(--color-bg-base);
 }
 
 .btn-primary:hover {
@@ -193,7 +193,7 @@ a:hover {
 
 .btn-danger:hover {
   background-color: var(--color-danger);
-  color: white;
+  color: var(--color-text-main);
 }
 
 .btn-ghost {
@@ -383,7 +383,6 @@ a:hover {
   }
 }
 
-/* Error State for Stat Card */
 .stat-card.has-errors {
   border-color: var(--color-danger);
 }
@@ -492,5 +491,132 @@ a:hover {
   .mobile-equal-width form,
   .mobile-equal-width .btn {
     width: 100%;
+  }
+}
+
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: var(--color-text-main);
+  color: var(--color-bg-base);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  max-width: 350px;
+  border-left: 5px solid var(--color-danger);
+}
+
+.toast-content {
+  flex: 1;
+}
+
+.toast-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-bg-base);
+}
+
+.toast-message {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-bg-surface);
+  line-height: 1.4;
+}
+
+.toast-link {
+  font-size: 14px;
+  color: var(--color-danger);
+  font-weight: bold;
+  display: inline-block;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-border);
+  margin-top: 2px;
+}
+
+.exclusion-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.exclusion-search-container {
+  min-width: 250px;
+}
+
+.exclusion-list-empty,
+.exclusion-list-error {
+  text-align: center;
+  padding: 2rem;
+}
+
+.exclusion-list-error {
+  color: var(--color-danger);
+}
+
+.exclusion-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.exclusion-item>div {
+  flex: 1;
+  min-width: 0;
+}
+
+.exclusion-delete-btn {
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2.5rem;
+  gap: 1rem;
+}
+
+.pagination-controls .btn {
+  min-width: 40px;
+}
+
+@media (max-width: 768px) {
+  .exclusion-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .exclusion-search-container {
+    width: 100%;
+  }
+
+  .toast-notification {
+    bottom: 20px;
+    top: auto;
+    right: 20px;
+    left: 20px;
+    max-width: none;
   }
 }

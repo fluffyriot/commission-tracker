@@ -2,8 +2,35 @@
 
 <footer class="container text-center" style="color: var(--color-text-muted); font-size: 0.85rem;">
     <p><a href="https://github.com/fluffyriot/rpsync" target="_blank">RPSync by Fluffy Riot.</a>
-        v{{.app_version}} &copy; 2026</p>
+        {{ if .update_available }}
+        <span style="color: var(--color-danger); font-weight: bold;">v.{{.app_version}}</span>
+        <a href="{{.update_url}}" target="_blank" style="color: var(--color-danger); font-weight: bold;">(outdated -
+            v.{{.update_version}} update available!)</a>
+        {{ else }}
+        v.{{.app_version}}
+        {{ end }}
+        &copy; 2026
+    </p>
 </footer>
+
+{{ if .update_available }}
+<div id="update-toast" class="toast-notification">
+    <div class="toast-content">
+        <h4 class="toast-title">New Update Available!</h4>
+        <p class="toast-message">{{.update_desc}}</p>
+        <a href="{{.update_url}}" target="_blank" class="toast-link">Download v.{{.update_version}}</a>
+    </div>
+    <button onclick="document.getElementById('update-toast').remove()" class="toast-close">
+        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+    </button>
+</div>
+<script>
+    setTimeout(() => {
+        const toast = document.getElementById('update-toast');
+        if (toast) toast.remove();
+    }, 10000);
+</script>
+{{ end }}
 
 <script>
     lucide.createIcons();

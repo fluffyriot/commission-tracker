@@ -12,19 +12,19 @@ import (
 func (h *Handler) UserSetupHandler(c *gin.Context) {
 	username := c.PostForm("username")
 	if username == "" {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       "username is required",
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "username is required",
+			"title": "Error",
+		}))
 		return
 	}
 
 	_, _, err := config.CreateUserFromForm(h.DB, username)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -34,10 +34,10 @@ func (h *Handler) UserSetupHandler(c *gin.Context) {
 func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 	users, err := h.DB.GetAllUsers(c)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -47,12 +47,12 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 	}
 	user := users[0]
 
-	c.HTML(http.StatusOK, "sync-settings.html", gin.H{
+	c.HTML(http.StatusOK, "sync-settings.html", h.CommonData(gin.H{
 		"sync_period":        user.SyncPeriod,
 		"enabled_on_startup": user.EnabledOnStartup,
 		"worker_running":     h.Worker.IsActive(),
-		"app_version":        config.AppVersion,
-	})
+		"title":              "Sync Settings",
+	}))
 }
 
 func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
@@ -62,19 +62,19 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 
 	duration, err := time.ParseDuration(periodStr)
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{
-			"error":       "Invalid duration format",
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "Invalid duration format",
+			"title": "Error",
+		}))
 		return
 	}
 
 	users, err := h.DB.GetAllUsers(c)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 	if len(users) == 0 {
@@ -89,10 +89,10 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 		EnabledOnStartup: enabled,
 	})
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -108,10 +108,10 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 func (h *Handler) ResetSyncSettingsHandler(c *gin.Context) {
 	users, err := h.DB.GetAllUsers(c)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 	if len(users) == 0 {
@@ -126,10 +126,10 @@ func (h *Handler) ResetSyncSettingsHandler(c *gin.Context) {
 		EnabledOnStartup: true,
 	})
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 
@@ -140,10 +140,10 @@ func (h *Handler) ResetSyncSettingsHandler(c *gin.Context) {
 func (h *Handler) StartWorkerHandler(c *gin.Context) {
 	users, err := h.DB.GetAllUsers(c)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
-			"error":       err.Error(),
-			"app_version": config.AppVersion,
-		})
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+			"error": err.Error(),
+			"title": "Error",
+		}))
 		return
 	}
 	if len(users) == 0 {
