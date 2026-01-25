@@ -51,6 +51,7 @@ type AppConfig struct {
 	KeyB64Err1          error
 	SessionKey          []byte
 	WebAuthn            *webauthn.WebAuthn
+	GinMode             string
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -113,6 +114,11 @@ func LoadConfig() (*AppConfig, error) {
 	cfg.WebAuthn, errW = webauthn.New(wConfig)
 	if errW != nil {
 		fmt.Printf("Warning: Failed to initialize WebAuthn: %v. Passkeys will be disabled.\n", errW)
+	}
+
+	cfg.GinMode = os.Getenv("GIN_MODE")
+	if cfg.GinMode == "" {
+		cfg.GinMode = "debug"
 	}
 
 	return cfg, nil

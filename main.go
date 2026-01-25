@@ -59,6 +59,9 @@ func main() {
 	clientFetch := fetcher.NewClient(600 * time.Second)
 	clientPull := common.NewClient(600 * time.Second)
 
+	if cfg.GinMode != "" {
+		gin.SetMode(cfg.GinMode)
+	}
 	r := gin.Default()
 
 	r.SetTrustedProxies(nil)

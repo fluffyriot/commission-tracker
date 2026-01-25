@@ -92,6 +92,7 @@ POSTGRES_SSLMODE=disable
 APP_PORT=22347
 HTTP_PORT=8081
 HTTPS_PORT=8443
+GIN_MODE=release
 
 INSTAGRAM_API_VERSION=24.0
 LOCAL_IP=XXX.XXX.XXX.XXX
@@ -125,6 +126,9 @@ FACEBOOK_APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 * **INSTAGRAM_API_VERSION**
   Facebook Graph API version. Version `24.0` is tested; other versions may cause issues.
+
+* **GIN_MODE**
+  Sets the Gin framework mode. Options are `debug` (default) or `release`. Use `release` for production to suppress debug logs.
 
 * **LOCAL_IP**
   The local IP address used to access the application.
