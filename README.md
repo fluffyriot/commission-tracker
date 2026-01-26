@@ -58,7 +58,19 @@ This app is intended to run in Docker and has both x64 and arm builds. It is int
 * Docker
 * Docker Compose
 
-Verify your installation:
+## Migration to Decoupled Auth
+
+To migrate existing Instagram sources to the new decoupled authentication system (where separate App ID/Secret are used per source), run the following SQL query in your database:
+
+```sql
+UPDATE tokens
+SET source_app_data = '{"app_id": "YOUR_LEGACY_APP_ID", "app_secret": "YOUR_LEGACY_APP_SECRET"}'::jsonb
+WHERE source_id IN (SELECT id FROM sources WHERE network = 'Instagram') AND source_app_data = '{}'::jsonb;
+```
+
+Replace `YOUR_LEGACY_APP_ID` and `YOUR_LEGACY_APP_SECRET` with the values you previously used in your `.env` file.
+
+### Verify your installation:
 
 ```bash
 docker --version
@@ -99,9 +111,6 @@ LOCAL_IP=XXX.XXX.XXX.XXX
 TOKEN_ENCRYPTION_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 OAUTH_ENCRYPTION_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SESSION_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-FACEBOOK_APP_ID=xxxxxxxxxxxxxxxx
-FACEBOOK_APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ### Environment Variable Reference

@@ -21,7 +21,7 @@ import (
 )
 
 func getTgDetails(ctx context.Context, dbQueries *database.Queries, encryptionKey []byte, sid uuid.UUID) (string, string, int, string, error) {
-	botToken, channelUsername, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sid)
+	botToken, channelUsername, _, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", "", 0, "", err
 	}

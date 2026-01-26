@@ -6,6 +6,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -190,6 +191,7 @@ type Token struct {
 	ProfileID            sql.NullString
 	SourceID             uuid.NullUUID
 	TargetID             uuid.NullUUID
+	SourceAppData        json.RawMessage
 }
 
 type User struct {

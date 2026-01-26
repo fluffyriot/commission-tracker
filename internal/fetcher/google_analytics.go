@@ -39,7 +39,7 @@ func FetchGoogleAnalyticsStatsWithRange(dbQueries *database.Queries, sourceID uu
 		return fmt.Errorf("failed to get source: %w", err)
 	}
 
-	token, propertyID, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sourceID)
+	token, propertyID, _, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sourceID)
 	if err != nil {
 		return fmt.Errorf("failed to get source token: %w", err)
 	}

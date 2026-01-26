@@ -33,14 +33,6 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		return
 	}
 
-	if h.Config.InstVerErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": h.Config.InstVerErr.Error(),
-			"title": "Error",
-		}))
-		return
-	}
-
 	ctx := c.Request.Context()
 
 	users, err := h.DB.GetAllUsers(ctx)

@@ -216,10 +216,6 @@ a:hover {
   cursor: not-allowed;
 }
 
-.form-group {
-  margin-bottom: 1rem;
-}
-
 .form-label {
   display: block;
   margin-bottom: 0.5rem;
@@ -229,6 +225,7 @@ a:hover {
 
 .form-input,
 .form-select {
+  margin-bottom: 1rem;
   width: 100%;
   padding: 0.6rem;
   background-color: var(--color-bg-input);
@@ -620,6 +617,7 @@ a:hover {
     max-width: none;
   }
 }
+
 /* UI Refactoring Additions */
 .u-margin-top-small {
   margin-top: 0.5rem;
@@ -633,7 +631,8 @@ a:hover {
 .qr-code-img {
   border: 1px solid var(--color-border);
   padding: 10px;
-  background: white; /* Ensure QR code is readable in dark mode */
+  background: white;
+  /* Ensure QR code is readable in dark mode */
 }
 
 .login-secondary-actions {

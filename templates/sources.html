@@ -47,8 +47,13 @@
                     <label class="form-label" for="instagram_profile_id">Instagram Profile ID</label>
                     <input id="instagram_profile_id" name="instagram_profile_id" class="form-input"
                         placeholder="123456789">
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Found in Meta Business Suite
-                        URL</p>
+
+                    <label class="form-label" for="app_id">App ID</label>
+                    <input id="app_id" name="app_id" class="form-input" placeholder="Facebook App ID">
+
+                    <label class="form-label" for="app_secret">App Secret</label>
+                    <input id="app_secret" name="app_secret" type="password" class="form-input"
+                        placeholder="Facebook App Secret">
                 </div>
 
                 <div class="form-group" id="google_analytics_section" style="display:none;">
@@ -196,6 +201,8 @@
         const networkSelect = document.getElementById("network");
         const instagramSection = document.getElementById("instagram_section");
         const profileInput = document.getElementById("instagram_profile_id");
+        const InstAppId = document.getElementById("app_id");
+        const InstAppSecret = document.getElementById("app_secret");
 
         const googleSection = document.getElementById("google_analytics_section");
         const googlePropertyId = document.getElementById("google_analytics_property_id");
@@ -215,6 +222,8 @@
 
             instagramSection.style.display = "none";
             profileInput.required = false;
+            InstAppId.required = false;
+            InstAppSecret.required = false;
 
             googleSection.style.display = "none";
             googlePropertyId.required = false;
@@ -230,6 +239,8 @@
             if (network === "Instagram") {
                 instagramSection.style.display = "block";
                 profileInput.required = true;
+                InstAppId.required = true;
+                InstAppSecret.required = true;
             } else if (network === "Google Analytics") {
                 googleSection.style.display = "block";
                 googlePropertyId.required = true;

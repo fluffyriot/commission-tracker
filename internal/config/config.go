@@ -14,7 +14,6 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/pressly/goose/v3"
-	"golang.org/x/oauth2"
 
 	_ "github.com/lib/pq"
 )
@@ -45,10 +44,8 @@ type AppConfig struct {
 	InstagramAPIVersion string
 	OauthEncryptionKey  string
 	TokenEncryptionKey  []byte
-	FBConfig            *oauth2.Config
 	DBInitErr           error
 	KeyB64Err2          error
-	InstVerErr          error
 	KeyB64Err1          error
 	SessionKey          []byte
 	WebAuthn            *webauthn.WebAuthn
@@ -75,10 +72,7 @@ func LoadConfig() (*AppConfig, error) {
 
 	cfg.DomainName = os.Getenv("DOMAIN_NAME")
 
-	cfg.InstagramAPIVersion = os.Getenv("INSTAGRAM_API_VERSION")
-	if cfg.InstagramAPIVersion == "" {
-		cfg.InstVerErr = errors.New("INSTAGRAM_API_VERSION not set in .env")
-	}
+	cfg.InstagramAPIVersion = "v24.0"
 
 	cfg.OauthEncryptionKey = os.Getenv("OAUTH_ENCRYPTION_KEY")
 
@@ -106,12 +100,6 @@ func LoadConfig() (*AppConfig, error) {
 	} else {
 		baseURL = fmt.Sprintf("https://%s:%s", cfg.ClientIP, cfg.HttpsPort)
 	}
-
-	cfg.FBConfig = authhelp.GenerateFacebookConfig(
-		os.Getenv("FACEBOOK_APP_ID"),
-		os.Getenv("FACEBOOK_APP_SECRET"),
-		baseURL,
-	)
 
 	wConfig := &webauthn.Config{
 		RPDisplayName: "RPSync",
@@ -230,7 +218,7 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 
 	if network == "Telegram" {
 		tokenFormatted := tgBotToken + ":::" + tgAppId + ":::" + tgAppHash
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, tgChannelId, encryptionKey)
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, tgChannelId, nil, encryptionKey)
 		if err != nil {
 			dbQueries.DeleteSource(context.Background(), s.ID)
 			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
@@ -238,7 +226,7 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 	}
 
 	if network == "Google Analytics" {
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, googlePropertyId, encryptionKey)
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, googlePropertyId, nil, encryptionKey)
 		if err != nil {
 			dbQueries.DeleteSource(context.Background(), s.ID)
 			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)

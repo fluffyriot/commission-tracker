@@ -63,12 +63,12 @@ type instagramProfile struct {
 
 func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, string, string, string, error) {
 
-	token, pid, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
+	token, pid, _, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", "", "", "", err
 	}
 
-	apiString := fmt.Sprintf("https://graph.facebook.com/v%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
+	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
 
 	if next != "" {
 		apiString = next
@@ -80,12 +80,12 @@ func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next stri
 
 func getInstagramTagstring(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, error) {
 
-	token, pid, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
+	token, pid, _, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", err
 	}
 
-	apiString := fmt.Sprintf("https://graph.facebook.com/v%v/%v/tags?fields=id,caption,like_count,timestamp,media_type,username,permalink&access_token=%v&limit=25", version, pid, token)
+	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/tags?fields=id,caption,like_count,timestamp,media_type,username,permalink&access_token=%v&limit=25", version, pid, token)
 
 	if next != "" {
 		apiString = next
@@ -96,7 +96,7 @@ func getInstagramTagstring(dbQueries *database.Queries, sid uuid.UUID, next stri
 }
 
 func fetchInstagramProfile(token, pid, version string, c *Client) (*instagramProfile, error) {
-	url := fmt.Sprintf("https://graph.facebook.com/v%s/%s?fields=follows_count,followers_count&access_token=%s", version, pid, token)
+	url := fmt.Sprintf("https://graph.facebook.com/%s/%s?fields=follows_count,followers_count&access_token=%s", version, pid, token)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

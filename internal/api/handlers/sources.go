@@ -9,6 +9,7 @@ import (
 	"github.com/fluffyriot/rpsync/internal/config"
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/pusher"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -100,6 +101,8 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	tgAppHash := c.PostForm("telegram_app_hash")
 	googlePropertyId := c.PostForm("google_analytics_property_id")
 	googleKey := c.PostForm("google_service_account_key")
+	appID := c.PostForm("app_id")
+	appSecret := c.PostForm("app_secret")
 
 	if userID == "" || network == "" || username == "" {
 		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
@@ -131,6 +134,11 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	}
 
 	if network == "Instagram" {
+		session := sessions.Default(c)
+		session.Set("app_id_"+sid, appID)
+		session.Set("app_secret_"+sid, appSecret)
+		session.Save()
+
 		c.Redirect(http.StatusSeeOther, "/auth/facebook/login?sid="+sid+"&pid="+instaProfileId)
 		return
 	}
