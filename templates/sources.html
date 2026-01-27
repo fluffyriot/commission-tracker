@@ -29,6 +29,7 @@
                         <option value="Bluesky">Bluesky</option>
                         <option value="Instagram">Instagram</option>
                         <option value="TikTok">TikTok</option>
+                        <option value="YouTube">YouTube</option>
                         <option value="Mastodon">Mastodon</option>
                         <option value="Telegram">Telegram</option>
                         <option value="Murrtube">Murrtube</option>
@@ -282,12 +283,20 @@
                 tgBotToken.required = true;
                 tgAppId.required = true;
                 tgAppHash.required = true;
+            } else if (network === "YouTube") {
+                googleSection.style.display = "block";
+                googlePropertyId.required = false;
+                document.querySelector('label[for="google_analytics_property_id"]').style.display = 'none';
+                googlePropertyId.style.display = 'none';
+                googleKey.required = true;
             }
 
             if (network === "Mastodon") {
                 usernameInput.placeholder = "username@instance.social";
             } else if (network === "Google Analytics") {
                 usernameInput.placeholder = "Your website URL (e.g. https://example.com)";
+            } else if (network === "YouTube") {
+                usernameInput.placeholder = "Your Channel Handle (e.g. @username)";
             } else {
                 usernameInput.placeholder = "username (no @)";
             }

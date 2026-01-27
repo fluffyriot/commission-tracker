@@ -200,6 +200,10 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 		return "", "", fmt.Errorf("Property ID and Service Account Key are required for Google Analytics")
 	}
 
+	if network == "YouTube" && googleKey == "" {
+		return "", "", fmt.Errorf("Service Account Key is required for YouTube")
+	}
+
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
@@ -227,6 +231,14 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 
 	if network == "Google Analytics" {
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, googlePropertyId, nil, encryptionKey)
+		if err != nil {
+			dbQueries.DeleteSource(context.Background(), s.ID)
+			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
+		}
+	}
+
+	if network == "YouTube" {
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, "", nil, encryptionKey)
 		if err != nil {
 			dbQueries.DeleteSource(context.Background(), s.ID)
 			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)

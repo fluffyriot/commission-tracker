@@ -7,6 +7,7 @@ import (
 
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/pusher/common"
+	"github.com/google/uuid"
 )
 
 func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKey []byte, target database.Target, tableId string) error {
@@ -101,7 +102,8 @@ func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKe
 			}
 
 			_, err := dbQueries.AddSourceToTarget(context.Background(), database.AddSourceToTargetParams{
-				ID:             source.ID,
+				ID:             uuid.New(),
+				SourceID:       source.ID,
 				TargetID:       target.ID,
 				TargetSourceID: fmt.Sprintf("%.0f", id),
 			})
@@ -116,7 +118,7 @@ func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKe
 	}
 
 	for _, source := range createSources {
-		url, _ := common.ConvPostToURL(source.Network, source.UserName, source.UserName)
+		url, _ := common.ConvNetworkToURL(source.Network, source.UserName)
 
 		fieldMap := NocoRecordFields{
 			ID:         source.ID.String(),

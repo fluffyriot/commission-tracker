@@ -88,6 +88,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *Client, ver str
 		case "Google Analytics":
 			return FetchGoogleAnalyticsStats(dbQueries, source.ID, encryptionKey)
 
+		case "YouTube":
+			return FetchYouTubePosts(dbQueries, source.ID, encryptionKey)
+
 		default:
 			return nil
 		}
