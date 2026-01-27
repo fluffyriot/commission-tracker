@@ -308,6 +308,8 @@ func main() {
 	authorized.POST("/sources/activate", h.ActivateSourceHandler)
 	authorized.POST("/sources/delete", h.DeleteSourceHandler)
 	authorized.POST("/sources/sync", h.SyncSourceHandler)
+	authorized.GET("/sources/cookies/export", h.HandleExportCookies)
+	authorized.POST("/sources/cookies/import", h.HandleImportCookies)
 	authorized.POST("/syncAll", h.TriggerSyncHandler)
 
 	authorized.GET("/targets", h.TargetsHandler)

@@ -274,3 +274,69 @@ func (h *Handler) SyncSourceHandler(c *gin.Context) {
 
 	c.Redirect(http.StatusSeeOther, "/sources")
 }
+
+func (h *Handler) HandleExportCookies(c *gin.Context) {
+	sourceID, err := uuid.Parse(c.Query("source_id"))
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "Invalid source ID",
+			"title": "Error",
+		}))
+		return
+	}
+
+	source, err := h.DB.GetSourceById(context.Background(), sourceID)
+	if err != nil {
+		c.HTML(http.StatusNotFound, "error.html", h.CommonData(gin.H{
+			"error": "Source not found",
+			"title": "Error",
+		}))
+		return
+	}
+
+	if source.Network != "TikTok" {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "Cookie export only supported for TikTok",
+			"title": "Error",
+		}))
+		return
+	}
+
+	filename := "tiktok_" + source.UserName + ".json"
+	filepath := "outputs/tiktok_cookies/" + filename
+
+	c.FileAttachment(filepath, filename)
+}
+
+func (h *Handler) HandleImportCookies(c *gin.Context) {
+	sourceID, err := uuid.Parse(c.PostForm("source_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source ID"})
+		return
+	}
+
+	file, err := c.FormFile("cookie_file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	source, err := h.DB.GetSourceById(context.Background(), sourceID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
+		return
+	}
+
+	if source.Network != "TikTok" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cookie import only supported for TikTok"})
+		return
+	}
+
+	dst := "outputs/tiktok_cookies/tiktok_" + source.UserName + ".json"
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/sources")
+}

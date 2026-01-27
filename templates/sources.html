@@ -169,6 +169,23 @@
                         </form>
                         {{end}}
 
+                        {{if eq .Network "TikTok"}}
+                        <form method="GET" action="/sources/cookies/export">
+                            <input type="hidden" name="source_id" value="{{.ID}}">
+                            <button type="submit" class="btn btn-secondary btn-icon" title="Export Cookies">
+                                <i data-lucide="download"></i>
+                            </button>
+                        </form>
+
+                        <form method="POST" action="/sources/cookies/import" enctype="multipart/form-data" style="display:inline;">
+                            <input type="hidden" name="source_id" value="{{.ID}}">
+                            <input type="file" name="cookie_file" id="cookie_file_{{.ID}}" style="display:none;" onchange="this.form.submit()">
+                            <button type="button" class="btn btn-secondary btn-icon" title="Import Cookies" onclick="document.getElementById('cookie_file_{{.ID}}').click()">
+                                <i data-lucide="upload"></i>
+                            </button>
+                        </form>
+                        {{end}}
+
                         {{if eq .Network "Instagram"}}
                         <form method="POST" action="/auth/facebook/refresh"
                             onsubmit="return submitWithConfirm(this, 'Refresh access token for this source?');">
