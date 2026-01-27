@@ -185,6 +185,9 @@ Requires a Facebook Page linked to an Instagram Business/Creator account.
 1.  **Create App**: Go to [my.telegram.org](https://my.telegram.org/apps) to get **API ID** and **API Hash**.
 2.  **Create Bot**: Talk to [@BotFather](https://t.me/BotFather) to get a **Bot Token**.
 
+### TikTok Sync (Cloud/Public deployment)
+Due to TikTok limitations, to enable TikTok sync you need to deploy the app locally first, connect TikTok as a source, and then use the app to export the cookies JSON file. Then, you can import the cookies JSON file into the cloud deployment.
+
 ---
 
 ## Security & Administration
