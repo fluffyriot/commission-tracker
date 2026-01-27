@@ -9,6 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (h *Handler) UserSetupViewHandler(c *gin.Context) {
+	c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
+		"title": "Welcome - Setup Admin User",
+	}))
+}
+
 func (h *Handler) UserSetupHandler(c *gin.Context) {
 	username := c.PostForm("username")
 	if username == "" {
@@ -47,11 +53,23 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 	}
 	user := users[0]
 
+	isSecure := c.Request.TLS != nil || c.Request.Header.Get("X-Forwarded-Proto") == "https"
+	if h.Config.ClientIP == "localhost" {
+		isSecure = true
+	}
+
+	isWebauthnConfigured := h.Config.WebAuthn != nil
+	isPasskeySupported := isSecure && isWebauthnConfigured
+
 	c.HTML(http.StatusOK, "sync-settings.html", h.CommonData(gin.H{
-		"sync_period":        user.SyncPeriod,
-		"enabled_on_startup": user.EnabledOnStartup,
-		"worker_running":     h.Worker.IsActive(),
-		"title":              "Sync Settings",
+		"sync_period":            user.SyncPeriod,
+		"enabled_on_startup":     user.EnabledOnStartup,
+		"worker_running":         h.Worker.IsActive(),
+		"title":                  "Sync Settings",
+		"is_2fa_enabled":         user.TotpEnabled.Bool,
+		"is_webauthn_configured": isWebauthnConfigured,
+		"is_secure_context":      isSecure,
+		"is_passkey_supported":   isPasskeySupported,
 	}))
 }
 

@@ -21,7 +21,7 @@ import (
 )
 
 func getTgDetails(ctx context.Context, dbQueries *database.Queries, encryptionKey []byte, sid uuid.UUID) (string, string, int, string, error) {
-	botToken, channelUsername, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sid)
+	botToken, channelUsername, _, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", "", 0, "", err
 	}
@@ -144,7 +144,7 @@ func FetchTelegramPosts(dbQueries *database.Queries, encryptionKey []byte, sid u
 				ids = append(ids, &tg.InputMessageID{ID: startID + i})
 			}
 
-			var resp interface{}
+			var resp any
 			retries := 0
 			for {
 				resp, err = client.API().ChannelsGetMessages(ctx, &tg.ChannelsGetMessagesRequest{

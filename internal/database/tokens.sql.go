@@ -8,24 +8,38 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 const createToken = `-- name: CreateToken :one
-INSERT INTO tokens (id, encrypted_access_token, nonce, created_at, updated_at, source_id, target_id, profile_id)
+INSERT INTO
+    tokens (
+        id,
+        encrypted_access_token,
+        nonce,
+        created_at,
+        updated_at,
+        source_id,
+        target_id,
+        profile_id,
+        source_app_data
+    )
 VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8
-)
-RETURNING id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9
+    )
+RETURNING
+    id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id, source_app_data
 `
 
 type CreateTokenParams struct {
@@ -37,6 +51,7 @@ type CreateTokenParams struct {
 	SourceID             uuid.NullUUID
 	TargetID             uuid.NullUUID
 	ProfileID            sql.NullString
+	SourceAppData        json.RawMessage
 }
 
 func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token, error) {
@@ -49,6 +64,7 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token
 		arg.SourceID,
 		arg.TargetID,
 		arg.ProfileID,
+		arg.SourceAppData,
 	)
 	var i Token
 	err := row.Scan(
@@ -60,13 +76,13 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token
 		&i.ProfileID,
 		&i.SourceID,
 		&i.TargetID,
+		&i.SourceAppData,
 	)
 	return i, err
 }
 
 const deleteTokenById = `-- name: DeleteTokenById :exec
-DELETE FROM tokens
-WHERE id = $1
+DELETE FROM tokens WHERE id = $1
 `
 
 func (q *Queries) DeleteTokenById(ctx context.Context, id uuid.UUID) error {
@@ -75,8 +91,7 @@ func (q *Queries) DeleteTokenById(ctx context.Context, id uuid.UUID) error {
 }
 
 const getTokenBySource = `-- name: GetTokenBySource :one
-SELECT id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id FROM tokens
-where source_id = $1
+SELECT id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id, source_app_data FROM tokens where source_id = $1
 `
 
 func (q *Queries) GetTokenBySource(ctx context.Context, sourceID uuid.NullUUID) (Token, error) {
@@ -91,13 +106,13 @@ func (q *Queries) GetTokenBySource(ctx context.Context, sourceID uuid.NullUUID) 
 		&i.ProfileID,
 		&i.SourceID,
 		&i.TargetID,
+		&i.SourceAppData,
 	)
 	return i, err
 }
 
 const getTokenByTarget = `-- name: GetTokenByTarget :one
-SELECT id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id FROM tokens
-where target_id = $1
+SELECT id, encrypted_access_token, nonce, created_at, updated_at, profile_id, source_id, target_id, source_app_data FROM tokens where target_id = $1
 `
 
 func (q *Queries) GetTokenByTarget(ctx context.Context, targetID uuid.NullUUID) (Token, error) {
@@ -112,6 +127,7 @@ func (q *Queries) GetTokenByTarget(ctx context.Context, targetID uuid.NullUUID) 
 		&i.ProfileID,
 		&i.SourceID,
 		&i.TargetID,
+		&i.SourceAppData,
 	)
 	return i, err
 }

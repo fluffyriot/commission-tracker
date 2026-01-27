@@ -58,13 +58,18 @@ func (tm *TikTokManager) StartLoginSession(username string) ([]byte, error) {
 	tm.mu.Unlock()
 
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
+		chromedp.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"),
 		chromedp.Flag("headless", true),
 		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("disable-setuid-sandbox", true),
 		chromedp.Flag("disable-dev-shm-usage", true),
 		chromedp.Flag("enable-automation", false),
 		chromedp.Flag("disable-blink-features", "AutomationControlled"),
+		chromedp.Flag("disable-infobars", true),
+		chromedp.Flag("no-first-run", true),
+		chromedp.Flag("no-default-browser-check", true),
+		chromedp.Flag("enable-features", "NetworkService,NetworkServiceInProcess"),
 		chromedp.WindowSize(1280, 800),
 	)...)
 
@@ -335,6 +340,28 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *Client, uid uuid.UUID, sou
 		chromedp.Navigate(url),
 		chromedp.Sleep(5*time.Second),
 		chromedp.ActionFunc(func(ctx context.Context) error {
+			var currentURL string
+			if err := chromedp.Location(&currentURL).Do(ctx); err != nil {
+				return err
+			}
+			if strings.Contains(currentURL, "login") || strings.Contains(currentURL, "signup") {
+				return fmt.Errorf("session expired: redirected to login page")
+			}
+
+			var loginElementExists bool
+			ctxTimeout, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			_ = chromedp.Run(ctxTimeout,
+				chromedp.WaitVisible(`div[data-e2e="login-modal"]`, chromedp.ByQuery),
+			)
+
+			if err := chromedp.Evaluate(`document.querySelector('div[data-e2e="login-modal"]') !== null`, &loginElementExists).Do(ctx); err != nil {
+
+			}
+			if loginElementExists {
+				return fmt.Errorf("session expired: login modal detected")
+			}
+
 			var previousPostCount int
 			sameCountIterations := 0
 			maxScrolls := 50

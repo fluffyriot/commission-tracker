@@ -29,6 +29,7 @@
                         <option value="Bluesky">Bluesky</option>
                         <option value="Instagram">Instagram</option>
                         <option value="TikTok">TikTok</option>
+                        <option value="YouTube">YouTube</option>
                         <option value="Mastodon">Mastodon</option>
                         <option value="Telegram">Telegram</option>
                         <option value="Murrtube">Murrtube</option>
@@ -47,8 +48,13 @@
                     <label class="form-label" for="instagram_profile_id">Instagram Profile ID</label>
                     <input id="instagram_profile_id" name="instagram_profile_id" class="form-input"
                         placeholder="123456789">
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Found in Meta Business Suite
-                        URL</p>
+
+                    <label class="form-label" for="app_id">App ID</label>
+                    <input id="app_id" name="app_id" class="form-input" placeholder="Facebook App ID">
+
+                    <label class="form-label" for="app_secret">App Secret</label>
+                    <input id="app_secret" name="app_secret" type="password" class="form-input"
+                        placeholder="Facebook App Secret">
                 </div>
 
                 <div class="form-group" id="google_analytics_section" style="display:none;">
@@ -138,7 +144,6 @@
                     </div>
 
                     <div class="source-actions">
-
                         <form method="POST" action="/sources/sync" onsubmit="return submitWithConfirm(this);">
                             <input type="hidden" name="source_id" value="{{.ID}}">
                             <button type="submit" class="btn btn-secondary btn-icon" {{if not .IsActive}}disabled{{end}}
@@ -162,6 +167,38 @@
                                 <i data-lucide="power"></i>
                             </button>
                         </form>
+                        {{end}}
+
+                        {{if eq .Network "TikTok"}}
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-secondary btn-icon" title="Manage Cookies"
+                                onclick="toggleDropdown('dd_{{.ID}}')">
+                                <i data-lucide="key-round"></i>
+                            </button>
+                            <div id="dd_{{.ID}}" class="dropdown-content hidden">
+                                <form method="GET" action="/sources/cookies/export">
+                                    <input type="hidden" name="source_id" value="{{.ID}}">
+                                    <button type="submit" class="dropdown-item">
+                                        <i data-lucide="download"></i> Export Cookies
+                                    </button>
+                                </form>
+                                <form method="POST" action="/sources/cookies/import" enctype="multipart/form-data">
+                                    <input type="hidden" name="source_id" value="{{.ID}}">
+                                    <input type="file" name="cookie_file" id="cookie_file_{{.ID}}" class="hidden"
+                                        onchange="this.form.submit()">
+                                    <button type="button" class="dropdown-item"
+                                        onclick="document.getElementById('cookie_file_{{.ID}}').click()">
+                                        <i data-lucide="upload"></i> Import Cookies
+                                    </button>
+                                </form>
+                                <form method="GET" action="/auth/tiktok/login">
+                                    <input type="hidden" name="username" value="{{.UserName}}">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i data-lucide="refresh-cw"></i> Renew Session
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                         {{end}}
 
                         {{if eq .Network "Instagram"}}
@@ -196,6 +233,8 @@
         const networkSelect = document.getElementById("network");
         const instagramSection = document.getElementById("instagram_section");
         const profileInput = document.getElementById("instagram_profile_id");
+        const InstAppId = document.getElementById("app_id");
+        const InstAppSecret = document.getElementById("app_secret");
 
         const googleSection = document.getElementById("google_analytics_section");
         const googlePropertyId = document.getElementById("google_analytics_property_id");
@@ -215,6 +254,8 @@
 
             instagramSection.style.display = "none";
             profileInput.required = false;
+            InstAppId.required = false;
+            InstAppSecret.required = false;
 
             googleSection.style.display = "none";
             googlePropertyId.required = false;
@@ -230,6 +271,8 @@
             if (network === "Instagram") {
                 instagramSection.style.display = "block";
                 profileInput.required = true;
+                InstAppId.required = true;
+                InstAppSecret.required = true;
             } else if (network === "Google Analytics") {
                 googleSection.style.display = "block";
                 googlePropertyId.required = true;
@@ -240,12 +283,20 @@
                 tgBotToken.required = true;
                 tgAppId.required = true;
                 tgAppHash.required = true;
+            } else if (network === "YouTube") {
+                googleSection.style.display = "block";
+                googlePropertyId.required = false;
+                document.querySelector('label[for="google_analytics_property_id"]').style.display = 'none';
+                googlePropertyId.style.display = 'none';
+                googleKey.required = true;
             }
 
             if (network === "Mastodon") {
                 usernameInput.placeholder = "username@instance.social";
             } else if (network === "Google Analytics") {
                 usernameInput.placeholder = "Your website URL (e.g. https://example.com)";
+            } else if (network === "YouTube") {
+                usernameInput.placeholder = "Your Channel Handle (e.g. @username)";
             } else {
                 usernameInput.placeholder = "username (no @)";
             }
@@ -253,6 +304,25 @@
 
         networkSelect.addEventListener("change", updateVisibility);
     });
+
+    function toggleDropdown(id) {
+        document.querySelectorAll('.dropdown-content').forEach(d => {
+            if (d.id !== id) d.classList.add('hidden');
+        });
+
+        const dropdown = document.getElementById(id);
+        if (dropdown) {
+            dropdown.classList.toggle('hidden');
+        }
+    }
+
+    window.onclick = function (event) {
+        if (!event.target.closest('.dropdown')) {
+            document.querySelectorAll('.dropdown-content').forEach(d => {
+                d.classList.add('hidden');
+            });
+        }
+    }
 </script>
 
 {{ template "footer.html" . }}

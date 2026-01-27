@@ -61,6 +61,7 @@ func insertToken(
 	ctx context.Context,
 	db *database.Queries,
 	accessToken, pid string,
+	sourceAppData map[string]any,
 	encryptionKey []byte,
 	params database.CreateTokenParams,
 ) error {
@@ -82,6 +83,16 @@ func insertToken(
 	params.UpdatedAt = time.Now()
 	params.ProfileID = sql.NullString{String: pid, Valid: true}
 
+	if sourceAppData != nil {
+		metaBytes, err := json.Marshal(sourceAppData)
+		if err != nil {
+			return err
+		}
+		params.SourceAppData = json.RawMessage(metaBytes)
+	} else {
+		params.SourceAppData = json.RawMessage("{}")
+	}
+
 	_, err = db.CreateToken(ctx, params)
 	return err
 }
@@ -91,10 +102,11 @@ func InsertSourceToken(
 	db *database.Queries,
 	sid uuid.UUID,
 	accessToken, pid string,
+	sourceAppData map[string]any,
 	encryptionKey []byte,
 ) error {
 
-	return insertToken(ctx, db, accessToken, pid, encryptionKey,
+	return insertToken(ctx, db, accessToken, pid, sourceAppData, encryptionKey,
 		database.CreateTokenParams{
 			SourceID: uuid.NullUUID{UUID: sid, Valid: true},
 		},
@@ -109,7 +121,7 @@ func InsertTargetToken(
 	encryptionKey []byte,
 ) error {
 
-	return insertToken(ctx, db, accessToken, pid, encryptionKey,
+	return insertToken(ctx, db, accessToken, pid, nil, encryptionKey,
 		database.CreateTokenParams{
 			TargetID: uuid.NullUUID{UUID: tid, Valid: true},
 		},
@@ -143,19 +155,25 @@ func GetSourceToken(
 	db *database.Queries,
 	encryptionKey []byte,
 	sid uuid.UUID,
-) (accessToken, profileID string, tokenID uuid.UUID, err error) {
+) (accessToken, profileID string, sourceAppData map[string]any, tokenID uuid.UUID, err error) {
 
 	dbToken, err := db.GetTokenBySource(ctx, uuid.NullUUID{UUID: sid, Valid: true})
 	if err != nil {
-		return "", "", uuid.UUID{}, err
+		return "", "", nil, uuid.UUID{}, err
 	}
 
 	accessToken, err = decryptToken(dbToken, encryptionKey)
 	if err != nil {
-		return "", "", uuid.UUID{}, err
+		return "", "", nil, uuid.UUID{}, err
 	}
 
-	return accessToken, dbToken.ProfileID.String, dbToken.ID, nil
+	if len(dbToken.SourceAppData) > 0 {
+		if err := json.Unmarshal(dbToken.SourceAppData, &sourceAppData); err != nil {
+			return "", "", nil, uuid.UUID{}, err
+		}
+	}
+
+	return accessToken, dbToken.ProfileID.String, sourceAppData, dbToken.ID, nil
 }
 
 func GetTargetToken(

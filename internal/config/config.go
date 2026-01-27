@@ -11,9 +11,9 @@ import (
 
 	"github.com/fluffyriot/rpsync/internal/authhelp"
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/pressly/goose/v3"
-	"golang.org/x/oauth2"
 
 	_ "github.com/lib/pq"
 )
@@ -40,14 +40,16 @@ type AppConfig struct {
 	AppPort             string
 	HttpsPort           string
 	ClientIP            string
+	DomainName          string
 	InstagramAPIVersion string
 	OauthEncryptionKey  string
 	TokenEncryptionKey  []byte
-	FBConfig            *oauth2.Config
 	DBInitErr           error
 	KeyB64Err2          error
-	InstVerErr          error
 	KeyB64Err1          error
+	SessionKey          []byte
+	WebAuthn            *webauthn.WebAuthn
+	GinMode             string
 }
 
 func LoadConfig() (*AppConfig, error) {
@@ -68,10 +70,9 @@ func LoadConfig() (*AppConfig, error) {
 		return nil, errors.New("LOCAL_IP is not set in the .env")
 	}
 
-	cfg.InstagramAPIVersion = os.Getenv("INSTAGRAM_API_VERSION")
-	if cfg.InstagramAPIVersion == "" {
-		cfg.InstVerErr = errors.New("INSTAGRAM_API_VERSION not set in .env")
-	}
+	cfg.DomainName = os.Getenv("DOMAIN_NAME")
+
+	cfg.InstagramAPIVersion = "v24.0"
 
 	cfg.OauthEncryptionKey = os.Getenv("OAUTH_ENCRYPTION_KEY")
 
@@ -86,47 +87,89 @@ func LoadConfig() (*AppConfig, error) {
 		}
 	}
 
-	cfg.FBConfig = authhelp.GenerateFacebookConfig(
-		os.Getenv("FACEBOOK_APP_ID"),
-		os.Getenv("FACEBOOK_APP_SECRET"),
-		cfg.ClientIP,
-		cfg.HttpsPort,
-	)
+	sessionKey := os.Getenv("SESSION_KEY")
+	if sessionKey == "" {
+		return nil, errors.New("SESSION_KEY not set in .env")
+	} else {
+		cfg.SessionKey = []byte(sessionKey)
+	}
+
+	baseURL := ""
+	if cfg.DomainName != "" {
+		baseURL = fmt.Sprintf("https://%s", cfg.DomainName)
+	} else {
+		baseURL = fmt.Sprintf("https://%s:%s", cfg.ClientIP, cfg.HttpsPort)
+	}
+
+	wConfig := &webauthn.Config{
+		RPDisplayName: "RPSync",
+		RPID:          cfg.ClientIP,
+		RPOrigins:     []string{baseURL},
+	}
+
+	if cfg.DomainName != "" {
+		wConfig.RPID = cfg.DomainName
+	}
+
+	var errW error
+	cfg.WebAuthn, errW = webauthn.New(wConfig)
+	if errW != nil {
+		fmt.Printf("Warning: Failed to initialize WebAuthn: %v. Passkeys will be disabled.\n", errW)
+	}
+
+	cfg.GinMode = os.Getenv("GIN_MODE")
+	if cfg.GinMode == "" {
+		cfg.GinMode = "release"
+	}
 
 	return cfg, nil
 }
 
-func LoadDatabase() (*database.Queries, error) {
+func LoadDatabase() (*database.Queries, *sql.DB, error) {
 
 	dbName := os.Getenv("POSTGRES_DB")
 	dbUserName := os.Getenv("POSTGRES_USER")
 	dbPassword := os.Getenv("POSTGRES_PASSWORD")
 
 	if dbName == "" || dbUserName == "" || dbPassword == "" {
-		return nil, fmt.Errorf("Failed to load the environment configuration.")
+		return nil, nil, fmt.Errorf("Failed to load the environment configuration.")
 	}
 
-	connectDbUrl := fmt.Sprintf("postgres://%v:%v@db:5432/%v?sslmode=disable", dbUserName, dbPassword, dbName)
+	dbHost := os.Getenv("POSTGRES_HOST")
+	if dbHost == "" {
+		dbHost = "db"
+	}
+
+	dbSslMode := os.Getenv("POSTGRES_SSLMODE")
+	if dbSslMode == "" {
+		dbSslMode = "disable"
+	}
+
+	connectDbUrl := fmt.Sprintf("postgres://%v:%v@%v:5432/%v?sslmode=%v", dbUserName, dbPassword, dbHost, dbName, dbSslMode)
 
 	db, err := sql.Open("postgres", connectDbUrl)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to the DB. Error: %v", err)
+		return nil, nil, fmt.Errorf("Failed to connect to the DB. Error: %v", err)
 	}
+
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	migrationsDir := "./sql/schema"
 	if err := goose.Up(db, migrationsDir); err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %v", err)
+		return nil, nil, fmt.Errorf("failed to run migrations: %v", err)
 	}
 
 	version, err := goose.EnsureDBVersion(db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get DB version: %v", err)
+		return nil, nil, fmt.Errorf("failed to get DB version: %v", err)
 	}
 	fmt.Printf("Migrations applied successfully. Current DB version: %d\n", version)
 
 	dbQueries := database.New(db)
 
-	return dbQueries, nil
+	return dbQueries, db, nil
 }
 
 func CreateUserFromForm(dbQueries *database.Queries, userName string) (name, id string, e error) {
@@ -161,6 +204,10 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 		return "", "", fmt.Errorf("Property ID and Service Account Key are required for Google Analytics")
 	}
 
+	if network == "YouTube" && googleKey == "" {
+		return "", "", fmt.Errorf("Service Account Key is required for YouTube")
+	}
+
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
@@ -179,7 +226,7 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 
 	if network == "Telegram" {
 		tokenFormatted := tgBotToken + ":::" + tgAppId + ":::" + tgAppHash
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, tgChannelId, encryptionKey)
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, tgChannelId, nil, encryptionKey)
 		if err != nil {
 			dbQueries.DeleteSource(context.Background(), s.ID)
 			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
@@ -187,7 +234,15 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 	}
 
 	if network == "Google Analytics" {
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, googlePropertyId, encryptionKey)
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, googlePropertyId, nil, encryptionKey)
+		if err != nil {
+			dbQueries.DeleteSource(context.Background(), s.ID)
+			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
+		}
+	}
+
+	if network == "YouTube" {
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, "", nil, encryptionKey)
 		if err != nil {
 			dbQueries.DeleteSource(context.Background(), s.ID)
 			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)

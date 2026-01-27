@@ -9,6 +9,7 @@ import (
 	"github.com/fluffyriot/rpsync/internal/config"
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/pusher"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -74,7 +75,7 @@ func (h *Handler) HandleGetSourcesAPI(c *gin.Context) {
 	}
 
 	if len(users) == 0 {
-		c.JSON(http.StatusOK, []interface{}{})
+		c.JSON(http.StatusOK, []any{})
 		return
 	}
 
@@ -100,6 +101,8 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	tgAppHash := c.PostForm("telegram_app_hash")
 	googlePropertyId := c.PostForm("google_analytics_property_id")
 	googleKey := c.PostForm("google_service_account_key")
+	appID := c.PostForm("app_id")
+	appSecret := c.PostForm("app_secret")
 
 	if userID == "" || network == "" || username == "" {
 		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
@@ -131,6 +134,11 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	}
 
 	if network == "Instagram" {
+		session := sessions.Default(c)
+		session.Set("app_id_"+sid, appID)
+		session.Set("app_secret_"+sid, appSecret)
+		session.Save()
+
 		c.Redirect(http.StatusSeeOther, "/auth/facebook/login?sid="+sid+"&pid="+instaProfileId)
 		return
 	}
@@ -263,6 +271,72 @@ func (h *Handler) SyncSourceHandler(c *gin.Context) {
 		}()
 		h.Worker.SyncSource(sid)
 	}(sourceID)
+
+	c.Redirect(http.StatusSeeOther, "/sources")
+}
+
+func (h *Handler) HandleExportCookies(c *gin.Context) {
+	sourceID, err := uuid.Parse(c.Query("source_id"))
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "Invalid source ID",
+			"title": "Error",
+		}))
+		return
+	}
+
+	source, err := h.DB.GetSourceById(context.Background(), sourceID)
+	if err != nil {
+		c.HTML(http.StatusNotFound, "error.html", h.CommonData(gin.H{
+			"error": "Source not found",
+			"title": "Error",
+		}))
+		return
+	}
+
+	if source.Network != "TikTok" {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+			"error": "Cookie export only supported for TikTok",
+			"title": "Error",
+		}))
+		return
+	}
+
+	filename := "tiktok_" + source.UserName + ".json"
+	filepath := "outputs/tiktok_cookies/" + filename
+
+	c.FileAttachment(filepath, filename)
+}
+
+func (h *Handler) HandleImportCookies(c *gin.Context) {
+	sourceID, err := uuid.Parse(c.PostForm("source_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid source ID"})
+		return
+	}
+
+	file, err := c.FormFile("cookie_file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	source, err := h.DB.GetSourceById(context.Background(), sourceID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Source not found"})
+		return
+	}
+
+	if source.Network != "TikTok" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cookie import only supported for TikTok"})
+		return
+	}
+
+	dst := "outputs/tiktok_cookies/tiktok_" + source.UserName + ".json"
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
+		return
+	}
 
 	c.Redirect(http.StatusSeeOther, "/sources")
 }

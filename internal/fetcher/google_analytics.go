@@ -17,7 +17,7 @@ import (
 func FetchGoogleAnalyticsStats(dbQueries *database.Queries, sourceID uuid.UUID, encryptionKey []byte) error {
 	ctx := context.Background()
 
-	statsCheck, err := dbQueries.CheckCountOfAnalyticsSiteStatsForUser(ctx, sourceID)
+	statsCheck, err := dbQueries.CountAnalyticsSiteStatsBySource(ctx, sourceID)
 	if err != nil {
 		log.Printf("Error checking existing stats: %v", err)
 	}
@@ -39,7 +39,7 @@ func FetchGoogleAnalyticsStatsWithRange(dbQueries *database.Queries, sourceID uu
 		return fmt.Errorf("failed to get source: %w", err)
 	}
 
-	token, propertyID, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sourceID)
+	token, propertyID, _, _, err := authhelp.GetSourceToken(ctx, dbQueries, encryptionKey, sourceID)
 	if err != nil {
 		return fmt.Errorf("failed to get source token: %w", err)
 	}
