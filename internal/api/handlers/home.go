@@ -35,23 +35,18 @@ func (h *Handler) RootHandler(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		users, err := h.DB.GetAllUsers(ctx)
+		if err == nil && len(users) == 0 {
+			c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
+				"title": "Setup",
+			}))
+			return
+		}
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-
-	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
-			"title": "Setup",
-		}))
-		return
-	}
-
-	user := users[0]
 
 	activeSources, _ := h.DB.GetActiveSourcesCount(ctx, user.ID)
 	activeTargets, _ := h.DB.GetActiveTargetsCount(ctx, user.ID)

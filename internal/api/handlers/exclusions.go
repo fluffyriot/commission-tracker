@@ -43,18 +43,11 @@ func (h *Handler) HandleGetExclusions(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
-
-	if len(users) == 0 {
-		c.JSON(http.StatusOK, []ExclusionResponse{})
-		return
-	}
-
-	user := users[0]
 
 	exclusions, err := h.DB.GetExclusionsForUser(ctx, user.ID)
 	if err != nil {

@@ -9,7 +9,9 @@ import (
 	"github.com/fluffyriot/rpsync/internal/pusher/common"
 	"github.com/fluffyriot/rpsync/internal/updater"
 	"github.com/fluffyriot/rpsync/internal/worker"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -44,4 +46,24 @@ func (h *Handler) CommonData(data gin.H) gin.H {
 		data["update_desc"] = info.ShortDescription
 	}
 	return data
+}
+
+func (h *Handler) GetAuthenticatedUser(c *gin.Context) (*database.User, bool) {
+	session := sessions.Default(c)
+	userID := session.Get("user_id")
+	if userID == nil {
+		return nil, false
+	}
+
+	id, err := uuid.Parse(userID.(string))
+	if err != nil {
+		return nil, false
+	}
+
+	user, err := h.DB.GetUserByID(c.Request.Context(), id)
+	if err != nil {
+		return nil, false
+	}
+
+	return &user, true
 }

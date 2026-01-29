@@ -38,20 +38,11 @@ func (h *Handler) UserSetupHandler(c *gin.Context) {
 }
 
 func (h *Handler) SyncSettingsHandler(c *gin.Context) {
-	users, err := h.DB.GetAllUsers(c)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-
-	if len(users) == 0 {
-		c.Redirect(http.StatusSeeOther, "/")
-		return
-	}
-	user := users[0]
 
 	isSecure := c.Request.TLS != nil || c.Request.Header.Get("X-Forwarded-Proto") == "https"
 	if h.Config.ClientIP == "localhost" {
@@ -87,19 +78,11 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 		return
 	}
 
-	users, err := h.DB.GetAllUsers(c)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-	if len(users) == 0 {
-		c.Redirect(http.StatusSeeOther, "/")
-		return
-	}
-	user := users[0]
 
 	_, err = h.DB.UpdateUserSyncSettings(c, database.UpdateUserSyncSettingsParams{
 		ID:               user.ID,
@@ -124,21 +107,13 @@ func (h *Handler) UpdateSyncSettingsHandler(c *gin.Context) {
 }
 
 func (h *Handler) ResetSyncSettingsHandler(c *gin.Context) {
-	users, err := h.DB.GetAllUsers(c)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-	if len(users) == 0 {
-		c.Redirect(http.StatusSeeOther, "/")
-		return
-	}
-	user := users[0]
 
-	_, err = h.DB.UpdateUserSyncSettings(c, database.UpdateUserSyncSettingsParams{
+	_, err := h.DB.UpdateUserSyncSettings(c, database.UpdateUserSyncSettingsParams{
 		ID:               user.ID,
 		SyncPeriod:       "30m",
 		EnabledOnStartup: true,
@@ -156,19 +131,11 @@ func (h *Handler) ResetSyncSettingsHandler(c *gin.Context) {
 }
 
 func (h *Handler) StartWorkerHandler(c *gin.Context) {
-	users, err := h.DB.GetAllUsers(c)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-	if len(users) == 0 {
-		c.Redirect(http.StatusSeeOther, "/")
-		return
-	}
-	user := users[0]
 
 	duration, err := time.ParseDuration(user.SyncPeriod)
 	if err != nil {

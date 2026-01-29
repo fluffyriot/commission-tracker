@@ -22,23 +22,11 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-
-	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
-			"title": "User Setup",
-		}))
-		return
-	}
-
-	user := users[0]
 
 	exports, err := h.DB.GetLast20ExportsByUserId(ctx, user.ID)
 	if err != nil {

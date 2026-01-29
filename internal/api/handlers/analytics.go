@@ -15,20 +15,11 @@ func (h *Handler) AnalyticsEngagementHandler(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-
-	if len(users) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No user found"})
-		return
-	}
-
-	user := users[0]
 
 	statsData, err := stats.GetStats(h.DB, user.ID)
 	if err != nil {
@@ -46,20 +37,11 @@ func (h *Handler) AnalyticsWebsiteHandler(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
-
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-
-	if len(users) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No user found"})
-		return
-	}
-
-	user := users[0]
 
 	statsData, err := stats.GetAnalyticsStats(h.DB, user.ID)
 	if err != nil {
