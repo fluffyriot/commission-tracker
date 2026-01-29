@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) StatsHandler(c *gin.Context) {
+func (h *Handler) AnalyticsEngagementHandler(c *gin.Context) {
 
 	if h.Config.DBInitErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": h.Config.DBInitErr.Error()})
@@ -40,7 +40,7 @@ func (h *Handler) StatsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, statsData)
 }
 
-func (h *Handler) AnalyticsStatsHandler(c *gin.Context) {
+func (h *Handler) AnalyticsWebsiteHandler(c *gin.Context) {
 	if h.Config.DBInitErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": h.Config.DBInitErr.Error()})
 		return

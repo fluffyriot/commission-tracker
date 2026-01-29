@@ -198,7 +198,7 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    fetch('/analytics/stats')
+    fetch('/analytics/website')
       .then(response => response.json())
       .then(data => {
         if (!data || data.length === 0) {
@@ -296,7 +296,7 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    fetch('/stats')
+    fetch('/analytics/engagement')
       .then(response => response.json())
       .then(data => {
         if (!data || data.length === 0) {

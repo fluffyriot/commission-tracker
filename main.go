@@ -319,8 +319,8 @@ func main() {
 	authorized.POST("/targets/delete", h.DeleteTargetHandler)
 	authorized.POST("/targets/sync", h.SyncTargetHandler)
 
-	authorized.GET("/stats", h.StatsHandler)
-	authorized.GET("/analytics/stats", h.AnalyticsStatsHandler)
+	authorized.GET("/analytics/engagement", h.AnalyticsEngagementHandler)
+	authorized.GET("/analytics/website", h.AnalyticsWebsiteHandler)
 
 	authorized.GET("/api/sources", h.HandleGetSourcesAPI)
 	authorized.GET("/api/exclusions", h.HandleGetExclusions)
