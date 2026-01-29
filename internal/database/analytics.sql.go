@@ -690,6 +690,86 @@ func (q *Queries) GetUnsyncedSiteStatsForTarget(ctx context.Context, arg GetUnsy
 	return items, nil
 }
 
+const getWeeklyPageViews = `-- name: GetWeeklyPageViews :many
+SELECT TO_CHAR(s.date, 'IYYY-IW') as year_week, COALESCE(SUM(s.views), 0)::bigint as total_views
+FROM
+    analytics_page_stats s
+    JOIN sources src ON s.source_id = src.id
+WHERE
+    src.user_id = $1
+GROUP BY
+    year_week
+ORDER BY year_week ASC
+`
+
+type GetWeeklyPageViewsRow struct {
+	YearWeek   string
+	TotalViews int64
+}
+
+func (q *Queries) GetWeeklyPageViews(ctx context.Context, userID uuid.UUID) ([]GetWeeklyPageViewsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWeeklyPageViews, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWeeklyPageViewsRow
+	for rows.Next() {
+		var i GetWeeklyPageViewsRow
+		if err := rows.Scan(&i.YearWeek, &i.TotalViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWeeklySiteVisitors = `-- name: GetWeeklySiteVisitors :many
+SELECT TO_CHAR(s.date, 'IYYY-IW') as year_week, COALESCE(SUM(s.visitors), 0)::bigint as total_visitors
+FROM
+    analytics_site_stats s
+    JOIN sources src ON s.source_id = src.id
+WHERE
+    src.user_id = $1
+GROUP BY
+    year_week
+ORDER BY year_week ASC
+`
+
+type GetWeeklySiteVisitorsRow struct {
+	YearWeek      string
+	TotalVisitors int64
+}
+
+func (q *Queries) GetWeeklySiteVisitors(ctx context.Context, userID uuid.UUID) ([]GetWeeklySiteVisitorsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWeeklySiteVisitors, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWeeklySiteVisitorsRow
+	for rows.Next() {
+		var i GetWeeklySiteVisitorsRow
+		if err := rows.Scan(&i.YearWeek, &i.TotalVisitors); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateAnalyticsPageStatPath = `-- name: UpdateAnalyticsPageStatPath :exec
 UPDATE analytics_page_stats SET url_path = $2 WHERE id = $1
 `

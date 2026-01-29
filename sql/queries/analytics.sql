@@ -184,3 +184,25 @@ WHERE
 
 -- name: UpdateAnalyticsPageStatPath :exec
 UPDATE analytics_page_stats SET url_path = $2 WHERE id = $1;
+
+-- name: GetWeeklySiteVisitors :many
+SELECT TO_CHAR(s.date, 'IYYY-IW') as year_week, COALESCE(SUM(s.visitors), 0)::bigint as total_visitors
+FROM
+    analytics_site_stats s
+    JOIN sources src ON s.source_id = src.id
+WHERE
+    src.user_id = $1
+GROUP BY
+    year_week
+ORDER BY year_week ASC;
+
+-- name: GetWeeklyPageViews :many
+SELECT TO_CHAR(s.date, 'IYYY-IW') as year_week, COALESCE(SUM(s.views), 0)::bigint as total_views
+FROM
+    analytics_page_stats s
+    JOIN sources src ON s.source_id = src.id
+WHERE
+    src.user_id = $1
+GROUP BY
+    year_week
+ORDER BY year_week ASC;

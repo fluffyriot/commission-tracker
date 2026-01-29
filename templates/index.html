@@ -108,6 +108,14 @@
   </div>
 </div>
 
+
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">Website Analytics Over Time</div>
+  <div style="position: relative; height: 400px; width: 100%;">
+    <canvas id="analyticsChart"></canvas>
+  </div>
+</div>
+
 <div class="card" id="recent-logs">
   <div class="card-header">Recent Sync Errors</div>
   {{if not .recent_logs}}
@@ -185,6 +193,104 @@
         el.textContent = val.toLocaleString();
       }
     });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch('/analytics/stats')
+      .then(response => response.json())
+      .then(data => {
+        if (!data || data.length === 0) {
+          return;
+        }
+
+        const ctx = document.getElementById('analyticsChart').getContext('2d');
+
+        const datasets = [];
+        const allDates = new Set();
+
+        Chart.defaults.color = '#a0a0a0';
+        Chart.defaults.borderColor = '#333';
+
+        const colorMap = {
+          "Website Visitors": "#4ade80",
+          "Page Views": "#60a5fa"
+        };
+
+        data.forEach((series, index) => {
+          const points = series.points || [];
+          const dataPoints = points.map(p => {
+            const dateStr = p.date;
+            allDates.add(dateStr);
+            return {
+              x: dateStr,
+              y: p.value
+            };
+          });
+
+          let color = colorMap[series.label];
+          if (!color) {
+            const colors = ['#f87171', '#fbbf24', '#a78bfa', '#e879f9'];
+            color = colors[index % colors.length];
+          }
+
+          datasets.push({
+            label: series.label,
+            data: dataPoints,
+            borderColor: color,
+            backgroundColor: color + '20',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 3
+          });
+        });
+
+        const sortedDates = Array.from(allDates).sort();
+
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: sortedDates,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false,
+            },
+            scales: {
+              x: {
+                type: 'category',
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              },
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Count' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { padding: 20, usePointStyle: true }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(20, 20, 30, 0.9)',
+                titleColor: '#fff',
+                bodyColor: '#ccc',
+                padding: 10,
+                cornerRadius: 8,
+                displayColors: true
+              }
+            }
+          }
+        });
+      })
+      .catch(err => console.error("Error fetching analytics stats:", err));
   });
 </script>
 

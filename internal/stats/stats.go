@@ -54,3 +54,56 @@ func GetStats(dbQueries *database.Queries, userID uuid.UUID) ([]SourceStats, err
 
 	return result, nil
 }
+
+type AnalyticsPoint struct {
+	Date  string `json:"date"`
+	Value int64  `json:"value"`
+}
+
+type AnalyticsSeries struct {
+	Label  string           `json:"label"`
+	Points []AnalyticsPoint `json:"points"`
+}
+
+func GetAnalyticsStats(dbQueries *database.Queries, userID uuid.UUID) ([]AnalyticsSeries, error) {
+	ctx := context.Background()
+
+	visitors, err := dbQueries.GetWeeklySiteVisitors(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	views, err := dbQueries.GetWeeklyPageViews(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var visitorsPoints []AnalyticsPoint
+	for _, v := range visitors {
+		visitorsPoints = append(visitorsPoints, AnalyticsPoint{
+			Date:  v.YearWeek,
+			Value: v.TotalVisitors,
+		})
+	}
+
+	var viewsPoints []AnalyticsPoint
+	for _, v := range views {
+		viewsPoints = append(viewsPoints, AnalyticsPoint{
+			Date:  v.YearWeek,
+			Value: v.TotalViews,
+		})
+	}
+
+	series := []AnalyticsSeries{
+		{
+			Label:  "Website Visitors",
+			Points: visitorsPoints,
+		},
+		{
+			Label:  "Page Views",
+			Points: viewsPoints,
+		},
+	}
+
+	return series, nil
+}
