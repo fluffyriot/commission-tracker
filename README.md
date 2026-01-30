@@ -15,20 +15,29 @@
 
 ## Supported Platforms
 
-Fetch:
-*   Instagram
-*   TikTok
-*   Youtube
-*   Bluesky
-*   Mastodon
-*   Telegram
-*   BadPups.com
-*   Murrtube.net
-*   Google Analytics
+### Social Media - Fetch
+| Platform | Native API | Public Web Scraping | Logged In Web Scraping | Profile Stats | Posts Stats |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Instagram | ✅ | ❌ | ❌ | ✅ | ✅ |
+| TikTok | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Youtube | ✅ | ❌ | ❌ | ✅ | ✅ |
+| Bluesky | ✅ | ❌ | ❌ | ✅ | ✅ |
+| Mastodon | ✅ | ❌ | ❌ | ✅ | ✅ |
+| Telegram | ✅ | ✅ | ❌ | ✅ | ✅ |
+| BadPups.com | ❌ | ✅ | ❌ | ✅ | ✅ |
+| Murrtube.net | ❌ | ✅ | ❌ | ✅ | ✅ |
+| FurTrack.com | ❌ | ✅ | ❌ | ✅ | ✅ |
 
-Push:
-*   NocoDB
-*   CSV
+### Website Stats - Fetch
+| Website | Native API | Website Visitors | Page Views |
+| :--- | :--- | :--- | :--- |
+| Google Analytics | ✅ | ✅ | ✅ |
+
+### Data - Push
+| Target | Native API | Social Profile Stats | Social Posts Stats | Website Stats |
+| :--- | :--- | :--- | :--- | :--- |
+| NocoDB | ✅ | ✅ | ✅ | ✅ |
+| CSV | N/A | ✅ | ✅ | ✅ |
 
 ---
 
