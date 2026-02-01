@@ -292,6 +292,7 @@ func InitializeNoco(dbQueries *database.Queries, c *common.Client, encryptionKey
 							{Title: "Google Analytics"},
 							{Title: "BadPups"},
 							{Title: "Murrtube"},
+							{Title: "Discord"},
 						}},
 				},
 				{Title: "username", Type: "SingleLineText"},

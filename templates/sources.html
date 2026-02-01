@@ -35,6 +35,7 @@
                         <option value="Murrtube">Murrtube</option>
                         <option value="BadPups">BadPups</option>
                         <option value="FurTrack">FurTrack</option>
+                        <option value="Discord">Discord</option>
                         <option value="Google Analytics">Google Analytics</option>
                     </select>
                 </div>
@@ -90,6 +91,21 @@
                     <input id="telegram_app_hash" name="telegram_app_hash" class="form-input"
                         placeholder="your_app_hash">
 
+                </div>
+
+                <div class="form-group" id="discord_section" style="display:none;">
+                    <label class="form-label" for="discord_bot_token">Discord Bot Token</label>
+                    <input id="discord_bot_token" name="discord_bot_token" class="form-input"
+                        placeholder="your_bot_token">
+
+                    <label class="form-label" for="discord_server_id">Server ID</label>
+                    <input id="discord_server_id" name="discord_server_id" class="form-input" placeholder="123456789">
+
+                    <label class="form-label" for="discord_channel_ids">Channel IDs (comma-separated)</label>
+                    <input id="discord_channel_ids" name="discord_channel_ids" class="form-input"
+                        placeholder="123456,789012,345678">
+                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Enter multiple channel IDs
+                        separated by commas</p>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%">
@@ -213,6 +229,13 @@
                         </form>
                         {{end}}
 
+                        {{if eq .Network "Discord"}}
+                        <button type="button" class="btn btn-secondary btn-icon"
+                            onclick="showDiscordChannels('{{.ID}}')" title="View Channels">
+                            <i data-lucide="hash"></i>
+                        </button>
+                        {{end}}
+
                         <form method="POST" action="/sources/delete"
                             onsubmit="return submitWithConfirm(this, 'Delete this source?');">
                             <input type="hidden" name="source_id" value="{{.ID}}">
@@ -232,6 +255,10 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const networkSelect = document.getElementById("network");
+        const discordSection = document.getElementById("discord_section");
+        const discordBotToken = document.getElementById("discord_bot_token");
+        const discordServerId = document.getElementById("discord_server_id");
+        const discordChannelIds = document.getElementById("discord_channel_ids");
         const instagramSection = document.getElementById("instagram_section");
         const profileInput = document.getElementById("instagram_profile_id");
         const InstAppId = document.getElementById("app_id");
@@ -268,6 +295,11 @@
             tgAppId.required = false;
             tgAppHash.required = false;
 
+            discordSection.style.display = "none";
+            discordBotToken.required = false;
+            discordServerId.required = false;
+            discordChannelIds.required = false;
+
 
             if (network === "Instagram") {
                 instagramSection.style.display = "block";
@@ -284,6 +316,11 @@
                 tgBotToken.required = true;
                 tgAppId.required = true;
                 tgAppHash.required = true;
+            } else if (network === "Discord") {
+                discordSection.style.display = "block";
+                discordBotToken.required = true;
+                discordServerId.required = true;
+                discordChannelIds.required = true;
             } else if (network === "YouTube") {
                 googleSection.style.display = "block";
                 googlePropertyId.required = false;
@@ -296,8 +333,15 @@
                 usernameInput.placeholder = "username@instance.social";
             } else if (network === "Google Analytics") {
                 usernameInput.placeholder = "Your website URL (e.g. https://example.com)";
+            } else if (network === "Discord") {
+                discordSection.style.display = "block";
+                discordBotToken.required = true;
+                discordServerId.required = true;
+                discordChannelIds.required = true;
             } else if (network === "YouTube") {
                 usernameInput.placeholder = "Your Channel Handle (e.g. @username)";
+            } else if (network === "Discord") {
+                usernameInput.placeholder = "Discord Username";
             } else {
                 usernameInput.placeholder = "username (no @)";
             }
@@ -322,6 +366,95 @@
             document.querySelectorAll('.dropdown-content').forEach(d => {
                 d.classList.add('hidden');
             });
+        }
+    }
+
+    async function showDiscordChannels(sourceId) {
+        try {
+            const response = await fetch(`/sources/${sourceId}/channels`);
+            const data = await response.json();
+
+            if (response.ok) {
+                const channelList = data.channels.join(', ');
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Edit Discord Channels</h3>
+                            <button onclick="this.closest('.modal-overlay').remove()" 
+                                class="modal-close-btn" title="Close">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="modal-text-muted">
+                                Enter channel IDs separated by commas:
+                            </p>
+                            <textarea id="channel-ids-input" class="form-input modal-textarea"
+                                placeholder="123456789, 987654321, 456789123">${channelList}</textarea>
+                            <div class="modal-info-box">
+                                <p>
+                                    <strong>Note:</strong> Removed channels will have their posts permanently deleted on next sync.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button onclick="this.closest('.modal-overlay').remove()" 
+                                class="btn btn-secondary">Cancel</button>
+                            <button onclick="saveDiscordChannels('${sourceId}')" 
+                                class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                modal.onclick = (e) => {
+                    if (e.target === modal) modal.remove();
+                };
+
+                document.getElementById('channel-ids-input').focus();
+            } else {
+                alert(data.error || 'Failed to fetch channels');
+            }
+        } catch (error) {
+            console.error('Error fetching Discord channels:', error);
+            alert('Failed to fetch channels');
+        }
+    }
+
+    async function saveDiscordChannels(sourceId) {
+        const input = document.getElementById('channel-ids-input');
+        const channelIds = input.value
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0);
+
+        if (channelIds.length === 0) {
+            alert('Please enter at least one channel ID');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/sources/${sourceId}/channels`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ channels: channelIds })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Channels updated successfully! Changes will take effect on next sync.');
+                document.querySelector('.modal-overlay').remove();
+                location.reload();
+            } else {
+                alert(data.error || 'Failed to update channels');
+            }
+        } catch (error) {
+            console.error('Error updating Discord channels:', error);
+            alert('Failed to update channels');
         }
     }
 </script>

@@ -196,6 +196,32 @@ func GetTargetToken(
 	return accessToken, dbToken.ProfileID.String, dbToken.ID, nil
 }
 
+func UpdateSourceProfile(
+	ctx context.Context,
+	db *database.Queries,
+	encryptionKey []byte,
+	sid uuid.UUID,
+	newProfileID string,
+) error {
+	_, currentProfileID, _, tokenID, err := GetSourceToken(ctx, db, encryptionKey, sid)
+	if err != nil {
+		return err
+	}
+
+	if currentProfileID == newProfileID {
+		return nil
+	}
+
+	return db.UpdateTokenProfile(ctx, database.UpdateTokenProfileParams{
+		ID: tokenID,
+		ProfileID: sql.NullString{
+			String: newProfileID,
+			Valid:  true,
+		},
+		UpdatedAt: time.Now(),
+	})
+}
+
 func normalizeAccessTokenPayload(input string) ([]byte, error) {
 	if input == "" {
 		return nil, errors.New("access token is empty")

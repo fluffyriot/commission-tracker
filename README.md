@@ -24,6 +24,7 @@
 | Bluesky | ✅ | ❌ | ❌ | ✅ | ✅ |
 | Mastodon | ✅ | ❌ | ❌ | ✅ | ✅ |
 | Telegram | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Discord | ✅ | ❌ | ❌ | ✅ | ✅ |
 | BadPups.com | ❌ | ✅ | ❌ | ✅ | ✅ |
 | Murrtube.net | ❌ | ✅ | ❌ | ✅ | ✅ |
 | FurTrack.com | ❌ | ✅ | ❌ | ✅ | ✅ |
@@ -210,6 +211,52 @@ Requires a Facebook Page linked to an Instagram Business/Creator account.
 
 ### TikTok Sync (Cloud/Public deployment)
 Due to TikTok limitations, to enable TikTok sync you need to deploy the app locally first, connect TikTok as a source, and then use the app to export the cookies JSON file. Then, you can import the cookies JSON file into the cloud deployment.
+
+### Discord Sync
+Sync messages from Discord text channels and threads from Discord forum channels.
+
+#### 1. Create Discord Application
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Click **New Application**, give it a name, accept ToS, and click **Create**
+3. Navigate to the **Bot** section in the left sidebar
+
+#### 2. Configure Bot Settings
+1. Click **Reset Token** to generate a new bot token
+2. **Copy and save the token** - you'll need this for RPSync configuration
+3. Under **Privileged Gateway Intents**, enable:
+   - **Server Members Intent** (required for member count/followers)
+   - **Message Content Intent** (required to read message text)
+
+#### 3. Set Bot Permissions
+1. Navigate to **OAuth2** → **URL Generator** in the left sidebar
+2. Under **Scopes**, select:
+   - `bot`
+3. Under **Bot Permissions**, select:
+   - **View Channels** (required to see channels)
+   - **Read Message History** (required to fetch messages)
+4. Copy the generated URL at the bottom
+
+#### 4. Invite Bot to Your Server
+1. Open the copied URL in your browser
+2. Select your Discord server from the dropdown
+3. Click **Authorize** and complete the CAPTCHA
+4. Verify the bot appears in your server's member list
+
+#### 5. Get Server and Channel IDs
+1. Enable **Developer Mode** in Discord:
+   - User Settings → App Settings → Advanced → Enable Developer Mode
+2. Right-click your server icon → **Copy Server ID**
+3. Right-click each channel you want to sync → **Copy Channel ID**
+
+#### 6. Configure in RPSync
+When adding a Discord source in RPSync:
+- **Bot Token**: The token from step 2
+- **Server ID**: The server ID from step 5
+- **Channel IDs**: Comma-separated list of channel IDs (e.g., `123456789,987654321`)
+
+**Supported Channel Types:**
+- **Text Channels**: Syncs messages as posts
+- **Forum Channels**: Syncs threads as posts (thread title = content, message count = likes)
 
 ---
 

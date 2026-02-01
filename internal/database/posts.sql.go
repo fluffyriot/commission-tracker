@@ -14,9 +14,11 @@ import (
 )
 
 const checkCountOfPostsForUser = `-- name: CheckCountOfPostsForUser :one
-SELECT COUNT(*) FROM posts p
-join sources s on p.source_id = s.id
-where s.user_id = $1
+SELECT COUNT(*)
+FROM posts p
+    join sources s on p.source_id = s.id
+where
+    s.user_id = $1
 `
 
 func (q *Queries) CheckCountOfPostsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
@@ -27,19 +29,31 @@ func (q *Queries) CheckCountOfPostsForUser(ctx context.Context, userID uuid.UUID
 }
 
 const createPost = `-- name: CreatePost :one
-INSERT INTO posts (id, created_at, last_synced_at, source_id, is_archived, network_internal_id, content, post_type, author)
+INSERT INTO
+    posts (
+        id,
+        created_at,
+        last_synced_at,
+        source_id,
+        is_archived,
+        network_internal_id,
+        content,
+        post_type,
+        author
+    )
 VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8,
-    $9
-)
-RETURNING id, created_at, last_synced_at, source_id, is_archived, network_internal_id, post_type, author, content
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9
+    )
+RETURNING
+    id, created_at, last_synced_at, source_id, is_archived, network_internal_id, post_type, author, content
 `
 
 type CreatePostParams struct {
@@ -81,6 +95,23 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 	return i, err
 }
 
+const deletePostsByNetworkIdPrefix = `-- name: DeletePostsByNetworkIdPrefix :exec
+DELETE FROM posts
+WHERE
+    source_id = $1
+    AND network_internal_id LIKE $2
+`
+
+type DeletePostsByNetworkIdPrefixParams struct {
+	SourceID          uuid.UUID
+	NetworkInternalID string
+}
+
+func (q *Queries) DeletePostsByNetworkIdPrefix(ctx context.Context, arg DeletePostsByNetworkIdPrefixParams) error {
+	_, err := q.db.ExecContext(ctx, deletePostsByNetworkIdPrefix, arg.SourceID, arg.NetworkInternalID)
+	return err
+}
+
 const getAllPostsWithTheLatestInfoForUser = `-- name: GetAllPostsWithTheLatestInfoForUser :many
 SELECT
     p.id,
@@ -98,18 +129,19 @@ SELECT
     r.likes,
     r.reposts,
     r.views
-FROM posts p
-left join sources s
-    ON p.source_id = s.id
-left join users u on s.user_id = u.id
-LEFT JOIN posts_reactions_history r
-    ON r.post_id = p.id
-   AND r.synced_at = (
+FROM
+    posts p
+    left join sources s ON p.source_id = s.id
+    left join users u on s.user_id = u.id
+    LEFT JOIN posts_reactions_history r ON r.post_id = p.id
+    AND r.synced_at = (
         SELECT MAX(prh.synced_at)
         FROM posts_reactions_history prh
-        WHERE prh.post_id = p.id
-   )
-WHERE s.user_id = $1
+        WHERE
+            prh.post_id = p.id
+    )
+WHERE
+    s.user_id = $1
 `
 
 type GetAllPostsWithTheLatestInfoForUserRow struct {
@@ -170,9 +202,12 @@ func (q *Queries) GetAllPostsWithTheLatestInfoForUser(ctx context.Context, userI
 }
 
 const getPostByNetworkAndId = `-- name: GetPostByNetworkAndId :one
-SELECT posts.id, posts.created_at, posts.last_synced_at, posts.source_id, posts.is_archived, posts.network_internal_id, posts.post_type, posts.author, posts.content FROM posts
-join sources on posts.source_id = sources.id
-where network_internal_id = $1 and sources.network = $2
+SELECT posts.id, posts.created_at, posts.last_synced_at, posts.source_id, posts.is_archived, posts.network_internal_id, posts.post_type, posts.author, posts.content
+FROM posts
+    join sources on posts.source_id = sources.id
+where
+    network_internal_id = $1
+    and sources.network = $2
 `
 
 type GetPostByNetworkAndIdParams struct {

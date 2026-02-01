@@ -82,6 +82,9 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	tgAppHash := c.PostForm("telegram_app_hash")
 	googlePropertyId := c.PostForm("google_analytics_property_id")
 	googleKey := c.PostForm("google_service_account_key")
+	discordBotToken := c.PostForm("discord_bot_token")
+	discordServerId := c.PostForm("discord_server_id")
+	discordChannelIds := c.PostForm("discord_channel_ids")
 	appID := c.PostForm("app_id")
 	appSecret := c.PostForm("app_secret")
 
@@ -104,6 +107,9 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 		tgAppHash,
 		googleKey,
 		googlePropertyId,
+		discordBotToken,
+		discordServerId,
+		discordChannelIds,
 		h.Config.TokenEncryptionKey,
 	)
 	if err != nil {

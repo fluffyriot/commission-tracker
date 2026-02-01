@@ -196,6 +196,9 @@ func main() {
 	authorized.POST("/sources/sync", h.SyncSourceHandler)
 	authorized.GET("/sources/cookies/export", h.HandleExportCookies)
 	authorized.POST("/sources/cookies/import", h.HandleImportCookies)
+	authorized.PUT("/sources/:source_id/channels", h.UpdateSourceChannelsHandler)
+	authorized.GET("/sources/:source_id/channels", h.GetSourceChannelsHandler)
+
 	authorized.POST("/syncAll", h.TriggerSyncHandler)
 
 	authorized.GET("/targets", h.TargetsHandler)

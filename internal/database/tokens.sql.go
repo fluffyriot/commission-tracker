@@ -131,3 +131,23 @@ func (q *Queries) GetTokenByTarget(ctx context.Context, targetID uuid.NullUUID) 
 	)
 	return i, err
 }
+
+const updateTokenProfile = `-- name: UpdateTokenProfile :exec
+UPDATE tokens
+SET
+    profile_id = $2,
+    updated_at = $3
+WHERE
+    id = $1
+`
+
+type UpdateTokenProfileParams struct {
+	ID        uuid.UUID
+	ProfileID sql.NullString
+	UpdatedAt time.Time
+}
+
+func (q *Queries) UpdateTokenProfile(ctx context.Context, arg UpdateTokenProfileParams) error {
+	_, err := q.db.ExecContext(ctx, updateTokenProfile, arg.ID, arg.ProfileID, arg.UpdatedAt)
+	return err
+}
