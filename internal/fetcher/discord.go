@@ -185,17 +185,8 @@ func FetchDiscordPosts(dbQueries *database.Queries, encryptionKey []byte, source
 				}
 				processedMessages[msgID] = struct{}{}
 
-				if exclusionMap[msgID] {
-					continue
-				}
-
 				if msg.Type == discordgo.MessageTypeReply || msg.Type == discordgo.MessageTypeThreadStarterMessage {
 					continue
-				}
-
-				totalReactions := 0
-				for _, reaction := range msg.Reactions {
-					totalReactions += reaction.Count
 				}
 
 				timestamp, err := discordgo.SnowflakeTimestamp(msgID)
@@ -204,6 +195,15 @@ func FetchDiscordPosts(dbQueries *database.Queries, encryptionKey []byte, source
 					continue
 				}
 				networkInternalID := fmt.Sprintf("%s/%s/%s", serverID, channelID, msgID)
+
+				if exclusionMap[networkInternalID] {
+					continue
+				}
+
+				totalReactions := 0
+				for _, reaction := range msg.Reactions {
+					totalReactions += reaction.Count
+				}
 
 				postID, err := createOrUpdatePost(
 					ctx,
@@ -280,7 +280,9 @@ func processForumThread(
 	}
 	processedMessages[threadID] = struct{}{}
 
-	if exclusionMap[threadID] {
+	networkInternalID := fmt.Sprintf("%s/%s/%s", serverID, channelID, threadID)
+
+	if exclusionMap[networkInternalID] {
 		return nil
 	}
 
@@ -298,7 +300,6 @@ func processForumThread(
 		authorName = owner.Username
 	}
 
-	networkInternalID := fmt.Sprintf("%s/%s/%s", serverID, channelID, threadID)
 	postID, err := createOrUpdatePost(
 		ctx,
 		dbQueries,
