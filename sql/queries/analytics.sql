@@ -140,6 +140,16 @@ FROM
 WHERE
     s.source_id = $2;
 
+-- name: GetSyncedSiteStatsForUpdate :many
+SELECT s.*, map.target_record_id
+FROM
+    analytics_site_stats s
+    JOIN analytics_site_stats_on_target map ON s.id = map.stat_id
+    AND map.target_id = $1
+WHERE
+    s.source_id = $2
+    AND s.date >= $3;
+
 -- name: GetAllPageStatsWithTargetInfo :many
 SELECT s.*, map.target_record_id
 FROM
@@ -148,6 +158,16 @@ FROM
     AND map.target_id = $1
 WHERE
     s.source_id = $2;
+
+-- name: GetSyncedPageStatsForUpdate :many
+SELECT s.*, map.target_record_id
+FROM
+    analytics_page_stats s
+    JOIN analytics_page_stats_on_target map ON s.id = map.stat_id
+    AND map.target_id = $1
+WHERE
+    s.source_id = $2
+    AND s.date >= $3;
 
 -- name: GetAllAnalyticsSiteStatsForUser :many
 SELECT

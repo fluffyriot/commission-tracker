@@ -7,22 +7,29 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 const addSourcesStatToTarget = `-- name: AddSourcesStatToTarget :one
-INSERT INTO sources_stats_on_target (
-    id,
-    synced_at,
-    stat_id,
-    target_id,
-    target_record_id
-) VALUES (
-    $1, $2, $3, $4, $5
-)
-RETURNING id, synced_at, stat_id, target_id, target_record_id
+INSERT INTO
+    sources_stats_on_target (
+        id,
+        synced_at,
+        stat_id,
+        target_id,
+        target_record_id
+    )
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (stat_id, target_id) DO
+UPDATE
+SET
+    synced_at = $2,
+    target_record_id = $5
+RETURNING
+    id, synced_at, stat_id, target_id, target_record_id
 `
 
 type AddSourcesStatToTargetParams struct {
@@ -94,15 +101,144 @@ func (q *Queries) GetAllSourcesStatsForUser(ctx context.Context, userID uuid.UUI
 	return items, nil
 }
 
+const getAllSourcesStatsWithTargetInfo = `-- name: GetAllSourcesStatsWithTargetInfo :many
+SELECT ss.id, ss.date, ss.source_id, ss.followers_count, ss.following_count, ss.posts_count, ss.average_likes, ss.average_reposts, ss.average_views, map.target_record_id
+FROM
+    sources_stats ss
+    LEFT JOIN sources_stats_on_target map ON ss.id = map.stat_id
+    AND map.target_id = $1
+WHERE
+    ss.source_id = $2
+`
+
+type GetAllSourcesStatsWithTargetInfoParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+}
+
+type GetAllSourcesStatsWithTargetInfoRow struct {
+	ID             uuid.UUID
+	Date           time.Time
+	SourceID       uuid.UUID
+	FollowersCount sql.NullInt32
+	FollowingCount sql.NullInt32
+	PostsCount     sql.NullInt32
+	AverageLikes   sql.NullFloat64
+	AverageReposts sql.NullFloat64
+	AverageViews   sql.NullFloat64
+	TargetRecordID sql.NullString
+}
+
+func (q *Queries) GetAllSourcesStatsWithTargetInfo(ctx context.Context, arg GetAllSourcesStatsWithTargetInfoParams) ([]GetAllSourcesStatsWithTargetInfoRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllSourcesStatsWithTargetInfo, arg.TargetID, arg.SourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllSourcesStatsWithTargetInfoRow
+	for rows.Next() {
+		var i GetAllSourcesStatsWithTargetInfoRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Date,
+			&i.SourceID,
+			&i.FollowersCount,
+			&i.FollowingCount,
+			&i.PostsCount,
+			&i.AverageLikes,
+			&i.AverageReposts,
+			&i.AverageViews,
+			&i.TargetRecordID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSyncedSourcesStatsForUpdate = `-- name: GetSyncedSourcesStatsForUpdate :many
+SELECT ss.id, ss.date, ss.source_id, ss.followers_count, ss.following_count, ss.posts_count, ss.average_likes, ss.average_reposts, ss.average_views, map.target_record_id
+FROM
+    sources_stats ss
+    JOIN sources_stats_on_target map ON ss.id = map.stat_id
+    AND map.target_id = $1
+WHERE
+    ss.source_id = $2
+    AND ss.date >= $3
+`
+
+type GetSyncedSourcesStatsForUpdateParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+	Date     time.Time
+}
+
+type GetSyncedSourcesStatsForUpdateRow struct {
+	ID             uuid.UUID
+	Date           time.Time
+	SourceID       uuid.UUID
+	FollowersCount sql.NullInt32
+	FollowingCount sql.NullInt32
+	PostsCount     sql.NullInt32
+	AverageLikes   sql.NullFloat64
+	AverageReposts sql.NullFloat64
+	AverageViews   sql.NullFloat64
+	TargetRecordID string
+}
+
+func (q *Queries) GetSyncedSourcesStatsForUpdate(ctx context.Context, arg GetSyncedSourcesStatsForUpdateParams) ([]GetSyncedSourcesStatsForUpdateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSyncedSourcesStatsForUpdate, arg.TargetID, arg.SourceID, arg.Date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSyncedSourcesStatsForUpdateRow
+	for rows.Next() {
+		var i GetSyncedSourcesStatsForUpdateRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Date,
+			&i.SourceID,
+			&i.FollowersCount,
+			&i.FollowingCount,
+			&i.PostsCount,
+			&i.AverageLikes,
+			&i.AverageReposts,
+			&i.AverageViews,
+			&i.TargetRecordID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUnsyncedSourcesStatsForTarget = `-- name: GetUnsyncedSourcesStatsForTarget :many
 SELECT ss.id, ss.date, ss.source_id, ss.followers_count, ss.following_count, ss.posts_count, ss.average_likes, ss.average_reposts, ss.average_views
 FROM sources_stats ss
-WHERE ss.source_id = $1
-AND NOT EXISTS (
-    SELECT 1 FROM sources_stats_on_target ssot
-    WHERE ssot.stat_id = ss.id
-    AND ssot.target_id = $2
-)
+WHERE
+    ss.source_id = $1
+    AND NOT EXISTS (
+        SELECT 1
+        FROM sources_stats_on_target ssot
+        WHERE
+            ssot.stat_id = ss.id
+            AND ssot.target_id = $2
+    )
 `
 
 type GetUnsyncedSourcesStatsForTargetParams struct {
