@@ -108,6 +108,14 @@
   </div>
 </div>
 
+
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">Website Analytics Over Time</div>
+  <div style="position: relative; height: 400px; width: 100%;">
+    <canvas id="analyticsChart"></canvas>
+  </div>
+</div>
+
 <div class="card" id="recent-logs">
   <div class="card-header">Recent Sync Errors</div>
   {{if not .recent_logs}}
@@ -190,7 +198,105 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    fetch('/stats')
+    fetch('/analytics/website')
+      .then(response => response.json())
+      .then(data => {
+        if (!data || data.length === 0) {
+          return;
+        }
+
+        const ctx = document.getElementById('analyticsChart').getContext('2d');
+
+        const datasets = [];
+        const allDates = new Set();
+
+        Chart.defaults.color = '#a0a0a0';
+        Chart.defaults.borderColor = '#333';
+
+        const colorMap = {
+          "Website Visitors": "#10b981",
+          "Page Views": "#60a5fa"
+        };
+
+        data.forEach((series, index) => {
+          const points = series.points || [];
+          const dataPoints = points.map(p => {
+            const dateStr = p.date;
+            allDates.add(dateStr);
+            return {
+              x: dateStr,
+              y: p.value
+            };
+          });
+
+          let color = colorMap[series.label];
+          if (!color) {
+            const colors = ['#f87171', '#fbbf24', '#a78bfa', '#e879f9'];
+            color = colors[index % colors.length];
+          }
+
+          datasets.push({
+            label: series.label,
+            data: dataPoints,
+            borderColor: color,
+            backgroundColor: color + '20',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 3
+          });
+        });
+
+        const sortedDates = Array.from(allDates).sort();
+
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: sortedDates,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false,
+            },
+            scales: {
+              x: {
+                type: 'category',
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              },
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Count' },
+                grid: { color: 'rgba(255, 255, 255, 0.05)' }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { padding: 20, usePointStyle: true }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(20, 20, 30, 0.9)',
+                titleColor: '#fff',
+                bodyColor: '#ccc',
+                padding: 10,
+                cornerRadius: 8,
+                displayColors: true
+              }
+            }
+          }
+        });
+      })
+      .catch(err => console.error("Error fetching analytics stats:", err));
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch('/analytics/engagement')
       .then(response => response.json())
       .then(data => {
         if (!data || data.length === 0) {
@@ -205,7 +311,19 @@
         Chart.defaults.color = '#a0a0a0';
         Chart.defaults.borderColor = '#333';
 
-        data.forEach(source => {
+        const palette = [
+          '#60A5FA', '#F97316', '#10B981', '#EF4444',
+          '#A855F7', '#F59E0B', '#14B8A6', '#EC4899',
+          '#22C55E', '#6366F1'
+        ];
+
+        data.sort((a, b) => {
+          const nameA = (a.network + a.username).toLowerCase();
+          const nameB = (b.network + b.username).toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+
+        data.forEach((source, index) => {
           const points = source.points || [];
           const dataPoints = points.map(p => {
             const dateStr = p.date;
@@ -216,13 +334,7 @@
             };
           });
 
-          let hash = 0;
-          const str = source.network + source.username;
-          for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-          }
-          const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-          const color = '#' + "00000".substring(0, 6 - c.length) + c;
+          const color = palette[index % palette.length];
 
           datasets.push({
             label: `${source.network} (${source.username})`,

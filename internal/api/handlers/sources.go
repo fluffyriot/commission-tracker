@@ -25,23 +25,11 @@ func (h *Handler) SourcesHandler(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-
-	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
-			"title": "Setup",
-		}))
-		return
-	}
-
-	user := users[0]
 
 	sources, err := h.DB.GetUserSources(ctx, user.ID)
 	if err != nil {
@@ -68,18 +56,11 @@ func (h *Handler) HandleGetSourcesAPI(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-
-	if len(users) == 0 {
-		c.JSON(http.StatusOK, []any{})
-		return
-	}
-
-	user := users[0]
 
 	sources, err := h.DB.GetUserSources(ctx, user.ID)
 	if err != nil {
@@ -101,6 +82,9 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	tgAppHash := c.PostForm("telegram_app_hash")
 	googlePropertyId := c.PostForm("google_analytics_property_id")
 	googleKey := c.PostForm("google_service_account_key")
+	discordBotToken := c.PostForm("discord_bot_token")
+	discordServerId := c.PostForm("discord_server_id")
+	discordChannelIds := c.PostForm("discord_channel_ids")
 	appID := c.PostForm("app_id")
 	appSecret := c.PostForm("app_secret")
 
@@ -123,6 +107,9 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 		tgAppHash,
 		googleKey,
 		googlePropertyId,
+		discordBotToken,
+		discordServerId,
+		discordChannelIds,
 		h.Config.TokenEncryptionKey,
 	)
 	if err != nil {

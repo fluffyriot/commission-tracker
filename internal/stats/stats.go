@@ -22,7 +22,7 @@ type SourceStats struct {
 
 func GetStats(dbQueries *database.Queries, userID uuid.UUID) ([]SourceStats, error) {
 
-	stats, err := dbQueries.GetWeeklyStats(context.Background(), userID)
+	stats, err := dbQueries.GetMonthlyEngagementStats(context.Background(), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func GetStats(dbQueries *database.Queries, userID uuid.UUID) ([]SourceStats, err
 		}
 
 		statsMap[row.ID].Points = append(statsMap[row.ID].Points, ValidationPoint{
-			Date:    row.YearWeek,
+			Date:    row.YearMonth,
 			Likes:   row.TotalLikes,
 			Reposts: row.TotalReposts,
 		})
@@ -53,4 +53,57 @@ func GetStats(dbQueries *database.Queries, userID uuid.UUID) ([]SourceStats, err
 	}
 
 	return result, nil
+}
+
+type AnalyticsPoint struct {
+	Date  string `json:"date"`
+	Value int64  `json:"value"`
+}
+
+type AnalyticsSeries struct {
+	Label  string           `json:"label"`
+	Points []AnalyticsPoint `json:"points"`
+}
+
+func GetAnalyticsStats(dbQueries *database.Queries, userID uuid.UUID) ([]AnalyticsSeries, error) {
+	ctx := context.Background()
+
+	visitors, err := dbQueries.GetMonthlySiteVisitors(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	views, err := dbQueries.GetMonthlyPageViews(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var visitorsPoints []AnalyticsPoint
+	for _, v := range visitors {
+		visitorsPoints = append(visitorsPoints, AnalyticsPoint{
+			Date:  v.YearMonth,
+			Value: v.TotalVisitors,
+		})
+	}
+
+	var viewsPoints []AnalyticsPoint
+	for _, v := range views {
+		viewsPoints = append(viewsPoints, AnalyticsPoint{
+			Date:  v.YearMonth,
+			Value: v.TotalViews,
+		})
+	}
+
+	series := []AnalyticsSeries{
+		{
+			Label:  "Website Visitors",
+			Points: visitorsPoints,
+		},
+		{
+			Label:  "Page Views",
+			Points: viewsPoints,
+		},
+	}
+
+	return series, nil
 }

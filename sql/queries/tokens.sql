@@ -33,3 +33,11 @@ SELECT * FROM tokens where target_id = $1;
 
 -- name: DeleteTokenById :exec
 DELETE FROM tokens WHERE id = $1;
+
+-- name: UpdateTokenProfile :exec
+UPDATE tokens
+SET
+    profile_id = $2,
+    updated_at = $3
+WHERE
+    id = $1;

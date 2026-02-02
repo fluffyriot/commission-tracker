@@ -184,3 +184,62 @@ WHERE
 
 -- name: UpdateAnalyticsPageStatPath :exec
 UPDATE analytics_page_stats SET url_path = $2 WHERE id = $1;
+
+-- name: GetMonthlySiteVisitors :many
+SELECT
+    TO_CHAR(s.date, 'YYYY-MM') as year_month,
+    COALESCE(SUM(s.visitors), 0)::bigint as total_visitors
+FROM
+    analytics_site_stats s
+    JOIN sources src ON s.source_id = src.id
+WHERE
+    src.user_id = $1
+GROUP BY
+    year_month
+ORDER BY year_month ASC;
+
+-- name: GetMonthlyPageViews :many
+SELECT TO_CHAR(s.date, 'YYYY-MM') as year_month, COALESCE(SUM(s.views), 0)::bigint as total_views
+FROM
+    analytics_page_stats s
+    JOIN sources src ON s.source_id = src.id
+WHERE
+    src.user_id = $1
+GROUP BY
+    year_month
+ORDER BY year_month ASC;
+
+-- name: GetMonthlyEngagementStats :many
+WITH
+    LatestStats AS (
+        SELECT prh.post_id, prh.likes, prh.reposts
+        FROM
+            posts_reactions_history prh
+            JOIN (
+                SELECT post_id, MAX(synced_at) as max_sync
+                FROM posts_reactions_history
+                GROUP BY
+                    post_id
+            ) latest ON prh.post_id = latest.post_id
+            AND prh.synced_at = latest.max_sync
+    )
+SELECT
+    s.id,
+    s.network,
+    s.user_name,
+    TO_CHAR(p.created_at, 'YYYY-MM') as year_month,
+    COALESCE(SUM(ls.likes), 0)::bigint as total_likes,
+    COALESCE(SUM(ls.reposts), 0)::bigint as total_reposts
+FROM
+    posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN LatestStats ls ON p.id = ls.post_id
+WHERE
+    s.user_id = $1
+    AND p.post_type <> 'repost'
+GROUP BY
+    s.id,
+    s.network,
+    s.user_name,
+    year_month
+ORDER BY year_month ASC;

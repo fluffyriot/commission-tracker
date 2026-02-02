@@ -189,7 +189,7 @@ func CreateUserFromForm(dbQueries *database.Queries, userName string) (name, id 
 
 }
 
-func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, tgBotToken, tgChannelId, tgAppId, tgAppHash, googleKey, googlePropertyId string, encryptionKey []byte) (id, networkName string, e error) {
+func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, tgBotToken, tgChannelId, tgAppId, tgAppHash, googleKey, googlePropertyId, discordBotToken, discordServerId, discordChannelIds string, encryptionKey []byte) (id, networkName string, e error) {
 
 	uidParse, err := uuid.Parse(uid)
 	if err != nil {
@@ -206,6 +206,10 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 
 	if network == "YouTube" && googleKey == "" {
 		return "", "", fmt.Errorf("Service Account Key is required for YouTube")
+	}
+
+	if network == "Discord" && (discordBotToken == "" || discordServerId == "" || discordChannelIds == "") {
+		return "", "", fmt.Errorf("Bot Token, Server ID, and Channel ID(s) are required for Discord")
 	}
 
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
@@ -243,6 +247,16 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 
 	if network == "YouTube" {
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, "", nil, encryptionKey)
+		if err != nil {
+			dbQueries.DeleteSource(context.Background(), s.ID)
+			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
+		}
+	}
+
+	if network == "Discord" {
+		tokenFormatted := discordBotToken
+		profileFormatted := discordServerId + ":::" + discordChannelIds
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, profileFormatted, nil, encryptionKey)
 		if err != nil {
 			dbQueries.DeleteSource(context.Background(), s.ID)
 			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)

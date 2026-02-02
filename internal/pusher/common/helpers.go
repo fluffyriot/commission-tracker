@@ -17,10 +17,14 @@ func ConvNetworkToURL(network, username string) (string, error) {
 		return "https://badpups.com/lite/profile/" + username, nil
 	case "Murrtube":
 		return "https://murrtube.net/" + username, nil
+	case "FurTrack":
+		return "https://www.furtrack.com/user/" + username + "/photography", nil
 	case "Telegram":
 		return "https://t.me/" + username, nil
 	case "YouTube":
 		return "https://youtube.com/" + username, nil
+	case "Discord":
+		return "https://discord.com/channels/" + username, nil
 	case "Mastodon":
 		splits := strings.Split(username, "@")
 		return fmt.Sprintf("https://%v/@%v", splits[1], splits[0]), nil
@@ -47,6 +51,14 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 		return "https://t.me/" + author + "/" + networkId, nil
 	case "YouTube":
 		return "https://youtube.com/watch?v=" + networkId, nil
+	case "FurTrack":
+		return "https://www.furtrack.com/user/" + author + "/album-" + networkId, nil
+	case "Discord":
+		parts := strings.Split(networkId, "/")
+		if len(parts) == 3 {
+			return "https://discord.com/channels/" + parts[0] + "/" + parts[1] + "/" + parts[2], nil
+		}
+		return "", fmt.Errorf("invalid Discord message ID format")
 	case "Mastodon":
 		splits := strings.Split(author, "@")
 		return fmt.Sprintf("https://%v/@%v/%v", splits[1], splits[0], networkId), nil

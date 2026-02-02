@@ -222,7 +222,6 @@ func createNocoColumn(c *common.Client, dbQueries *database.Queries, encryptionK
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		// Check if it already exists
 		return nil, fmt.Errorf("create column error: status %d, body %s", resp.StatusCode, string(bodyBytes))
 	}
 

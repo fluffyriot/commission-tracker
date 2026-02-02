@@ -2,18 +2,15 @@ package noco
 
 import "time"
 
-// NocoTableRecord represents a record in a NocoDB table
 type NocoTableRecord struct {
 	Id     int32            `json:"id,omitempty"`
 	Fields NocoRecordFields `json:"fields,omitempty"`
 }
 
-// NocoDeleteRecord represents a record to be deleted
 type NocoDeleteRecord struct {
 	ID int32 `json:"id"`
 }
 
-// NocoRecordFields contains all possible fields for NocoDB records
 type NocoRecordFields struct {
 	ID                 string    `json:"ct_id"`
 	CreatedAt          time.Time `json:"created_at,omitempty"`
@@ -41,23 +38,19 @@ type NocoRecordFields struct {
 	AverageViews       float64   `json:"average_views,omitempty"`
 }
 
-// NocoColumnTypeOptions represents options for a column type
 type NocoColumnTypeOptions struct {
 	Title string `json:"title"`
 }
 
-// NocoColumnTypeSelectOptions represents select options for a column
 type NocoColumnTypeSelectOptions struct {
 	Choices []NocoColumnTypeOptions `json:"choices"`
 }
 
-// NocoColumnTypeRelation represents a relation between tables
 type NocoColumnTypeRelation struct {
 	RelationType   string `json:"relation_type,omitempty"`
 	RelatedTableId string `json:"related_table_id,omitempty"`
 }
 
-// NocoColumn represents a column definition in a NocoDB table
 type NocoColumn struct {
 	Title       string `json:"title"`
 	Type        string `json:"type"`
@@ -66,21 +59,18 @@ type NocoColumn struct {
 	Options     any    `json:"options,omitempty"`
 }
 
-// NocoTable represents a table definition for creation
 type NocoTable struct {
 	Title       string       `json:"title"`
 	Description string       `json:"description,omitempty"`
 	Fields      []NocoColumn `json:"fields"`
 }
 
-// NocoCreateTableResponse represents the response from table creation
 type NocoCreateTableResponse struct {
 	ID     string           `json:"id"`
 	Title  string           `json:"title"`
 	Fields []NocoColumnInfo `json:"fields"`
 }
 
-// NocoColumnInfo represents column information in a response
 type NocoColumnInfo struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`

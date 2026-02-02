@@ -25,23 +25,11 @@ func (h *Handler) TargetsHandler(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	users, err := h.DB.GetAllUsers(ctx)
-	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
-			"error": err.Error(),
-			"title": "Error",
-		}))
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-
-	if len(users) == 0 {
-		c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
-			"title": "Setup",
-		}))
-		return
-	}
-
-	user := users[0]
 
 	targets, err := h.DB.GetUserTargets(ctx, user.ID)
 	if err != nil {
