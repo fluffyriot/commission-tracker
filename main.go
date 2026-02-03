@@ -220,6 +220,7 @@ func main() {
 
 	authorized.GET("/analytics/engagement", h.AnalyticsEngagementHandler)
 	authorized.GET("/analytics/website", h.AnalyticsWebsiteHandler)
+	authorized.GET("/analytics/summary", h.AnalyticsDashboardSummaryHandler)
 
 	authorized.GET("/api/sources", h.HandleGetSourcesAPI)
 	authorized.GET("/api/exclusions", h.HandleGetExclusions)

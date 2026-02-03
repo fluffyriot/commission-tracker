@@ -1006,3 +1006,17 @@ a:hover {
   height: 16px;
   stroke-width: 2;
 }
+
+.dashboard-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-comparison-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

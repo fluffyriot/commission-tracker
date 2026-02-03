@@ -16,6 +16,21 @@
   </div>
 </div>
 
+<div class="dashboard-comparison-grid">
+  <div class="card">
+    <div class="card-header">Your Engagement</div>
+    <div style="position: relative; height: 250px; width: 100%;">
+      <canvas id="engagementComparisonChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">Your Followers</div>
+    <div style="position: relative; height: 250px; width: 100%;">
+      <canvas id="followersComparisonChart"></canvas>
+    </div>
+  </div>
+</div>
+
 <div class="grid-dashboard">
 
   <div class="stat-card {{if .worker_is_off}}has-errors{{end}}">
@@ -236,7 +251,7 @@
           }
 
           datasets.push({
-            label: series.label,
+            label: '  ' + series.label,
             data: dataPoints,
             borderColor: color,
             backgroundColor: color + '20',
@@ -284,7 +299,19 @@
                 bodyColor: '#ccc',
                 padding: 10,
                 cornerRadius: 8,
-                displayColors: true
+                displayColors: true,
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label.trim() || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y;
+                    }
+                    return label;
+                  }
+                }
               }
             }
           }
@@ -337,7 +364,7 @@
           const color = palette[index % palette.length];
 
           datasets.push({
-            label: `${source.network} (${source.username})`,
+            label: `  ${source.network} (${source.username})`,
             data: dataPoints,
             borderColor: color,
             backgroundColor: color + '20',
@@ -385,12 +412,140 @@
                 bodyColor: '#ccc',
                 padding: 10,
                 cornerRadius: 8,
-                displayColors: true
+                displayColors: true,
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label.trim() || '';
+                    if (label) {
+                      label += ': ';
+                    }
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y;
+                    }
+                    return label;
+                  }
+                }
               }
             }
           }
         });
       })
       .catch(err => console.error("Error fetching stats:", err));
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    fetch('/analytics/summary')
+      .then(response => response.json())
+      .then(data => {
+        if (!data) return;
+
+        function renderComparisonChart(ctxId, label, currentData, previousData, primaryColor) {
+          const ctx = document.getElementById(ctxId).getContext('2d');
+
+          const currentValues = currentData.map(p => p.value);
+          const previousValues = previousData.map(p => p.value);
+
+          const labels = Array.from({ length: 7 }, (_, i) => `Day ${i + 1}`);
+
+          new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: '  Last 7 Days',
+                  data: currentValues,
+                  borderColor: primaryColor,
+                  backgroundColor: primaryColor + '20',
+                  fill: true,
+                  tension: 0.3,
+                  borderWidth: 2,
+                  pointRadius: 2
+                },
+                {
+                  label: '  Previous 7 Days',
+                  data: previousValues,
+                  borderColor: '#6B7280',
+                  backgroundColor: 'transparent',
+                  borderDash: [5, 5],
+                  fill: false,
+                  tension: 0.3,
+                  borderWidth: 2,
+                  pointRadius: 2
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: 'index', intersect: false },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: { display: true, maxTicksLimit: 7 }
+                },
+                y: {
+                  beginAtZero: false,
+                  grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: true,
+                  position: 'bottom',
+                  labels: {
+                    usePointStyle: true,
+                    boxWidth: 8
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(20, 20, 30, 0.9)',
+                  titleColor: '#fff',
+                  bodyColor: '#ccc',
+                  padding: 10,
+                  cornerRadius: 8,
+                  callbacks: {
+                    label: function (context) {
+                      let idx = context.dataIndex;
+                      let val = context.parsed.y;
+                      let dateStr = '';
+                      if (context.datasetIndex === 0 && currentData[idx]) {
+                        dateStr = ` (${currentData[idx].date})`;
+                      } else if (context.datasetIndex === 1 && previousData[idx]) {
+                        dateStr = ` (${previousData[idx].date})`;
+                      }
+                      return `${context.dataset.label.trim()}: ${val}${dateStr}`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        if (data.engagement) {
+          renderComparisonChart(
+            'engagementComparisonChart',
+            'Engagement',
+            data.engagement.current_period,
+            data.engagement.previous_period,
+            '#60a5fa'
+          );
+        }
+
+        if (data.followers) {
+          renderComparisonChart(
+            'followersComparisonChart',
+            'Followers',
+            data.followers.current_period,
+            data.followers.previous_period,
+            '#10b981'
+          );
+        }
+
+      })
+      .catch(err => console.error("Error fetching dashboard summary:", err));
   });
 </script>
