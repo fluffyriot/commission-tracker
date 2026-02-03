@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/google/uuid"
 	"golang.org/x/net/html"
 )
@@ -55,13 +56,13 @@ func saveOrUpdateSourceStats(ctx context.Context, dbQueries *database.Queries, s
 	var avgLikes, avgReposts, avgViews sql.NullFloat64
 
 	if stats.FollowersCount != nil {
-		followersCount = sql.NullInt32{Int32: int32(*stats.FollowersCount), Valid: true}
+		followersCount = sql.NullInt32{Int32: helpers.ClampToInt32(*stats.FollowersCount), Valid: true}
 	}
 	if stats.FollowingCount != nil {
-		followingCount = sql.NullInt32{Int32: int32(*stats.FollowingCount), Valid: true}
+		followingCount = sql.NullInt32{Int32: helpers.ClampToInt32(*stats.FollowingCount), Valid: true}
 	}
 	if stats.PostsCount != nil {
-		postsCount = sql.NullInt32{Int32: int32(*stats.PostsCount), Valid: true}
+		postsCount = sql.NullInt32{Int32: helpers.ClampToInt32(*stats.PostsCount), Valid: true}
 	}
 	if stats.AverageLikes != nil {
 		avgLikes = sql.NullFloat64{Float64: *stats.AverageLikes, Valid: true}
