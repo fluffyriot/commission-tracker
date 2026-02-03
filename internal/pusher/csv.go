@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/fluffyriot/rpsync/internal/database"
-	"github.com/fluffyriot/rpsync/internal/pusher/common"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/google/uuid"
 )
 
@@ -93,7 +93,7 @@ func GeneratePostsCsv(dbQueries *database.Queries, target database.Target, expor
 			views = strconv.FormatInt(int64(r.Views.Int32), 10)
 		}
 
-		url, _ := common.ConvPostToURL(network, r.Author, r.NetworkInternalID)
+		url, _ := helpers.ConvPostToURL(network, r.Author, r.NetworkInternalID)
 
 		if err := writer.Write([]string{
 			r.ID.String(),

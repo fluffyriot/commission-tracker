@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/fluffyriot/rpsync/internal/pusher/common"
 	"github.com/google/uuid"
 )
@@ -71,6 +72,11 @@ func syncNocoSourcesStats(dbQueries *database.Queries, c *common.Client, encrypt
 
 		for _, stat := range syncedStats {
 			targetIDVal, _ := strconv.Atoi(stat.TargetRecordID)
+			safeTargetID, err := helpers.ToInt32(targetIDVal)
+			if err != nil {
+				continue
+			}
+
 			fieldMap := NocoRecordFields{
 				ID:             stat.ID.String(),
 				Date:           stat.Date,
@@ -82,7 +88,7 @@ func syncNocoSourcesStats(dbQueries *database.Queries, c *common.Client, encrypt
 				AverageViews:   stat.AverageViews.Float64,
 			}
 			updateRecords = append(updateRecords, NocoTableRecord{
-				Id:     int32(targetIDVal),
+				Id:     safeTargetID,
 				Fields: fieldMap,
 			})
 			if len(updateRecords) == batchSize {
@@ -145,8 +151,13 @@ func syncNocoSourcesStats(dbQueries *database.Queries, c *common.Client, encrypt
 			}
 
 			sourceNocoId, _ := strconv.Atoi(sourceMapping.TargetSourceID)
+			safeSourceNocoId, err := helpers.ToInt32(sourceNocoId)
+			if err != nil {
+				log.Printf("Invalid source Noco ID: %v", err)
+				return err
+			}
 
-			if err := linkChildrenToParent(c, dbQueries, encryptionKey, target, sourcesTableMapping, "sources_stats", int32(sourceNocoId), createdIds); err != nil {
+			if err := linkChildrenToParent(c, dbQueries, encryptionKey, target, sourcesTableMapping, "sources_stats", safeSourceNocoId, createdIds); err != nil {
 				log.Printf("Failed to link sources stats to source: %v", err)
 			}
 

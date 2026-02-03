@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/fluffyriot/rpsync/internal/exports"
 	"github.com/gin-gonic/gin"
@@ -68,5 +69,35 @@ func (h *Handler) ExportDeleteAllHandler(c *gin.Context) {
 
 func (h *Handler) DownloadExportHandler(c *gin.Context) {
 	p := c.Param("filepath")[1:]
-	c.FileAttachment(filepath.Join("./outputs", p), filepath.Base(p))
+
+	path := filepath.Clean(p)
+
+	baseDir, err := filepath.Abs("./outputs")
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
+			"error": "Internal server error resolving base path",
+			"title": "Error",
+		}))
+		return
+	}
+
+	fullPath, err := filepath.Abs(filepath.Join(baseDir, path))
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(c, gin.H{
+			"error": "Invalid path",
+			"title": "Error",
+		}))
+		return
+	}
+
+	rel, err := filepath.Rel(baseDir, fullPath)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		c.HTML(http.StatusForbidden, "error.html", h.CommonData(c, gin.H{
+			"error": "Access denied",
+			"title": "Error",
+		}))
+		return
+	}
+
+	c.FileAttachment(fullPath, filepath.Base(fullPath))
 }

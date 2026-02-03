@@ -14,6 +14,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/google/uuid"
 )
 
@@ -164,7 +165,7 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 			SyncedAt: time.Now(),
 			PostID:   postID,
 			Likes: sql.NullInt32{
-				Int32: int32(videoLikes),
+				Int32: helpers.ClampToInt32(videoLikes),
 				Valid: true,
 			},
 			Reposts: sql.NullInt32{
@@ -172,7 +173,7 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *Client, s
 				Valid: true,
 			},
 			Views: sql.NullInt32{
-				Int32: int32(videoViews),
+				Int32: helpers.ClampToInt32(videoViews),
 				Valid: true,
 			},
 		})
