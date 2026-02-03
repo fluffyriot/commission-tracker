@@ -275,6 +275,11 @@ Run these commands inside the container or via `docker exec`:
 
 ---
 
+## Known Limitations
+*   **Integer Overflow Protection**: Social media stats (Likes, Views, Reposts) that exceed the maximum 32-bit integer value (2,147,483,647) will be clamped to this maximum value to prevent errors.
+
+---
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a PR on GitHub.

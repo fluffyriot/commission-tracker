@@ -5,10 +5,9 @@ INSERT INTO
         username,
         created_at,
         updated_at,
-        sync_period,
-        enabled_on_startup
+        sync_period
     )
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING
     *;
 
@@ -16,7 +15,6 @@ RETURNING
 UPDATE users
 SET
     sync_period = $2,
-    enabled_on_startup = $3,
     updated_at = NOW()
 WHERE
     id = $1
@@ -55,3 +53,23 @@ SELECT * FROM users WHERE id = $1;
 
 -- name: GetUserByUsername :one
 SELECT * FROM users WHERE username = $1;
+
+-- name: UpdateUserProfileImage :one
+UPDATE users
+SET
+    profile_image = $2,
+    updated_at = NOW()
+WHERE
+    id = $1
+RETURNING
+    *;
+
+-- name: UpdateUserUsername :one
+UPDATE users
+SET
+    username = $2,
+    updated_at = NOW()
+WHERE
+    id = $1
+RETURNING
+    *;

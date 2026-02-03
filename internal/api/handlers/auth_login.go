@@ -29,9 +29,13 @@ func (h *Handler) LoginViewHandler(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "login.html", h.CommonData(gin.H{
-		"title":        "Login",
-		"is_auth_page": true,
+	allowCreateUserConfig, _ := h.DB.GetAppConfig(c.Request.Context(), "allow_new_user_creation")
+	allowCreateUser := allowCreateUserConfig == "true"
+
+	c.HTML(http.StatusOK, "login.html", h.CommonData(c, gin.H{
+		"title":              "Login",
+		"is_auth_page":       true,
+		"allow_registration": allowCreateUser,
 	}))
 }
 
@@ -40,13 +44,13 @@ func (h *Handler) LoginSubmitHandler(c *gin.Context) {
 	password := c.PostForm("password")
 
 	if username == "" {
-		c.HTML(http.StatusOK, "login.html", h.CommonData(gin.H{"error": "Username is required", "title": "Login", "is_auth_page": true}))
+		c.HTML(http.StatusOK, "login.html", h.CommonData(c, gin.H{"error": "Username is required", "title": "Login", "is_auth_page": true}))
 		return
 	}
 
 	users, err := h.DB.GetAllUsers(c.Request.Context())
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "login.html", h.CommonData(gin.H{"error": "Database error", "title": "Login", "is_auth_page": true}))
+		c.HTML(http.StatusInternalServerError, "login.html", h.CommonData(c, gin.H{"error": "Database error", "title": "Login", "is_auth_page": true}))
 		return
 	}
 
@@ -59,7 +63,7 @@ func (h *Handler) LoginSubmitHandler(c *gin.Context) {
 	}
 
 	if foundUser == nil {
-		c.HTML(http.StatusUnauthorized, "login.html", h.CommonData(gin.H{"error": "Invalid credentials", "title": "Login", "is_auth_page": true}))
+		c.HTML(http.StatusUnauthorized, "login.html", h.CommonData(c, gin.H{"error": "Invalid credentials", "title": "Login", "is_auth_page": true}))
 		return
 	}
 
@@ -74,7 +78,7 @@ func (h *Handler) LoginSubmitHandler(c *gin.Context) {
 	}
 
 	if !authhelp.CheckPasswordHash(foundUser.PasswordHash.String, password) {
-		c.HTML(http.StatusUnauthorized, "login.html", h.CommonData(gin.H{"error": "Invalid credentials", "title": "Login", "is_auth_page": true}))
+		c.HTML(http.StatusUnauthorized, "login.html", h.CommonData(c, gin.H{"error": "Invalid credentials", "title": "Login", "is_auth_page": true}))
 		return
 	}
 
@@ -88,6 +92,13 @@ func (h *Handler) LoginSubmitHandler(c *gin.Context) {
 	}
 
 	session.Set("user_id", foundUser.ID.String())
+	session.Set("username", foundUser.Username)
+	hasAvatar := false
+	if foundUser.ProfileImage.Valid && foundUser.ProfileImage.String != "" {
+		hasAvatar = true
+	}
+	session.Set("has_avatar", hasAvatar)
+
 	session.Save()
 	c.Redirect(http.StatusFound, "/")
 }
@@ -110,7 +121,7 @@ func (h *Handler) PasswordSetupViewHandler(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "setup-password.html", h.CommonData(gin.H{
+	c.HTML(http.StatusOK, "setup-password.html", h.CommonData(c, gin.H{
 		"title":        "Setup Password",
 		"username":     username,
 		"is_auth_page": true,
@@ -130,18 +141,18 @@ func (h *Handler) PasswordSetupSubmitHandler(c *gin.Context) {
 	confirm := c.PostForm("confirm_password")
 
 	if err := authhelp.ValidatePasswordStrength(password); err != nil {
-		c.HTML(http.StatusOK, "setup-password.html", h.CommonData(gin.H{"error": err.Error(), "title": "Setup Password", "is_auth_page": true}))
+		c.HTML(http.StatusOK, "setup-password.html", h.CommonData(c, gin.H{"error": err.Error(), "title": "Setup Password", "is_auth_page": true}))
 		return
 	}
 
 	if password != confirm {
-		c.HTML(http.StatusOK, "setup-password.html", h.CommonData(gin.H{"error": "Passwords do not match", "title": "Setup Password", "is_auth_page": true}))
+		c.HTML(http.StatusOK, "setup-password.html", h.CommonData(c, gin.H{"error": "Passwords do not match", "title": "Setup Password", "is_auth_page": true}))
 		return
 	}
 
 	hash, err := authhelp.HashPassword(password)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "setup-password.html", h.CommonData(gin.H{"error": "Encryption error", "title": "Setup Password", "is_auth_page": true}))
+		c.HTML(http.StatusInternalServerError, "setup-password.html", h.CommonData(c, gin.H{"error": "Encryption error", "title": "Setup Password", "is_auth_page": true}))
 		return
 	}
 
@@ -151,7 +162,7 @@ func (h *Handler) PasswordSetupSubmitHandler(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "setup-password.html", h.CommonData(gin.H{"error": "Failed to save password: " + err.Error(), "title": "Setup Password", "is_auth_page": true}))
+		c.HTML(http.StatusInternalServerError, "setup-password.html", h.CommonData(c, gin.H{"error": "Failed to save password: " + err.Error(), "title": "Setup Password", "is_auth_page": true}))
 		return
 	}
 

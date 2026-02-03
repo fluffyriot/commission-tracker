@@ -14,6 +14,7 @@ import (
 
 	"github.com/fluffyriot/rpsync/internal/authhelp"
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/google/uuid"
 	"github.com/gotd/td/session"
 	"github.com/gotd/td/telegram"
@@ -213,15 +214,15 @@ func FetchTelegramPosts(dbQueries *database.Queries, encryptionKey []byte, sid u
 						SyncedAt: time.Now(),
 						PostID:   postID,
 						Likes: sql.NullInt32{
-							Int32: int32(likes),
+							Int32: helpers.ClampToInt32(likes),
 							Valid: true,
 						},
 						Reposts: sql.NullInt32{
-							Int32: int32(msg.Forwards),
+							Int32: helpers.ClampToInt32(msg.Forwards),
 							Valid: true,
 						},
 						Views: sql.NullInt32{
-							Int32: int32(msg.Views),
+							Int32: helpers.ClampToInt32(msg.Views),
 							Valid: true,
 						},
 					})

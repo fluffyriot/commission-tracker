@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/fluffyriot/rpsync/internal/exports"
 	"github.com/gin-gonic/gin"
@@ -13,7 +14,7 @@ import (
 func (h *Handler) ExportsHandler(c *gin.Context) {
 
 	if h.Config.DBInitErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
 			"error": h.Config.DBInitErr.Error(),
 			"title": "Error",
 		}))
@@ -30,13 +31,13 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 
 	exports, err := h.DB.GetLast20ExportsByUserId(ctx, user.ID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
 			"error": err.Error(),
 			"title": "Error",
 		}))
 		return
 	}
-	c.HTML(http.StatusOK, "exports.html", h.CommonData(gin.H{
+	c.HTML(http.StatusOK, "exports.html", h.CommonData(c, gin.H{
 		"username": user.Username,
 		"user_id":  user.ID,
 		"exports":  exports,
@@ -47,7 +48,7 @@ func (h *Handler) ExportsHandler(c *gin.Context) {
 func (h *Handler) ExportDeleteAllHandler(c *gin.Context) {
 	userId, err := uuid.Parse(c.PostForm("user_id"))
 	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(gin.H{
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(c, gin.H{
 			"error": err.Error(),
 			"title": "Error",
 		}))
@@ -68,5 +69,35 @@ func (h *Handler) ExportDeleteAllHandler(c *gin.Context) {
 
 func (h *Handler) DownloadExportHandler(c *gin.Context) {
 	p := c.Param("filepath")[1:]
-	c.FileAttachment(filepath.Join("./outputs", p), filepath.Base(p))
+
+	path := filepath.Clean(p)
+
+	baseDir, err := filepath.Abs("./outputs")
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
+			"error": "Internal server error resolving base path",
+			"title": "Error",
+		}))
+		return
+	}
+
+	fullPath, err := filepath.Abs(filepath.Join(baseDir, path))
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(c, gin.H{
+			"error": "Invalid path",
+			"title": "Error",
+		}))
+		return
+	}
+
+	rel, err := filepath.Rel(baseDir, fullPath)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		c.HTML(http.StatusForbidden, "error.html", h.CommonData(c, gin.H{
+			"error": "Access denied",
+			"title": "Error",
+		}))
+		return
+	}
+
+	c.FileAttachment(fullPath, filepath.Base(fullPath))
 }

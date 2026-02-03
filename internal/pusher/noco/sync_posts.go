@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/fluffyriot/rpsync/internal/pusher/common"
 	"github.com/google/uuid"
 )
@@ -193,7 +194,7 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 
 	for _, post := range createPosts {
 
-		url, err := common.ConvPostToURL(post.Network.String, post.Author, post.NetworkInternalID)
+		url, err := helpers.ConvPostToURL(post.Network.String, post.Author, post.NetworkInternalID)
 		if err != nil {
 			return err
 		}
@@ -253,9 +254,11 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 	}
 
 	for _, post := range removePosts {
-
 		v, _ := strconv.Atoi(post.TargetPostID)
-		intId := int32(v)
+		intId, err := helpers.ToInt32(v)
+		if err != nil {
+			continue
+		}
 
 		recordRemove = append(recordRemove, NocoDeleteRecord{
 			ID: intId,
@@ -308,7 +311,7 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 			continue
 		}
 
-		url, err := common.ConvPostToURL(post.Network.String, post.Author, post.NetworkInternalID)
+		url, err := helpers.ConvPostToURL(post.Network.String, post.Author, post.NetworkInternalID)
 		if err != nil {
 			return err
 		}
@@ -316,6 +319,11 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 		targetPostIDVal, err := strconv.Atoi(mappedPost.TargetPostID)
 		if err != nil {
 			return fmt.Errorf("invalid target post id %s: %w", mappedPost.TargetPostID, err)
+		}
+
+		safeTargetID, err := helpers.ToInt32(targetPostIDVal)
+		if err != nil {
+			continue
 		}
 
 		fieldMap := NocoRecordFields{
@@ -334,7 +342,7 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 		}
 
 		recordsUpdate = append(recordsUpdate, NocoTableRecord{
-			Id:     int32(targetPostIDVal),
+			Id:     safeTargetID,
 			Fields: fieldMap,
 		})
 		currentUpdateBatch = append(currentUpdateBatch, post)
@@ -427,7 +435,10 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *common.Client, enc
 
 	for _, post := range postsToDelete {
 		v, _ := strconv.Atoi(post.TargetPostID)
-		intId := int32(v)
+		intId, err := helpers.ToInt32(v)
+		if err != nil {
+			continue
+		}
 
 		recordRemove = append(recordRemove, NocoDeleteRecord{
 			ID: intId,

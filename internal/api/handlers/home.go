@@ -10,7 +10,7 @@ import (
 func (h *Handler) RootHandler(c *gin.Context) {
 
 	if h.Config.DBInitErr != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
 			"error": h.Config.DBInitErr.Error(),
 			"title": "Error",
 		}))
@@ -18,7 +18,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 	}
 
 	if h.Config.KeyB64Err1 != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
 			"error": h.Config.KeyB64Err1.Error(),
 			"title": "Error",
 		}))
@@ -26,7 +26,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 	}
 
 	if h.Config.KeyB64Err2 != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(gin.H{
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
 			"error": h.Config.KeyB64Err2.Error(),
 			"title": "Error",
 		}))
@@ -39,12 +39,17 @@ func (h *Handler) RootHandler(c *gin.Context) {
 	if !loggedIn {
 		users, err := h.DB.GetAllUsers(ctx)
 		if err == nil && len(users) == 0 {
-			c.HTML(http.StatusOK, "user-setup.html", h.CommonData(gin.H{
+			c.HTML(http.StatusOK, "user-setup.html", h.CommonData(c, gin.H{
 				"title": "Setup",
 			}))
 			return
 		}
 		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	if !user.PasswordHash.Valid || user.PasswordHash.String == "" {
+		c.Redirect(http.StatusFound, "/setup/password")
 		return
 	}
 
@@ -65,7 +70,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		workerIsOff = false
 	}
 
-	c.HTML(http.StatusOK, "index.html", h.CommonData(gin.H{
+	c.HTML(http.StatusOK, "index.html", h.CommonData(c, gin.H{
 		"username":                user.Username,
 		"user_id":                 user.ID,
 		"active_sources":          activeSources,

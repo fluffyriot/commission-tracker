@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/fluffyriot/rpsync/internal/pusher/common"
 	"github.com/google/uuid"
 )
@@ -36,16 +37,9 @@ func syncNocoSourcesStats(dbQueries *database.Queries, c *common.Client, encrypt
 		return err
 	}
 
+	dateThreshold := time.Now().AddDate(0, 0, -2)
+
 	for _, source := range sources {
-		unsyncedStats, err := dbQueries.GetUnsyncedSourcesStatsForTarget(context.Background(), database.GetUnsyncedSourcesStatsForTargetParams{
-			SourceID: source.ID,
-			TargetID: target.ID,
-		})
-
-		if err != nil {
-			return err
-		}
-
 		sourceMapping, err := dbQueries.GetTargetSourceBySource(context.Background(), database.GetTargetSourceBySourceParams{
 			TargetID: target.ID,
 			SourceID: source.ID,
@@ -54,10 +48,72 @@ func syncNocoSourcesStats(dbQueries *database.Queries, c *common.Client, encrypt
 			continue
 		}
 
+		syncedStats, err := dbQueries.GetSyncedSourcesStatsForUpdate(context.Background(), database.GetSyncedSourcesStatsForUpdateParams{
+			TargetID: target.ID,
+			SourceID: source.ID,
+			Date:     dateThreshold,
+		})
+		if err != nil {
+			return err
+		}
+
+		var updateRecords []NocoTableRecord
+
+		flushUpdate := func() error {
+			if len(updateRecords) == 0 {
+				return nil
+			}
+			if err := updateNocoRecords(c, dbQueries, encryptionKey, target, tableMapping.TargetTableCode.String, updateRecords); err != nil {
+				return err
+			}
+			updateRecords = updateRecords[:0]
+			return nil
+		}
+
+		for _, stat := range syncedStats {
+			targetIDVal, _ := strconv.Atoi(stat.TargetRecordID)
+			safeTargetID, err := helpers.ToInt32(targetIDVal)
+			if err != nil {
+				continue
+			}
+
+			fieldMap := NocoRecordFields{
+				ID:             stat.ID.String(),
+				Date:           stat.Date,
+				FollowersCount: int32(stat.FollowersCount.Int32),
+				FollowingCount: int32(stat.FollowingCount.Int32),
+				PostsCount:     int32(stat.PostsCount.Int32),
+				AverageLikes:   stat.AverageLikes.Float64,
+				AverageReposts: stat.AverageReposts.Float64,
+				AverageViews:   stat.AverageViews.Float64,
+			}
+			updateRecords = append(updateRecords, NocoTableRecord{
+				Id:     safeTargetID,
+				Fields: fieldMap,
+			})
+			if len(updateRecords) == batchSize {
+				if err := flushUpdate(); err != nil {
+					return err
+				}
+			}
+		}
+		if err := flushUpdate(); err != nil {
+			return err
+		}
+
+		// Step 2: Create unsynced stats (all dates)
+		unsyncedStats, err := dbQueries.GetUnsyncedSourcesStatsForTarget(context.Background(), database.GetUnsyncedSourcesStatsForTargetParams{
+			SourceID: source.ID,
+			TargetID: target.ID,
+		})
+		if err != nil {
+			return err
+		}
+
 		var records []NocoTableRecord
 		var currentBatch []database.SourcesStat
 
-		flush := func() error {
+		flushCreate := func() error {
 			if len(records) == 0 {
 				return nil
 			}
@@ -95,8 +151,13 @@ func syncNocoSourcesStats(dbQueries *database.Queries, c *common.Client, encrypt
 			}
 
 			sourceNocoId, _ := strconv.Atoi(sourceMapping.TargetSourceID)
+			safeSourceNocoId, err := helpers.ToInt32(sourceNocoId)
+			if err != nil {
+				log.Printf("Invalid source Noco ID: %v", err)
+				return err
+			}
 
-			if err := linkChildrenToParent(c, dbQueries, encryptionKey, target, sourcesTableMapping, "sources_stats", int32(sourceNocoId), createdIds); err != nil {
+			if err := linkChildrenToParent(c, dbQueries, encryptionKey, target, sourcesTableMapping, "sources_stats", safeSourceNocoId, createdIds); err != nil {
 				log.Printf("Failed to link sources stats to source: %v", err)
 			}
 
@@ -123,14 +184,15 @@ func syncNocoSourcesStats(dbQueries *database.Queries, c *common.Client, encrypt
 			currentBatch = append(currentBatch, stat)
 
 			if len(records) == batchSize {
-				if err := flush(); err != nil {
+				if err := flushCreate(); err != nil {
 					return err
 				}
 			}
 		}
-		if err := flush(); err != nil {
+		if err := flushCreate(); err != nil {
 			return err
 		}
+
 	}
 	return nil
 }

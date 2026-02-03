@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/fluffyriot/rpsync/internal/pusher/common"
 	"github.com/google/uuid"
 )
@@ -118,7 +119,7 @@ func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKe
 	}
 
 	for _, source := range createSources {
-		url, _ := common.ConvNetworkToURL(source.Network, source.UserName)
+		url, _ := helpers.ConvNetworkToURL(source.Network, source.UserName)
 
 		fieldMap := NocoRecordFields{
 			ID:         source.ID.String(),
@@ -167,7 +168,10 @@ func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKe
 
 	for _, source := range removeSources {
 		v, _ := strconv.Atoi(source.TargetSourceID)
-		intId := int32(v)
+		intId, err := helpers.ToInt32(v)
+		if err != nil {
+			continue
+		}
 
 		recordsDelete = append(recordsDelete, NocoDeleteRecord{
 			ID: intId,

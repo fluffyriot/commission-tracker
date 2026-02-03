@@ -11,8 +11,14 @@
         <div class="card">
             <div class="card-header">Sections</div>
             <nav class="settings-nav">
-                <a href="#syncer-config" class="settings-nav-item active" data-section="syncer-config">
-                    <i data-lucide="settings"></i> Configuration
+                <a href="#user-settings" class="settings-nav-item active" data-section="user-settings">
+                    <i data-lucide="user"></i> User Settings
+                </a>
+                <a href="#server-config" class="settings-nav-item" data-section="server-config">
+                    <i data-lucide="server"></i> Server Configuration
+                </a>
+                <a href="#syncer-config" class="settings-nav-item" data-section="syncer-config">
+                    <i data-lucide="settings"></i> Syncer Configuration
                 </a>
                 <a href="#manual-control" class="settings-nav-item" data-section="manual-control">
                     <i data-lucide="sliders"></i> Manual Control
@@ -31,7 +37,88 @@
     </div>
 
     <div>
-        <div id="syncer-config" class="card settings-section">
+        <div id="user-settings" class="card settings-section">
+            <div class="card-header">User Settings</div>
+
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-4" style="flex-wrap: wrap;">
+                    <div id="avatar-container">
+                        {{ if .has_avatar }}
+                        <img id="settings-avatar-preview" src="/user/{{ .user_id }}/avatar?v={{.avatar_version}}"
+                            alt="Avatar"
+                            style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-border);">
+                        {{ else }}
+                        <div id="settings-avatar-placeholder" class="profile-initial"
+                            style="width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; border: 2px solid var(--color-border);">
+                            {{ .username_initial }}
+                        </div>
+                        {{ end }}
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="btn btn-secondary" style="cursor: pointer;">
+                            <i data-lucide="upload"></i> Upload Avatar
+                            <input type="file" id="avatar-upload" accept="image/*" style="display: none;"
+                                onchange="handleAvatarUpload(this)">
+                        </label>
+                        <button class="btn btn-ghost" onclick="handleRemoveAvatar()" {{ if not .has_avatar
+                            }}style="display: none;" {{ end }} id="remove-avatar-btn">
+                            <i data-lucide="trash-2"></i> Remove Avatar
+                        </button>
+                    </div>
+                </div>
+
+                <form onsubmit="handleUsernameUpdate(event)" style="margin-top: 1rem;">
+                    <div class="form-group">
+                        <label for="username_input"
+                            style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Username</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="username_input" name="username" class="form-input"
+                                value="{{ .username }}" required style="margin-bottom: 0;">
+                            <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Update</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="server-config" class="card settings-section">
+            <div class="card-header">Server Configuration</div>
+
+            <form method="POST" action="/settings/server">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="allow_new_user_creation" id="allow_new_user_creation" {{if
+                            .allow_new_user_creation}}checked{{end}}
+                            style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 500;">Allow new user creation</span>
+                    </label>
+                    <p class="text-muted" style="margin-top: 0.5rem; margin-left: 1.625rem; font-size: 0.875rem;">
+                        If disabled, new users cannot register from login page.
+                    </p>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" name="enabled_on_startup" id="enabled_on_startup" {{if
+                            .enable_worker_on_startup}}checked{{end}}
+                            style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 500;">Enable worker on startup</span>
+                    </label>
+                    <p class="text-muted" style="margin-top: 0.5rem; margin-left: 1.625rem; font-size: 0.875rem;">
+                        When enabled, the worker will automatically start when the application launches.
+                    </p>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="save"></i> Save Server Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="syncer-config" class="card settings-section" style="margin-top: 1.5rem;">
             <div class="card-header">Syncer Configuration</div>
 
             <form method="POST" action="/settings/sync">
@@ -52,17 +139,6 @@
                         automatically sync all sources and targets</p>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                        <input type="checkbox" name="enabled_on_startup" id="enabled_on_startup" {{if
-                            .enabled_on_startup}}checked{{end}} style="width: 18px; height: 18px; cursor: pointer;">
-                        <span style="font-weight: 500;">Enable worker on startup</span>
-                    </label>
-                    <p class="text-muted" style="margin-top: 0.5rem; margin-left: 1.625rem; font-size: 0.875rem;">
-                        When enabled, the worker will automatically start when the application launches
-                    </p>
-                </div>
-
                 <div class="flex gap-2">
                     <button type="submit" class="btn btn-primary"
                         onclick="return submitWithConfirm(this, 'System will turn on or restart the worker with your new settings. Do you want to continue?');">
@@ -70,7 +146,7 @@
                     </button>
 
                     <form method="POST" action="/settings/sync/reset"
-                        onsubmit="return submitWithConfirm(this, 'Reset to default settings (30m interval, enabled on startup)?');">
+                        onsubmit="return submitWithConfirm(this, 'Reset to default settings (30m interval)?');">
                         <button type="submit" class="btn btn-secondary">
                             <i data-lucide="rotate-ccw"></i> Reset to Defaults
                         </button>
@@ -146,11 +222,6 @@
                         {{ end }}
                     </div>
 
-                    <form method="POST" action="/logout">
-                        <button type="submit" class="btn btn-danger">
-                            <i data-lucide="log-out"></i> Logout
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>
@@ -790,6 +861,68 @@
         } catch (e) {
             console.error(e);
             alert("Error registering passkey: " + e.message);
+        }
+    }
+
+    async function handleUsernameUpdate(event) {
+        event.preventDefault();
+        const username = document.getElementById('username_input').value;
+        const formData = new FormData();
+        formData.append('username', username);
+
+        try {
+            const response = await fetch('/settings/user/update', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                alert('Username updated successfully');
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert('Error: ' + (data.error || 'Failed to update username'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function handleAvatarUpload(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        try {
+            const response = await fetch('/settings/user/avatar/upload', {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert('Error: ' + (data.error || 'Failed to upload avatar'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function handleRemoveAvatar() {
+        if (!confirm("Are you sure you want to remove your profile avatar?")) return;
+        try {
+            const response = await fetch('/settings/user/avatar/remove', {
+                method: 'POST'
+            });
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                const data = await response.json();
+                alert('Error: ' + (data.error || 'Failed to remove avatar'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
         }
     }
 

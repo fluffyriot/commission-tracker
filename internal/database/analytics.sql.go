@@ -757,6 +757,118 @@ func (q *Queries) GetMonthlySiteVisitors(ctx context.Context, userID uuid.UUID) 
 	return items, nil
 }
 
+const getSyncedPageStatsForUpdate = `-- name: GetSyncedPageStatsForUpdate :many
+SELECT s.id, s.date, s.url_path, s.views, s.source_id, map.target_record_id
+FROM
+    analytics_page_stats s
+    JOIN analytics_page_stats_on_target map ON s.id = map.stat_id
+    AND map.target_id = $1
+WHERE
+    s.source_id = $2
+    AND s.date >= $3
+`
+
+type GetSyncedPageStatsForUpdateParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+	Date     time.Time
+}
+
+type GetSyncedPageStatsForUpdateRow struct {
+	ID             uuid.UUID
+	Date           time.Time
+	UrlPath        string
+	Views          int32
+	SourceID       uuid.UUID
+	TargetRecordID string
+}
+
+func (q *Queries) GetSyncedPageStatsForUpdate(ctx context.Context, arg GetSyncedPageStatsForUpdateParams) ([]GetSyncedPageStatsForUpdateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSyncedPageStatsForUpdate, arg.TargetID, arg.SourceID, arg.Date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSyncedPageStatsForUpdateRow
+	for rows.Next() {
+		var i GetSyncedPageStatsForUpdateRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Date,
+			&i.UrlPath,
+			&i.Views,
+			&i.SourceID,
+			&i.TargetRecordID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSyncedSiteStatsForUpdate = `-- name: GetSyncedSiteStatsForUpdate :many
+SELECT s.id, s.date, s.visitors, s.avg_session_duration, s.source_id, map.target_record_id
+FROM
+    analytics_site_stats s
+    JOIN analytics_site_stats_on_target map ON s.id = map.stat_id
+    AND map.target_id = $1
+WHERE
+    s.source_id = $2
+    AND s.date >= $3
+`
+
+type GetSyncedSiteStatsForUpdateParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+	Date     time.Time
+}
+
+type GetSyncedSiteStatsForUpdateRow struct {
+	ID                 uuid.UUID
+	Date               time.Time
+	Visitors           int32
+	AvgSessionDuration float64
+	SourceID           uuid.UUID
+	TargetRecordID     string
+}
+
+func (q *Queries) GetSyncedSiteStatsForUpdate(ctx context.Context, arg GetSyncedSiteStatsForUpdateParams) ([]GetSyncedSiteStatsForUpdateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSyncedSiteStatsForUpdate, arg.TargetID, arg.SourceID, arg.Date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSyncedSiteStatsForUpdateRow
+	for rows.Next() {
+		var i GetSyncedSiteStatsForUpdateRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Date,
+			&i.Visitors,
+			&i.AvgSessionDuration,
+			&i.SourceID,
+			&i.TargetRecordID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUnsyncedPageStatsForTarget = `-- name: GetUnsyncedPageStatsForTarget :many
 SELECT s.id, s.date, s.url_path, s.views, s.source_id
 FROM

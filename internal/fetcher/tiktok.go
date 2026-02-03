@@ -202,6 +202,9 @@ func (tm *TikTokManager) CheckStatus(username string) (string, string, error) {
 }
 
 func saveCookies(username string, cookies []*network.Cookie) error {
+	if strings.ContainsAny(username, `/\.`) {
+		return fmt.Errorf("invalid username")
+	}
 	data, err := json.Marshal(cookies)
 	if err != nil {
 		return err
@@ -211,6 +214,9 @@ func saveCookies(username string, cookies []*network.Cookie) error {
 }
 
 func loadCookies(username string) ([]*network.Cookie, error) {
+	if strings.ContainsAny(username, `/\.`) {
+		return nil, fmt.Errorf("invalid username")
+	}
 	path := filepath.Join(cookiesDir, fmt.Sprintf("tiktok_%s.json", username))
 	data, err := os.ReadFile(path)
 	if err != nil {
