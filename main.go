@@ -115,20 +115,8 @@ func main() {
 		shouldStart = false
 	}
 
-	startInterval := 30 * time.Minute
-	users, err := dbQueries.GetAllUsers(ctx)
-	if err == nil && len(users) > 0 {
-		user := users[0]
-		parsedDuration, err := time.ParseDuration(user.SyncPeriod)
-		if err == nil {
-			startInterval = parsedDuration
-		} else {
-			log.Printf("Invalid sync period '%s', defaulting to 30m", user.SyncPeriod)
-		}
-	}
-
 	if shouldStart {
-		w.Start(startInterval)
+		w.Start()
 	} else {
 		log.Println("Worker disabled on startup by global settings")
 	}
