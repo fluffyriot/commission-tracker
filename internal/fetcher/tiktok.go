@@ -205,11 +205,16 @@ func saveCookies(username string, cookies []*network.Cookie) error {
 	if strings.ContainsAny(username, `/\.`) {
 		return fmt.Errorf("invalid username")
 	}
+	safeUsername := filepath.Base(username)
+	if safeUsername != username || safeUsername == "." || safeUsername == ".." {
+		return fmt.Errorf("invalid username: path traversal detected")
+	}
+
 	data, err := json.Marshal(cookies)
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(cookiesDir, fmt.Sprintf("tiktok_%s.json", username))
+	path := filepath.Join(cookiesDir, fmt.Sprintf("tiktok_%s.json", safeUsername))
 	return os.WriteFile(path, data, 0644)
 }
 
@@ -217,7 +222,12 @@ func loadCookies(username string) ([]*network.Cookie, error) {
 	if strings.ContainsAny(username, `/\.`) {
 		return nil, fmt.Errorf("invalid username")
 	}
-	path := filepath.Join(cookiesDir, fmt.Sprintf("tiktok_%s.json", username))
+	safeUsername := filepath.Base(username)
+	if safeUsername != username || safeUsername == "." || safeUsername == ".." {
+		return nil, fmt.Errorf("invalid username: path traversal detected")
+	}
+
+	path := filepath.Join(cookiesDir, fmt.Sprintf("tiktok_%s.json", safeUsername))
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

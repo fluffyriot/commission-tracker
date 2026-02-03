@@ -170,7 +170,17 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 				continue
 			}
 
-			sourceNocoId, _ := strconv.Atoi(sourceMapping.TargetSourceID)
+			sourceNocoIdInt, err := strconv.Atoi(sourceMapping.TargetSourceID)
+			if err != nil {
+				log.Printf("Invalid source ID %s: %v", sourceMapping.TargetSourceID, err)
+				continue
+			}
+			sourceNocoId, err := helpers.ToInt32(sourceNocoIdInt)
+			if err != nil {
+				log.Printf("Source ID out of range %d: %v", sourceNocoIdInt, err)
+				continue
+			}
+
 			err = linkChildrenToParent(
 				c,
 				dbQueries,
@@ -178,7 +188,7 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 				target,
 				sourcesTable,
 				"posts",
-				int32(sourceNocoId),
+				sourceNocoId,
 				postIds,
 			)
 			if err != nil {
@@ -372,9 +382,17 @@ func DeletePostsAndSourceNoco(dbQueries *database.Queries, c *common.Client, enc
 		return fmt.Errorf("error fetching source mapping: %w", err)
 	}
 
-	sourceId32, _ := strconv.Atoi(sourceMapping.TargetSourceID)
+	sourceIdInt, err := strconv.Atoi(sourceMapping.TargetSourceID)
+	if err != nil {
+		return fmt.Errorf("invalid target source id: %w", err)
+	}
+	sourceId32, err := helpers.ToInt32(sourceIdInt)
+	if err != nil {
+		return fmt.Errorf("target source id out of range: %w", err)
+	}
+
 	sourceRecords := []NocoDeleteRecord{
-		{ID: int32(sourceId32)},
+		{ID: sourceId32},
 	}
 
 	sourcesTable, err := dbQueries.GetTableMappingsByTargetAndName(context.Background(), database.GetTableMappingsByTargetAndNameParams{
