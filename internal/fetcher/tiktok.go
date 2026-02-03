@@ -202,12 +202,9 @@ func (tm *TikTokManager) CheckStatus(username string) (string, string, error) {
 }
 
 func saveCookies(username string, cookies []*network.Cookie) error {
-	if strings.ContainsAny(username, `/\.`) {
-		return fmt.Errorf("invalid username")
-	}
-	safeUsername := filepath.Base(username)
-	if safeUsername != username || safeUsername == "." || safeUsername == ".." {
-		return fmt.Errorf("invalid username: path traversal detected")
+	safeUsername, err := sanitizeUsername(username)
+	if err != nil {
+		return fmt.Errorf("invalid username: %w", err)
 	}
 
 	data, err := json.Marshal(cookies)
@@ -219,12 +216,9 @@ func saveCookies(username string, cookies []*network.Cookie) error {
 }
 
 func loadCookies(username string) ([]*network.Cookie, error) {
-	if strings.ContainsAny(username, `/\.`) {
-		return nil, fmt.Errorf("invalid username")
-	}
-	safeUsername := filepath.Base(username)
-	if safeUsername != username || safeUsername == "." || safeUsername == ".." {
-		return nil, fmt.Errorf("invalid username: path traversal detected")
+	safeUsername, err := sanitizeUsername(username)
+	if err != nil {
+		return nil, fmt.Errorf("invalid username: %w", err)
 	}
 
 	path := filepath.Join(cookiesDir, fmt.Sprintf("tiktok_%s.json", safeUsername))
@@ -581,4 +575,25 @@ func extractTimestampFromID(idStr string) time.Time {
 		return time.Now()
 	}
 	return time.Unix(timestamp, 0)
+}
+
+func sanitizeUsername(username string) (string, error) {
+	if username == "" {
+		return "", fmt.Errorf("username cannot be empty")
+	}
+	if strings.ContainsAny(username, `/\`) {
+		return "", fmt.Errorf("username contains invalid characters")
+	}
+	if strings.Contains(username, "..") {
+		return "", fmt.Errorf("username contains directory traversal sequence")
+	}
+	if username == "." || username == ".." {
+		return "", fmt.Errorf("username cannot be . or ..")
+	}
+	for _, r := range username {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '.' || r == '-') {
+			return "", fmt.Errorf("username contains invalid characters")
+		}
+	}
+	return username, nil
 }
