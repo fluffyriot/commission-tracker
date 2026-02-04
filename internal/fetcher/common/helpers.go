@@ -170,5 +170,20 @@ func CreateOrUpdatePost(
 		return newPost.ID, nil
 	}
 
+	_, err = dbQueries.UpdatePost(ctx, database.UpdatePostParams{
+		ID:           post.ID,
+		LastSyncedAt: time.Now(),
+		IsArchived:   false,
+		Content: sql.NullString{
+			String: content,
+			Valid:  content != "",
+		},
+		PostType: postType,
+		Author:   author,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+
 	return post.ID, nil
 }

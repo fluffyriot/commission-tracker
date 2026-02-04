@@ -18,6 +18,8 @@ func executeSync(
 	syncFunc func() error,
 	isLastRetry bool,
 ) error {
+	syncStartTime := time.Now()
+
 	_, err := dbQueries.UpdateSourceSyncStatusById(ctx, database.UpdateSourceSyncStatusByIdParams{
 		ID:         sourceID,
 		SyncStatus: "Syncing",
@@ -44,6 +46,14 @@ func executeSync(
 		}
 		return err
 	}
+
+	if err := dbQueries.ArchiveUnsyncedPosts(ctx, database.ArchiveUnsyncedPostsParams{
+		SourceID:     sourceID,
+		LastSyncedAt: syncStartTime.Add(-36 * time.Hour),
+	}); err != nil {
+		return err
+	}
+
 	_, err = dbQueries.UpdateSourceSyncStatusById(ctx, database.UpdateSourceSyncStatusByIdParams{
 		ID:           sourceID,
 		SyncStatus:   "Synced",

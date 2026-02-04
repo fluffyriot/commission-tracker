@@ -15,7 +15,7 @@ type NocoRecordFields struct {
 	ID                 string    `json:"ct_id"`
 	CreatedAt          time.Time `json:"created_at,omitempty"`
 	LastSynced         time.Time `json:"last_synced,omitempty"`
-	IsArchived         bool      `json:"is_archived,omitempty"`
+	IsArchived         bool      `json:"is_archived"`
 	NetworkInternalID  string    `json:"network_internal_id,omitempty"`
 	Network            string    `json:"network,omitempty"`
 	Username           string    `json:"username,omitempty"`
