@@ -109,30 +109,38 @@
               </button>
             </form>
 
-            {{if .IsActive}}
-            <form method="POST" action="/targets/deactivate"
-              onsubmit="return submitWithConfirm(this, 'Deactivate this source?');">
-              <input type="hidden" name="target_id" value="{{.ID}}">
-              <button type="submit" class="btn btn-secondary btn-icon" title="Disable">
-                <i data-lucide="power"></i>
+            <div class="dropdown">
+              <button type="button" class="btn btn-secondary btn-icon" title="Actions"
+                onclick="toggleDropdown('dd_actions_{{.ID}}')">
+                <i data-lucide="ellipsis"></i>
               </button>
-            </form>
-            {{else}}
-            <form method="POST" action="/targets/activate" onsubmit="return submitWithConfirm(this);">
-              <input type="hidden" name="target_id" value="{{.ID}}">
-              <button type="submit" class="btn btn-secondary btn-icon" title="Enable">
-                <i data-lucide="power"></i>
-              </button>
-            </form>
-            {{end}}
+              <div id="dd_actions_{{.ID}}" class="dropdown-content hidden" style="min-width: 140px;">
+                {{if .IsActive}}
+                <form method="POST" action="/targets/deactivate"
+                  onsubmit="return submitWithConfirm(this, 'Deactivate this target?');">
+                  <input type="hidden" name="target_id" value="{{.ID}}">
+                  <button type="submit" class="dropdown-item" title="Disable">
+                    <i data-lucide="power"></i> Disable
+                  </button>
+                </form>
+                {{else}}
+                <form method="POST" action="/targets/activate" onsubmit="return submitWithConfirm(this);">
+                  <input type="hidden" name="target_id" value="{{.ID}}">
+                  <button type="submit" class="dropdown-item" title="Enable">
+                    <i data-lucide="power"></i> Enable
+                  </button>
+                </form>
+                {{end}}
 
-            <form method="POST" action="/targets/delete"
-              onsubmit="return submitWithConfirm(this, 'Delete this source?');">
-              <input type="hidden" name="target_id" value="{{.ID}}">
-              <button type="submit" class="btn btn-danger btn-icon" title="Delete">
-                <i data-lucide="trash-2"></i>
-              </button>
-            </form>
+                <form method="POST" action="/targets/delete"
+                  onsubmit="return submitWithConfirm(this, 'Delete this target?');">
+                  <input type="hidden" name="target_id" value="{{.ID}}">
+                  <button type="submit" class="dropdown-item text-danger" title="Delete">
+                    <i data-lucide="trash-2"></i> Delete
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
         {{end}}
