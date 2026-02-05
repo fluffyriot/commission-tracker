@@ -64,9 +64,18 @@ fi
 
 echo -e "${GREEN} Dependencies checked. ${NC}"
 
+echo -e "\n${YELLOW} Setting up installation directory (~/rps)... ${NC}"
+INSTALL_DIR="$HOME/rps"
+mkdir -p "$INSTALL_DIR"
+cd "$INSTALL_DIR" || { echo -e "${RED} Failed to create or enter installation directory. ${NC}"; exit 1; }
+echo "Working directory set to: $PWD"
+
 echo -e "\n${YELLOW} Configuration Setup ${NC}"
 
-DEFAULT_IP=$(hostname -I | awk '{print $1}')
+DEFAULT_IP=$(hostname -I | tr ' ' '\n' | grep -E '^(192\.168|10\.|172\.(1[6-9]|2[0-9]|3[0-1]))\.' | head -n 1)
+if [ -z "$DEFAULT_IP" ]; then
+    DEFAULT_IP=$(hostname -I | awk '{print $1}')
+fi
 if [ -z "$DEFAULT_IP" ]; then
     DEFAULT_IP="127.0.0.1"
 fi
@@ -121,7 +130,7 @@ if [ "$GENERATE_ENV" = true ]; then
     TOKEN_KEY=$(openssl rand -base64 32)
     OAUTH_KEY=$(openssl rand -base64 32)
     SESSION_KEY=$(openssl rand -base64 32)
-    DB_PASSWORD=$(openssl rand -base64 16)
+    DB_PASSWORD=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 24)
 
     cat > .env <<EOF
 POSTGRES_DB=rpsync-db
