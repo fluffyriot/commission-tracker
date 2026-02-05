@@ -16,6 +16,36 @@
   </div>
 </div>
 
+{{if .top_sources}}
+<div class="top-sources-grid">
+  {{range .top_sources}}
+  <div class="source-tile">
+    <div class="source-tile-header">
+      <img src="/static/images/sources/{{.Network | lower}}_logo.svg" alt="{{.Network}}" class="source-logo"
+        onerror="this.style.display='none'; var ph=this.nextElementSibling; ph.style.display='flex'; ph.style.backgroundColor=ph.dataset.color;">
+      <div class="source-logo-placeholder" style="display: none;" data-color="{{index $.network_colors .Network}}">
+        {{slice .UserName 0 1 | upper}}
+      </div>
+      <div style="min-width: 0;">
+        <a href="{{.ProfileURL}}" target="_blank" class="source-name" title="{{.UserName}}">{{.UserName}}</a>
+        <div class="source-network">{{.Network}}</div>
+      </div>
+    </div>
+    <div class="source-stats">
+      <div class="source-stat">
+        <span class="source-stat-value formatted-metric">{{.TotalInteractions}}</span>
+        <span class="source-stat-label">Interactions</span>
+      </div>
+      <div class="source-stat">
+        <span class="source-stat-value formatted-metric">{{.FollowersCount}}</span>
+        <span class="source-stat-label">Followers</span>
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}
+
 <div class="dashboard-comparison-grid">
   <div class="card">
     <div class="card-header">Your Engagement</div>

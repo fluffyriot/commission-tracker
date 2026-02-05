@@ -50,6 +50,79 @@ func (q *Queries) GetAverageWebsiteSession(ctx context.Context, userID uuid.UUID
 	return average_website_session, err
 }
 
+const getTopSources = `-- name: GetTopSources :many
+SELECT
+    s.id,
+    s.user_name,
+    s.network,
+    SUM(
+        COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
+    )::BIGINT AS total_interactions,
+    COALESCE(
+        (
+            SELECT ss.followers_count
+            FROM sources_stats ss
+            WHERE
+                ss.source_id = s.id
+            ORDER BY ss.date DESC
+            LIMIT 1
+        ),
+        0
+    )::BIGINT AS followers_count
+FROM sources s
+    LEFT JOIN posts p ON s.id = p.source_id
+    LEFT JOIN (
+        SELECT DISTINCT
+            ON (post_id) post_id, likes, reposts
+        FROM posts_reactions_history
+        ORDER BY post_id, synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE
+    s.user_id = $1
+    AND s.is_active = TRUE
+GROUP BY
+    s.id
+ORDER BY total_interactions DESC
+LIMIT 3
+`
+
+type GetTopSourcesRow struct {
+	ID                uuid.UUID
+	UserName          string
+	Network           string
+	TotalInteractions int64
+	FollowersCount    int64
+}
+
+func (q *Queries) GetTopSources(ctx context.Context, userID uuid.UUID) ([]GetTopSourcesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTopSources, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTopSourcesRow
+	for rows.Next() {
+		var i GetTopSourcesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserName,
+			&i.Network,
+			&i.TotalInteractions,
+			&i.FollowersCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTotalDailyEngagementStats = `-- name: GetTotalDailyEngagementStats :many
 SELECT
     calendar.date::date as period_date,

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -70,6 +71,26 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		workerIsOff = false
 	}
 
+	topSourcesDB, _ := h.DB.GetTopSources(ctx, user.ID)
+
+	var topSources []TopSourceViewModel
+	for _, src := range topSourcesDB {
+		profileURL, _ := helpers.ConvNetworkToURL(src.Network, src.UserName)
+		topSources = append(topSources, TopSourceViewModel{
+			ID:                src.ID,
+			UserName:          src.UserName,
+			Network:           src.Network,
+			TotalInteractions: src.TotalInteractions,
+			FollowersCount:    src.FollowersCount,
+			ProfileURL:        profileURL,
+		})
+	}
+
+	networkColors := make(map[string]string)
+	for _, source := range helpers.AvailableSources {
+		networkColors[source.Name] = source.Color
+	}
+
 	c.HTML(http.StatusOK, "index.html", h.CommonData(c, gin.H{
 		"username":                user.Username,
 		"user_id":                 user.ID,
@@ -87,6 +108,8 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		"worker_status":           workerStatus,
 		"worker_is_off":           workerIsOff,
 		"sync_period":             user.SyncPeriod,
+		"top_sources":             topSources,
+		"network_colors":          networkColors,
 		"title":                   "Dashboard",
 	}))
 }

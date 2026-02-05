@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"html/template"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -66,6 +68,11 @@ func main() {
 
 	r.Static("/static", "./static")
 	r.StaticFile("/apple-touch-icon.png", "./static/images/apple-touch-icon.png")
+
+	r.SetFuncMap(template.FuncMap{
+		"lower": strings.ToLower,
+		"upper": strings.ToUpper,
+	})
 
 	r.LoadHTMLGlob("templates/*.html")
 

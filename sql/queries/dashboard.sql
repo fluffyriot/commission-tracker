@@ -103,3 +103,38 @@ FROM generate_series(
         date_trunc('day', $2::timestamp), date_trunc('day', $3::timestamp), '1 day'::interval
     ) as calendar (date)
 ORDER BY calendar.date ASC;
+
+-- name: GetTopSources :many
+SELECT
+    s.id,
+    s.user_name,
+    s.network,
+    SUM(
+        COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
+    )::BIGINT AS total_interactions,
+    COALESCE(
+        (
+            SELECT ss.followers_count
+            FROM sources_stats ss
+            WHERE
+                ss.source_id = s.id
+            ORDER BY ss.date DESC
+            LIMIT 1
+        ),
+        0
+    )::BIGINT AS followers_count
+FROM sources s
+    LEFT JOIN posts p ON s.id = p.source_id
+    LEFT JOIN (
+        SELECT DISTINCT
+            ON (post_id) post_id, likes, reposts
+        FROM posts_reactions_history
+        ORDER BY post_id, synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE
+    s.user_id = $1
+    AND s.is_active = TRUE
+GROUP BY
+    s.id
+ORDER BY total_interactions DESC
+LIMIT 3;
