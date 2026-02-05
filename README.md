@@ -224,7 +224,7 @@ docker compose up -d
 
 3. In the App Dashboard, navigate to **Settings → Basic**.
 
-4. Copy the **App ID** and **App Secret** into your `.env` file.
+4. Copy the **App ID** and **App Secret**. You will use them later at the source setup in the app.
 
 5. Open **Facebook Login for Business**.
 
@@ -248,7 +248,7 @@ docker compose up -d
 
 10. Click **Generate Token**, select your Page and Instagram account.
 
-11. Copy and save the numeric Instagram Page ID displayed.
+11. Copy and save the numeric Instagram Page ID displayed. You will use them later at the source setup in the app.
 
 ---
 
