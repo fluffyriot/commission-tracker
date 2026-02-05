@@ -44,6 +44,11 @@ func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKe
 		}
 	}
 
+	sourceLookup := make(map[string]database.Source)
+	for _, s := range createSources {
+		sourceLookup[s.ID.String()] = s
+	}
+
 	for id, mSource := range mappedMap {
 		if _, ok := internMap[id]; !ok {
 			removeSources = append(removeSources, mSource)
@@ -92,11 +97,8 @@ func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKe
 			}
 
 			var source *database.Source
-			for _, s := range createSources {
-				if s.ID.String() == ctId {
-					source = &s
-					break
-				}
+			if s, ok := sourceLookup[ctId]; ok {
+				source = &s
 			}
 
 			if source == nil {

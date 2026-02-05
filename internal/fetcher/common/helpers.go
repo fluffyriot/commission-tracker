@@ -187,3 +187,59 @@ func CreateOrUpdatePost(
 
 	return post.ID, nil
 }
+
+func ProcessScrapedPost(
+	ctx context.Context,
+	dbQueries *database.Queries,
+	sourceID uuid.UUID,
+	networkInternalID string,
+	network string,
+	createdAt time.Time,
+	postType string,
+	author string,
+	content string,
+	likes, reposts, views sql.NullInt32,
+) error {
+	postID, err := CreateOrUpdatePost(
+		ctx,
+		dbQueries,
+		sourceID,
+		networkInternalID,
+		network,
+		createdAt,
+		postType,
+		author,
+		content,
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = dbQueries.SyncReactions(ctx, database.SyncReactionsParams{
+		ID:       uuid.New(),
+		SyncedAt: time.Now(),
+		PostID:   postID,
+		Views:    views,
+		Likes:    likes,
+		Reposts:  reposts,
+	})
+	return err
+}
+
+func UpdateSourceStats(
+	ctx context.Context,
+	dbQueries *database.Queries,
+	sourceID uuid.UUID,
+	updateFn func(*ProfileStats),
+) error {
+	stats, err := CalculateAverageStats(ctx, dbQueries, sourceID)
+	if err != nil {
+		return err
+	}
+
+	if updateFn != nil {
+		updateFn(stats)
+	}
+
+	return SaveOrUpdateSourceStats(ctx, dbQueries, sourceID, stats)
+}

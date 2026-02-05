@@ -80,14 +80,9 @@ func handleChannelChanges(
 		if err != nil {
 			log.Printf("Discord: Failed to delete posts from removed channel %s: %v", channelID, err)
 		} else {
-			log.Printf("Discord: Deleted posts from removed channel %s", channelID)
+
 		}
 	}
-
-	if len(removedChannels) > 0 {
-		log.Printf("Discord: Removed channels: %v", removedChannels)
-	}
-	log.Printf("Discord: Active channels for source %s: %v", sourceID, newChannelIDs)
 
 	return nil
 }
@@ -127,7 +122,6 @@ func FetchDiscordPosts(dbQueries *database.Queries, encryptionKey []byte, source
 	processedMessages := make(map[string]struct{})
 
 	for _, channelID := range channelIDs {
-		log.Printf("Discord: Fetching from channel %s", channelID)
 
 		channel, err := session.Channel(channelID)
 		if err != nil {
@@ -136,7 +130,6 @@ func FetchDiscordPosts(dbQueries *database.Queries, encryptionKey []byte, source
 		}
 
 		if channel.Type == discordgo.ChannelTypeGuildForum {
-			log.Printf("Discord: Channel %s is a forum, fetching threads as posts", channelID)
 
 			activeThreads, err := session.ThreadsActive(channelID)
 			if err != nil {
@@ -160,7 +153,6 @@ func FetchDiscordPosts(dbQueries *database.Queries, encryptionKey []byte, source
 				}
 			}
 
-			log.Printf("Discord: Finished forum channel %s, total items: %d", channelID, len(processedMessages))
 			continue
 		}
 
@@ -241,14 +233,11 @@ func FetchDiscordPosts(dbQueries *database.Queries, encryptionKey []byte, source
 			beforeID = messages[len(messages)-1].ID
 		}
 
-		log.Printf("Discord: Finished channel %s, total messages so far: %d", channelID, len(processedMessages))
 	}
 
 	if len(processedMessages) == 0 {
 		return errors.New("No messages found in any configured channels")
 	}
-
-	log.Printf("Discord: Total items processed: %d", len(processedMessages))
 
 	stats, err := common.CalculateAverageStats(context.Background(), dbQueries, sourceId)
 	if err != nil {

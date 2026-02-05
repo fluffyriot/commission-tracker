@@ -6,6 +6,7 @@ import (
 
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 type ValidationPoint struct {
@@ -129,21 +130,34 @@ func GetDashboardSummary(dbQueries *database.Queries, userID uuid.UUID) (*Dashbo
 	now := time.Now()
 	startDate := now.AddDate(0, 0, -13)
 
-	engStats, err := dbQueries.GetTotalDailyEngagementStats(ctx, database.GetTotalDailyEngagementStatsParams{
-		UserID:  userID,
-		Column2: startDate,
-		Column3: now,
-	})
-	if err != nil {
-		return nil, err
-	}
+	var (
+		engStats      []database.GetTotalDailyEngagementStatsRow
+		followerStats []database.GetTotalDailyFollowerStatsRow
+	)
 
-	followerStats, err := dbQueries.GetTotalDailyFollowerStats(ctx, database.GetTotalDailyFollowerStatsParams{
-		UserID:  userID,
-		Column2: startDate,
-		Column3: now,
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		engStats, err = dbQueries.GetTotalDailyEngagementStats(ctx, database.GetTotalDailyEngagementStatsParams{
+			UserID:  userID,
+			Column2: startDate,
+			Column3: now,
+		})
+		return err
 	})
-	if err != nil {
+
+	g.Go(func() error {
+		var err error
+		followerStats, err = dbQueries.GetTotalDailyFollowerStats(ctx, database.GetTotalDailyFollowerStatsParams{
+			UserID:  userID,
+			Column2: startDate,
+			Column3: now,
+		})
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 

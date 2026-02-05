@@ -92,114 +92,6 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 	const batchSize = 10
 
 	var records []NocoTableRecord
-
-	flush := func(postsInBatch []database.GetAllPostsWithTheLatestInfoForUserRow) error {
-		if len(records) == 0 {
-			return nil
-		}
-		createdRecords, err := createNocoRecords(c, dbQueries, encryptionKey, target, targetTable.TargetTableCode.String, records)
-		if err != nil {
-			return err
-		}
-
-		type postInfo struct {
-			nocoPostId int32
-			sourceId   uuid.UUID
-		}
-		postMapping := make(map[string]postInfo)
-
-		for _, rec := range createdRecords {
-			var id float64
-			if val, ok := rec["Id"].(float64); ok {
-				id = val
-			} else if val, ok := rec["id"].(float64); ok {
-				id = val
-			} else {
-				continue
-			}
-
-			fields, ok := rec["fields"].(map[string]any)
-			if !ok {
-				continue
-			}
-
-			ctId, ok := fields["ct_id"].(string)
-			if !ok {
-				continue
-			}
-
-			parsedCtId, err := uuid.Parse(ctId)
-			if err != nil {
-				return fmt.Errorf("failed to parse ct_id: %w", err)
-			}
-
-			_, err = dbQueries.AddPostToTarget(context.Background(), database.AddPostToTargetParams{
-				ID:            uuid.New(),
-				FirstSyncedAt: time.Now(),
-				PostID:        uuid.NullUUID{UUID: parsedCtId, Valid: true},
-				TargetID:      target.ID,
-				TargetPostID:  fmt.Sprintf("%.0f", id),
-			})
-
-			if err != nil {
-				return fmt.Errorf("failed to map post: %w", err)
-			}
-
-			for _, post := range postsInBatch {
-				if post.ID == parsedCtId {
-					postMapping[ctId] = postInfo{
-						nocoPostId: int32(id),
-						sourceId:   post.SourceID,
-					}
-					break
-				}
-			}
-		}
-
-		postsBySource := make(map[uuid.UUID][]int32)
-		for _, info := range postMapping {
-			postsBySource[info.sourceId] = append(postsBySource[info.sourceId], info.nocoPostId)
-		}
-
-		for sourceId, postIds := range postsBySource {
-			sourceMapping, err := dbQueries.GetTargetSourceBySource(context.Background(), database.GetTargetSourceBySourceParams{
-				TargetID: target.ID,
-				SourceID: sourceId,
-			})
-			if err != nil {
-				continue
-			}
-
-			sourceNocoIdInt, err := strconv.Atoi(sourceMapping.TargetSourceID)
-			if err != nil {
-				log.Printf("Invalid source ID %s: %v", sourceMapping.TargetSourceID, err)
-				continue
-			}
-			sourceNocoId, err := helpers.ToInt32(sourceNocoIdInt)
-			if err != nil {
-				log.Printf("Source ID out of range %d: %v", sourceNocoIdInt, err)
-				continue
-			}
-
-			err = linkChildrenToParent(
-				c,
-				dbQueries,
-				encryptionKey,
-				target,
-				sourcesTable,
-				"posts",
-				sourceNocoId,
-				postIds,
-			)
-			if err != nil {
-				return err
-			}
-		}
-
-		records = records[:0]
-		return nil
-	}
-
 	var currentBatch []database.GetAllPostsWithTheLatestInfoForUserRow
 
 	for _, post := range createPosts {
@@ -230,38 +122,19 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 		currentBatch = append(currentBatch, post)
 
 		if len(records) == batchSize {
-			if err := flush(currentBatch); err != nil {
+			if err := processCreateBatch(dbQueries, c, encryptionKey, target, targetTable.TargetTableCode.String, records, currentBatch, sourcesTable); err != nil {
 				return err
 			}
 			currentBatch = currentBatch[:0]
+			records = records[:0]
 		}
 	}
 
-	if err := flush(currentBatch); err != nil {
+	if err := processCreateBatch(dbQueries, c, encryptionKey, target, targetTable.TargetTableCode.String, records, currentBatch, sourcesTable); err != nil {
 		return err
 	}
 
 	var recordRemove []NocoDeleteRecord
-
-	flushRemove := func() error {
-		if len(recordRemove) == 0 {
-			return nil
-		}
-
-		if err := deleteNocoRecords(
-			c,
-			dbQueries,
-			encryptionKey,
-			target,
-			targetTable.TargetTableCode.String,
-			recordRemove,
-		); err != nil {
-			return err
-		}
-
-		recordRemove = recordRemove[:0]
-		return nil
-	}
 
 	for _, post := range removePosts {
 		v, _ := strconv.Atoi(post.TargetPostID)
@@ -275,13 +148,14 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 		})
 
 		if len(recordRemove) == batchSize {
-			if err := flushRemove(); err != nil {
+			if err := processDeleteBatch(dbQueries, c, encryptionKey, target, targetTable.TargetTableCode.String, recordRemove); err != nil {
 				return err
 			}
+			recordRemove = recordRemove[:0]
 		}
 	}
 
-	if err := flushRemove(); err != nil {
+	if err := processDeleteBatch(dbQueries, c, encryptionKey, target, targetTable.TargetTableCode.String, recordRemove); err != nil {
 		return err
 	}
 
@@ -294,26 +168,6 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 
 	var recordsUpdate []NocoTableRecord
 	var currentUpdateBatch []database.GetAllPostsWithTheLatestInfoForUserRow
-
-	flushUpdate := func() error {
-		if len(recordsUpdate) == 0 {
-			return nil
-		}
-
-		if err := updateNocoRecords(
-			c,
-			dbQueries,
-			encryptionKey,
-			target,
-			targetTable.TargetTableCode.String,
-			recordsUpdate,
-		); err != nil {
-			return err
-		}
-
-		recordsUpdate = recordsUpdate[:0]
-		return nil
-	}
 
 	for _, post := range updatePosts {
 		mappedPost, ok := mappedMap[post.ID.String()]
@@ -358,14 +212,182 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 		currentUpdateBatch = append(currentUpdateBatch, post)
 
 		if len(recordsUpdate) == batchSize {
-			if err := flushUpdate(); err != nil {
+			if err := processUpdateBatch(dbQueries, c, encryptionKey, target, targetTable.TargetTableCode.String, recordsUpdate); err != nil {
 				return err
 			}
 			currentUpdateBatch = currentUpdateBatch[:0]
+			recordsUpdate = recordsUpdate[:0]
 		}
 	}
 
-	if err := flushUpdate(); err != nil {
+	if err := processUpdateBatch(dbQueries, c, encryptionKey, target, targetTable.TargetTableCode.String, recordsUpdate); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func processCreateBatch(
+	dbQueries *database.Queries,
+	c *common.Client,
+	encryptionKey []byte,
+	target database.Target,
+	tableCode string,
+	records []NocoTableRecord,
+	postsInBatch []database.GetAllPostsWithTheLatestInfoForUserRow,
+	sourcesTable database.TableMapping,
+) error {
+	if len(records) == 0 {
+		return nil
+	}
+	createdRecords, err := createNocoRecords(c, dbQueries, encryptionKey, target, tableCode, records)
+	if err != nil {
+		return err
+	}
+
+	type postInfo struct {
+		nocoPostId int32
+		sourceId   uuid.UUID
+	}
+	postMapping := make(map[string]postInfo)
+
+	for _, rec := range createdRecords {
+		var id float64
+		if val, ok := rec["Id"].(float64); ok {
+			id = val
+		} else if val, ok := rec["id"].(float64); ok {
+			id = val
+		} else {
+			continue
+		}
+
+		fields, ok := rec["fields"].(map[string]any)
+		if !ok {
+			continue
+		}
+
+		ctId, ok := fields["ct_id"].(string)
+		if !ok {
+			continue
+		}
+
+		parsedCtId, err := uuid.Parse(ctId)
+		if err != nil {
+			return fmt.Errorf("failed to parse ct_id: %w", err)
+		}
+
+		_, err = dbQueries.AddPostToTarget(context.Background(), database.AddPostToTargetParams{
+			ID:            uuid.New(),
+			FirstSyncedAt: time.Now(),
+			PostID:        uuid.NullUUID{UUID: parsedCtId, Valid: true},
+			TargetID:      target.ID,
+			TargetPostID:  fmt.Sprintf("%.0f", id),
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to map post: %w", err)
+		}
+
+		for _, post := range postsInBatch {
+			if post.ID == parsedCtId {
+				postMapping[ctId] = postInfo{
+					nocoPostId: int32(id),
+					sourceId:   post.SourceID,
+				}
+				break
+			}
+		}
+	}
+
+	postsBySource := make(map[uuid.UUID][]int32)
+	for _, info := range postMapping {
+		postsBySource[info.sourceId] = append(postsBySource[info.sourceId], info.nocoPostId)
+	}
+
+	for sourceId, postIds := range postsBySource {
+		sourceMapping, err := dbQueries.GetTargetSourceBySource(context.Background(), database.GetTargetSourceBySourceParams{
+			TargetID: target.ID,
+			SourceID: sourceId,
+		})
+		if err != nil {
+			continue
+		}
+
+		sourceNocoIdInt, err := strconv.Atoi(sourceMapping.TargetSourceID)
+		if err != nil {
+			log.Printf("Invalid source ID %s: %v", sourceMapping.TargetSourceID, err)
+			continue
+		}
+		sourceNocoId, err := helpers.ToInt32(sourceNocoIdInt)
+		if err != nil {
+			log.Printf("Source ID out of range %d: %v", sourceNocoIdInt, err)
+			continue
+		}
+
+		err = linkChildrenToParent(
+			c,
+			dbQueries,
+			encryptionKey,
+			target,
+			sourcesTable,
+			"posts",
+			sourceNocoId,
+			postIds,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func processDeleteBatch(
+	dbQueries *database.Queries,
+	c *common.Client,
+	encryptionKey []byte,
+	target database.Target,
+	tableCode string,
+	records []NocoDeleteRecord,
+) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	if err := deleteNocoRecords(
+		c,
+		dbQueries,
+		encryptionKey,
+		target,
+		tableCode,
+		records,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func processUpdateBatch(
+	dbQueries *database.Queries,
+	c *common.Client,
+	encryptionKey []byte,
+	target database.Target,
+	tableCode string,
+	records []NocoTableRecord,
+) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	if err := updateNocoRecords(
+		c,
+		dbQueries,
+		encryptionKey,
+		target,
+		tableCode,
+		records,
+	); err != nil {
 		return err
 	}
 

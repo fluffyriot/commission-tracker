@@ -463,118 +463,127 @@
   });
 </script>
 
+<script id="dashboard-summary-data" type="application/json">
+  {{.dashboard_summary | json}}
+</script>
+
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    fetch('/analytics/summary')
-      .then(response => response.json())
-      .then(data => {
-        if (!data) return;
+    let data;
+    try {
+      const el = document.getElementById('dashboard-summary-data');
+      if (el && el.textContent.trim()) {
+        data = JSON.parse(el.textContent);
+      }
+    } catch (e) {
+      console.error("Failed to parse dashboard summary", e);
+      return;
+    }
 
-        function renderComparisonChart(ctxId, label, currentData, previousData, primaryColor) {
-          const ctx = document.getElementById(ctxId).getContext('2d');
+    if (!data) return;
 
-          const currentValues = currentData.map(p => p.value);
-          const previousValues = previousData.map(p => p.value);
+    function renderComparisonChart(ctxId, label, currentData, previousData, primaryColor) {
+      const ctx = document.getElementById(ctxId).getContext('2d');
 
-          const labels = Array.from({ length: 7 }, (_, i) => `Day ${i + 1}`);
+      const currentValues = currentData.map(p => p.value);
+      const previousValues = previousData.map(p => p.value);
 
-          new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: labels,
-              datasets: [
-                {
-                  label: '  Last 7 Days',
-                  data: currentValues,
-                  borderColor: primaryColor,
-                  backgroundColor: primaryColor + '20',
-                  fill: true,
-                  tension: 0.3,
-                  borderWidth: 2,
-                  pointRadius: 2
-                },
-                {
-                  label: '  Previous 7 Days',
-                  data: previousValues,
-                  borderColor: '#6B7280',
-                  backgroundColor: 'transparent',
-                  borderDash: [5, 5],
-                  fill: false,
-                  tension: 0.3,
-                  borderWidth: 2,
-                  pointRadius: 2
-                }
-              ]
+      const dayLabels = Array.from({ length: 7 }, (_, i) => `Day ${i + 1}`);
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dayLabels,
+          datasets: [
+            {
+              label: '  Last 7 Days',
+              data: currentValues,
+              borderColor: primaryColor,
+              backgroundColor: primaryColor + '20',
+              fill: true,
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 2
             },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              interaction: { mode: 'index', intersect: false },
-              scales: {
-                x: {
-                  grid: { display: false },
-                  ticks: { display: true, maxTicksLimit: 7 }
-                },
-                y: {
-                  beginAtZero: false,
-                  grid: { color: 'rgba(255, 255, 255, 0.05)' }
-                }
-              },
-              plugins: {
-                legend: {
-                  display: true,
-                  position: 'bottom',
-                  labels: {
-                    usePointStyle: true,
-                    boxWidth: 8
+            {
+              label: '  Previous 7 Days',
+              data: previousValues,
+              borderColor: '#6B7280',
+              backgroundColor: 'transparent',
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { display: true, maxTicksLimit: 7 }
+            },
+            y: {
+              beginAtZero: false,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                boxWidth: 8
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(20, 20, 30, 0.9)',
+              titleColor: '#fff',
+              bodyColor: '#ccc',
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: function (context) {
+                  let idx = context.dataIndex;
+                  let val = context.parsed.y;
+                  let dateStr = '';
+                  if (context.datasetIndex === 0 && currentData[idx]) {
+                    dateStr = ` (${currentData[idx].date})`;
+                  } else if (context.datasetIndex === 1 && previousData[idx]) {
+                    dateStr = ` (${previousData[idx].date})`;
                   }
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(20, 20, 30, 0.9)',
-                  titleColor: '#fff',
-                  bodyColor: '#ccc',
-                  padding: 10,
-                  cornerRadius: 8,
-                  callbacks: {
-                    label: function (context) {
-                      let idx = context.dataIndex;
-                      let val = context.parsed.y;
-                      let dateStr = '';
-                      if (context.datasetIndex === 0 && currentData[idx]) {
-                        dateStr = ` (${currentData[idx].date})`;
-                      } else if (context.datasetIndex === 1 && previousData[idx]) {
-                        dateStr = ` (${previousData[idx].date})`;
-                      }
-                      return `${context.dataset.label.trim()}: ${val}${dateStr}`;
-                    }
-                  }
+                  return `${context.dataset.label.trim()}: ${val}${dateStr}`;
                 }
               }
             }
-          });
+          }
         }
+      });
+    }
 
-        if (data.engagement) {
-          renderComparisonChart(
-            'engagementComparisonChart',
-            'Engagement',
-            data.engagement.current_period,
-            data.engagement.previous_period,
-            '#9167e4'
-          );
-        }
+    if (data.engagement) {
+      renderComparisonChart(
+        'engagementComparisonChart',
+        'Engagement',
+        data.engagement.current_period,
+        data.engagement.previous_period,
+        '#9167e4'
+      );
+    }
 
-        if (data.followers) {
-          renderComparisonChart(
-            'followersComparisonChart',
-            'Followers',
-            data.followers.current_period,
-            data.followers.previous_period,
-            '#9167e4'
-          );
-        }
-
-      })
-      .catch(err => console.error("Error fetching dashboard summary:", err));
+    if (data.followers) {
+      renderComparisonChart(
+        'followersComparisonChart',
+        'Followers',
+        data.followers.current_period,
+        data.followers.previous_period,
+        '#9167e4'
+      );
+    }
   });
 </script>

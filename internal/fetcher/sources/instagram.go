@@ -197,23 +197,7 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 				post_type = "image"
 			}
 
-			postID, err := common.CreateOrUpdatePost(
-				context.Background(),
-				dbQueries,
-				sourceId,
-				item.Shortcode,
-				"Instagram",
-				timeParse,
-				post_type,
-				item.Username,
-				item.Caption,
-			)
-			if err != nil {
-				return err
-			}
-
 			views := 0
-
 			if len(item.Insights.Data) != 0 {
 				insight := item.Insights.Data[0]
 				if len(insight.Values) != 0 {
@@ -221,25 +205,14 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 				}
 			}
 
-			_, err = dbQueries.SyncReactions(context.Background(), database.SyncReactionsParams{
-				ID:       uuid.New(),
-				SyncedAt: time.Now(),
-				PostID:   postID,
-				Likes: sql.NullInt32{
-					Int32: int32(item.LikeCount),
-					Valid: true,
-				},
-				Reposts: sql.NullInt32{
-					Int32: 0,
-					Valid: true,
-				},
-				Views: sql.NullInt32{
-					Int32: int32(views),
-					Valid: true,
-				},
-			})
+			err = common.ProcessScrapedPost(
+				context.Background(), dbQueries, sourceId, item.Shortcode, "Instagram", timeParse, post_type, item.Username, item.Caption,
+				sql.NullInt32{Int32: int32(item.LikeCount), Valid: true},
+				sql.NullInt32{Int32: 0, Valid: true},
+				sql.NullInt32{Int32: int32(views), Valid: true},
+			)
 			if err != nil {
-				log.Println(err)
+				return err
 			}
 		}
 
@@ -252,28 +225,20 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 		time.Sleep(300 * time.Millisecond)
 	}
 
-	log.Printf("Instagram: Processed %d posts", len(processedLinks))
-
 	if len(processedLinks) == 0 {
 		return errors.New("No content found")
 	}
 
-	stats, err := common.CalculateAverageStats(context.Background(), dbQueries, sourceId)
-	if err != nil {
-		log.Printf("Instagram: Failed to calculate stats for source %s: %v", sourceId, err)
-	} else {
-
+	if err := common.UpdateSourceStats(context.Background(), dbQueries, sourceId, func(s *common.ProfileStats) {
 		profile, err := fetchInstagramProfile(token, pid, ver, c)
 		if err != nil {
 			log.Printf("Instagram: Failed to fetch profile for source %s: %v", sourceId, err)
 		} else {
-			stats.FollowersCount = &profile.FollowersCount
-			stats.FollowingCount = &profile.FollowsCount
+			s.FollowersCount = &profile.FollowersCount
+			s.FollowingCount = &profile.FollowsCount
 		}
-
-		if err := common.SaveOrUpdateSourceStats(context.Background(), dbQueries, sourceId, stats); err != nil {
-			log.Printf("Instagram: Failed to save stats for source %s: %v", sourceId, err)
-		}
+	}); err != nil {
+		log.Printf("Instagram: Failed to update stats for source %s: %v", sourceId, err)
 	}
 
 	return nil
@@ -346,40 +311,14 @@ func FetchInstagramTags(dbQueries *database.Queries, c *common.Client, sourceId 
 
 			timeParse, _ := time.Parse("2006-01-02T15:04:05-0700", item.Timestamp)
 
-			postID, err := common.CreateOrUpdatePost(
-				context.Background(),
-				dbQueries,
-				sourceId,
-				shortcode,
-				"Instagram",
-				timeParse,
-				"tag",
-				item.Username,
-				item.Caption,
+			err = common.ProcessScrapedPost(
+				context.Background(), dbQueries, sourceId, shortcode, "Instagram", timeParse, "tag", item.Username, item.Caption,
+				sql.NullInt32{Int32: int32(item.LikeCount), Valid: true},
+				sql.NullInt32{Int32: 0, Valid: true},
+				sql.NullInt32{Int32: 0, Valid: true},
 			)
 			if err != nil {
 				return err
-			}
-
-			_, err = dbQueries.SyncReactions(context.Background(), database.SyncReactionsParams{
-				ID:       uuid.New(),
-				SyncedAt: time.Now(),
-				PostID:   postID,
-				Likes: sql.NullInt32{
-					Int32: int32(item.LikeCount),
-					Valid: true,
-				},
-				Reposts: sql.NullInt32{
-					Int32: 0,
-					Valid: true,
-				},
-				Views: sql.NullInt32{
-					Int32: 0,
-					Valid: true,
-				},
-			})
-			if err != nil {
-				log.Println(err)
 			}
 		}
 
