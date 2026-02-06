@@ -1,6 +1,6 @@
 # RPSync
 
-<img width="1280" height="640" alt="rpsync_banner" src="https://github.com/user-attachments/assets/8e35a1b0-e4b7-4a4d-8644-f65e430635ce" />
+<img width="1280" height="675" alt="RPSync - Promo" src="https://github.com/user-attachments/assets/42fdd21f-e4c0-4452-9fe9-e8b8bcd41be2" />
 
 ---
 
