@@ -185,6 +185,7 @@ func main() {
 	authorized.POST("/settings/user/update", h.UpdateUserProfileHandler)
 	authorized.POST("/settings/user/avatar/upload", h.UploadAvatarHandler)
 	authorized.POST("/settings/user/avatar/remove", h.RemoveAvatarHandler)
+	authorized.POST("/settings/user/password", h.UpdateUserPasswordHandler)
 
 	authorized.GET("/auth/facebook/login", h.FacebookLoginHandler)
 	authorized.GET("/auth/facebook/callback", h.FacebookCallbackHandler)
