@@ -48,14 +48,15 @@
           data-author="{{.Post.Author}}">
           <td class="details-control"></td>
           <td data-order="{{.Post.CreatedAt.Unix}}">{{.Post.CreatedAt.Format "Jan 02, 2006 15:04"}}</td>
-          <td>
+          <td data-search="{{if .Post.Network.Valid}}{{.Post.Network.String}}{{else}}-{{end}}">
             {{if .Post.Network.Valid}}
             <span class="badge badge-neutral network-badge">
               {{.Post.Network.String}}
             </span>
             {{else}}-{{end}}
           </td>
-          <td>{{if .Post.PostType}}{{.Post.PostType}}{{else}}-{{end}}</td>
+          <td data-search="{{if .Post.PostType}}{{.Post.PostType}}{{else}}-{{end}}">{{if
+            .Post.PostType}}{{.Post.PostType}}{{else}}-{{end}}</td>
           <td>{{.Post.Interactions}}</td>
           <td>{{if .Post.Views.Valid}}{{.Post.Views.Int64}}{{else}}-{{end}}</td>
           <td>
