@@ -212,16 +212,16 @@ func FetchFurTrackPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 			ID:       uuid.New(),
 			SyncedAt: time.Now(),
 			PostID:   postID,
-			Likes: sql.NullInt32{
-				Int32: int32(totalLikes),
+			Likes: sql.NullInt64{
+				Int64: int64(totalLikes),
 				Valid: true,
 			},
-			Views: sql.NullInt32{
-				Int32: 0,
+			Views: sql.NullInt64{
+				Int64: 0,
 				Valid: true,
 			},
-			Reposts: sql.NullInt32{
-				Int32: 0,
+			Reposts: sql.NullInt64{
+				Int64: 0,
 				Valid: true,
 			},
 		})

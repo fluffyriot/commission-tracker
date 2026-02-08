@@ -82,15 +82,15 @@ func GeneratePostsCsv(dbQueries *database.Queries, target database.Target, expor
 		}
 		likes := ""
 		if r.Likes.Valid {
-			likes = strconv.FormatInt(int64(r.Likes.Int32), 10)
+			likes = strconv.FormatInt(r.Likes.Int64, 10)
 		}
 		reposts := ""
 		if r.Reposts.Valid {
-			reposts = strconv.FormatInt(int64(r.Reposts.Int32), 10)
+			reposts = strconv.FormatInt(r.Reposts.Int64, 10)
 		}
 		views := ""
 		if r.Views.Valid {
-			views = strconv.FormatInt(int64(r.Views.Int32), 10)
+			views = strconv.FormatInt(r.Views.Int64, 10)
 		}
 
 		url, _ := helpers.ConvPostToURL(network, r.Author, r.NetworkInternalID)
@@ -151,7 +151,7 @@ func GenerateWebsiteCsv(dbQueries *database.Queries, target database.Target, exp
 		if err := writer.Write([]string{
 			s.ID.String(),
 			s.Date.Format("2006-01-02"),
-			strconv.Itoa(int(s.Visitors)),
+			strconv.Itoa(s.Visitors),
 			fmt.Sprintf("%f", s.AvgSessionDuration),
 			s.SourceNetwork,
 			s.SourceUserName,
@@ -199,7 +199,7 @@ func GeneratePageViewsCsv(dbQueries *database.Queries, target database.Target, e
 			s.ID.String(),
 			s.Date.Format("2006-01-02"),
 			s.UrlPath,
-			strconv.Itoa(int(s.Views)),
+			strconv.Itoa(s.Views),
 			s.SourceNetwork,
 			s.SourceUserName,
 		}); err != nil {

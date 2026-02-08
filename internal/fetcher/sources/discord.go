@@ -218,12 +218,12 @@ func FetchDiscordPosts(dbQueries *database.Queries, encryptionKey []byte, source
 					ID:       uuid.New(),
 					PostID:   postID,
 					SyncedAt: time.Now(),
-					Likes: sql.NullInt32{
-						Int32: int32(totalReactions),
+					Likes: sql.NullInt64{
+						Int64: int64(totalReactions),
 						Valid: true,
 					},
-					Reposts: sql.NullInt32{},
-					Views:   sql.NullInt32{},
+					Reposts: sql.NullInt64{},
+					Views:   sql.NullInt64{},
 				})
 				if err != nil {
 					log.Printf("Discord: Failed to sync reactions for message %s: %v", msgID, err)
@@ -309,12 +309,12 @@ func processForumThread(
 		ID:       uuid.New(),
 		PostID:   postID,
 		SyncedAt: time.Now(),
-		Likes: sql.NullInt32{
-			Int32: int32(thread.MessageCount),
+		Likes: sql.NullInt64{
+			Int64: int64(thread.MessageCount),
 			Valid: true,
 		},
-		Reposts: sql.NullInt32{},
-		Views:   sql.NullInt32{},
+		Reposts: sql.NullInt64{},
+		Views:   sql.NullInt64{},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to sync reactions: %w", err)

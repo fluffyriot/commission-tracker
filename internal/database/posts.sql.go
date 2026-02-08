@@ -176,9 +176,9 @@ type GetAllPostsWithTheLatestInfoForUserRow struct {
 	CurrentUserName   sql.NullString
 	SourceUserName    sql.NullString
 	ReactionsSyncedAt sql.NullTime
-	Likes             sql.NullInt32
-	Reposts           sql.NullInt32
-	Views             sql.NullInt32
+	Likes             sql.NullInt64
+	Reposts           sql.NullInt64
+	Views             sql.NullInt64
 }
 
 func (q *Queries) GetAllPostsWithTheLatestInfoForUser(ctx context.Context, userID uuid.UUID) ([]GetAllPostsWithTheLatestInfoForUserRow, error) {
@@ -288,10 +288,10 @@ type GetRecentPostsForUserRow struct {
 	Author            string
 	IsArchived        bool
 	Network           sql.NullString
-	Likes             sql.NullInt32
-	Reposts           sql.NullInt32
+	Likes             sql.NullInt64
+	Reposts           sql.NullInt64
 	Interactions      int32
-	Views             sql.NullInt32
+	Views             sql.NullInt64
 }
 
 func (q *Queries) GetRecentPostsForUser(ctx context.Context, userID uuid.UUID) ([]GetRecentPostsForUserRow, error) {
