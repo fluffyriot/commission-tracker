@@ -38,7 +38,6 @@
           <th>Content</th>
         </tr>
       </thead>
-      <!-- prettier-ignore -->
       <tbody>
         {{range .posts}}
         <tr data-network-id="{{.Post.NetworkInternalID}}"
@@ -51,8 +50,7 @@
           <td data-order="{{.Post.CreatedAt.Unix}}">{{.Post.CreatedAt.Format "Jan 02, 2006 15:04"}}</td>
           <td>
             {{if .Post.Network.Valid}}
-            <span class="badge badge-neutral network-badge"
-              data-network-color="{{index $.network_colors .Post.Network.String}}">
+            <span class="badge badge-neutral network-badge">
               {{.Post.Network.String}}
             </span>
             {{else}}-{{end}}
@@ -101,7 +99,7 @@
           <div><strong>Network ID:</strong> ${networkId}</div>
           <div><strong>Likes:</strong> ${likes}</div>
           <div><strong>Reposts:</strong> ${reposts}</div>
-          <div><strong>Status:</strong> <span class="badge badge-${status === 'Archived' ? 'warning' : 'success'}">${status}</span></div>
+          <div><strong>Status:</strong> <span class="badge badge-${status === 'Archived' ? 'warning' : 'success'} status-badge">${status}</span></div>
           <div><strong>Full Content:</strong> ${fullContent}</div>
         </div>
       `;
@@ -124,7 +122,7 @@
         },
         {
           orderable: false,
-          targets: [3, 6, 7]  // Disable sorting on Post Type, Link, Content
+          targets: [2, 3, 6, 7]
         }
       ],
       language: {
@@ -142,44 +140,89 @@
       }
     });
 
-    const filterContainer = $('<div class="filter-container"></div>');
+    table.columns([2, 3]).every(function () {
+      const column = this;
+      const header = $(column.header());
+      const title = header.text();
 
-    const networks = [];
-    table.column(2).data().unique().sort().each(function (d) {
-      const network = $(d).text().trim();
-      if (network && network !== '-') networks.push(network);
+      header.html(`<div class="filter-header-content">
+        <span class="filter-trigger"><i data-lucide="filter"></i></span>
+        <span>${title}</span>
+      </div>`);
+      const dropdown = $('<div class="filter-dropdown"></div>');
+      const actionRow = $('<div class="filter-actions"></div>');
+      const selectAllBtn = $('<span class="filter-action-btn">Select All</span>');
+      const clearBtn = $('<span class="filter-action-btn">Clear</span>');
+
+      actionRow.append(selectAllBtn).append(clearBtn);
+      dropdown.append(actionRow);
+
+      const optionsContainer = $('<div></div>');
+      dropdown.append(optionsContainer);
+
+      const uniqueData = [];
+      column.data().unique().sort().each(function (d) {
+        if (!d) return;
+        const val = $('<div>').html(d).text().trim();
+        if (val && val !== '-' && !uniqueData.includes(val)) {
+          uniqueData.push(val);
+        }
+      });
+
+      uniqueData.forEach(val => {
+        const option = $(`<label class="filter-option">
+          <input type="checkbox" value="${val}" checked> ${val}
+        </label>`);
+        optionsContainer.append(option);
+      });
+
+      header.find('.filter-header-content').append(dropdown);
+      lucide.createIcons();
+
+      const trigger = header.find('.filter-trigger');
+
+      trigger.on('click', function (e) {
+        e.stopPropagation();
+        $('.filter-dropdown').not(dropdown).removeClass('show');
+        dropdown.toggleClass('show');
+        trigger.toggleClass('active');
+      });
+      dropdown.on('click', function (e) {
+        e.stopPropagation();
+      });
+
+      function applyFilter() {
+        const checked = [];
+        optionsContainer.find('input:checked').each(function () {
+          checked.push($(this).val());
+        });
+
+        const searchStr = checked.map(v => {
+          return '^' + v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$';
+        }).join('|');
+
+        column.search(searchStr, true, false).draw();
+      }
+
+      optionsContainer.on('change', 'input', applyFilter);
+
+      selectAllBtn.on('click', function () {
+        optionsContainer.find('input').prop('checked', true);
+        applyFilter();
+      });
+
+      clearBtn.on('click', function () {
+        optionsContainer.find('input').prop('checked', false);
+        applyFilter();
+      });
+
+      $(document).on('click', function (e) {
+        if (!$(e.target).closest('.filter-header-content, .filter-dropdown').length) {
+          dropdown.removeClass('show');
+          trigger.removeClass('active');
+        }
+      });
     });
-
-    const networkSelect = $('<select class="form-control filter-select"><option value="">All Networks</option></select>');
-    networks.forEach(network => {
-      networkSelect.append(`<option value="${network}">${network}</option>`);
-    });
-
-    networkSelect.on('change', function () {
-      const val = $(this).val();
-      table.column(2).search(val ? '^' + val + '$' : '', true, false).draw();
-    });
-
-    const postTypes = [];
-    table.column(3).data().unique().sort().each(function (d) {
-      const type = $(d).text().trim();
-      if (type && type !== '-') postTypes.push(type);
-    });
-
-    const postTypeSelect = $('<select class="form-control filter-select"><option value="">All Post Types</option></select>');
-    postTypes.forEach(type => {
-      postTypeSelect.append(`<option value="${type}">${type}</option>`);
-    });
-
-    postTypeSelect.on('change', function () {
-      const val = $(this).val();
-      table.column(3).search(val ? '^' + val + '$' : '', true, false).draw();
-    });
-
-    filterContainer.append('<label class="filter-label">Network: </label>').append(networkSelect);
-    filterContainer.append('<label class="filter-label">Post Type: </label>').append(postTypeSelect);
-
-    $('.dataTables_filter').before(filterContainer);
 
     $('#postsTable tbody').on('click', 'td.details-control', function () {
       const tr = $(this).closest('tr');
@@ -194,9 +237,6 @@
       }
     });
 
-    $('.network-badge[data-network-color]').each(function () {
-      $(this).css('background-color', $(this).attr('data-network-color'));
-    });
   });
 </script>
 {{end}}
