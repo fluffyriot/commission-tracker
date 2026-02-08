@@ -169,8 +169,7 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cl
 				Valid: true,
 			},
 			Reposts: sql.NullInt64{
-				Int64: 0,
-				Valid: true,
+				Valid: false,
 			},
 			Views: sql.NullInt64{
 				Int64: int64(videoViews),

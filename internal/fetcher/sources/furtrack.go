@@ -217,12 +217,10 @@ func FetchFurTrackPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 				Valid: true,
 			},
 			Views: sql.NullInt64{
-				Int64: 0,
-				Valid: true,
+				Valid: false,
 			},
 			Reposts: sql.NullInt64{
-				Int64: 0,
-				Valid: true,
+				Valid: false,
 			},
 		})
 		if err != nil {

@@ -218,8 +218,7 @@ func FetchBlueskyPosts(dbQueries *database.Queries, c *common.Client, uid uuid.U
 					Valid: true,
 				},
 				Views: sql.NullInt64{
-					Int64: 0,
-					Valid: true,
+					Valid: false,
 				},
 			})
 		}
