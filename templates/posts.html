@@ -79,9 +79,12 @@
 {{ template "footer.html" . }}
 
 {{if .posts}}
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/2.3.7/css/dataTables.dataTables.css" />
-<script src="https://cdn.datatables.net/2.3.7/js/dataTables.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+  integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/2.3.7/css/dataTables.dataTables.css"
+  integrity="sha384-Kpc+mQszh3/vUH/OusOZEQCoj2/fArR4w17g++67npFyTwNdldK7hGUdfHoHUX3b" crossorigin="anonymous" />
+<script src="https://cdn.datatables.net/2.3.7/js/dataTables.js"
+  integrity="sha384-2FgczAMyd99nlgHFfIt2rDxfzz+8hyAkY9ufMw3A0vLlvio4vKVimC/GMFkdkbAq" crossorigin="anonymous"></script>
 
 
 <script>
@@ -169,9 +172,9 @@
       });
 
       uniqueData.forEach(val => {
-        const option = $(`<label class="filter-option">
-          <input type="checkbox" value="${val}" checked> ${val}
-        </label>`);
+        const option = $('<label>').addClass('filter-option');
+        const input = $('<input>').attr('type', 'checkbox').val(val).prop('checked', true);
+        option.append(input).append(document.createTextNode(' ' + val));
         optionsContainer.append(option);
       });
 
