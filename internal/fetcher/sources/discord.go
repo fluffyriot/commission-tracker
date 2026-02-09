@@ -305,12 +305,23 @@ func processForumThread(
 		return fmt.Errorf("failed to create/update thread post: %w", err)
 	}
 
+	totalReactions := 0
+	messages, err := session.ChannelMessages(threadID, 1, "", "0", "")
+	if err != nil {
+		log.Printf("Discord: Failed to fetch first message for thread %s: %v", threadID, err)
+	} else if len(messages) > 0 {
+		firstMsg := messages[0]
+		for _, reaction := range firstMsg.Reactions {
+			totalReactions += reaction.Count
+		}
+	}
+
 	_, err = dbQueries.SyncReactions(ctx, database.SyncReactionsParams{
 		ID:       uuid.New(),
 		PostID:   postID,
 		SyncedAt: time.Now(),
 		Likes: sql.NullInt64{
-			Int64: int64(thread.MessageCount),
+			Int64: int64(totalReactions),
 			Valid: true,
 		},
 		Reposts: sql.NullInt64{},
