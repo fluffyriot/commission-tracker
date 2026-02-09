@@ -1502,3 +1502,14 @@ table.dataTable thead>tr>td.dt-orderable-desc:hover {
   outline-offset: -2px;
   cursor: pointer;
 }
+
+.child-row-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 768px) {
+  .child-row-value {
+    font-size: 0.6rem;
+  }
+}

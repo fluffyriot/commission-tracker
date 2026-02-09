@@ -105,7 +105,7 @@
       const createRow = (label, value) => {
         const $row = $('<div/>');
         $row.append($('<strong/>').text(label + ': '));
-        $row.append(document.createTextNode(' ' + (value || '-')));
+        $row.append($('<span/>').addClass('child-row-value').text(' ' + (value || '-')));
         return $row;
       };
 
