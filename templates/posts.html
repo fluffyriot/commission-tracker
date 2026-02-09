@@ -30,9 +30,9 @@
         <tr>
           <th></th>
           <th>Date</th>
-          <th>Network</th>
-          <th>Post Type</th>
-          <th>Interactions</th>
+          <th class="th-filterable">Source</th>
+          <th class="th-filterable">Post Type</th>
+          <th>Likes & Reposts</th>
           <th>Views</th>
           <th>Link</th>
           <th>Content</th>
@@ -97,7 +97,7 @@
       return `
         <div class="child-row-details">
           <div><strong>Author:</strong> ${author || '-'}</div>
-          <div><strong>Network ID:</strong> ${networkId}</div>
+          <div><strong>Network Internal ID:</strong> ${networkId}</div>
           <div><strong>Likes:</strong> ${likes}</div>
           <div><strong>Reposts:</strong> ${reposts}</div>
           <div><strong>Status:</strong> <span class="badge badge-${status === 'Archived' ? 'warning' : 'success'} status-badge">${status}</span></div>

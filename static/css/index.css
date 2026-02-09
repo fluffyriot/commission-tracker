@@ -1381,6 +1381,7 @@ html body .dt-container .dt-length select:focus {
   min-height: 500px;
   overflow-x: auto;
 }
+
 .filter-container {
   margin-bottom: 1rem;
   display: flex;
@@ -1485,4 +1486,18 @@ html body .dt-container .dt-length select:focus {
 .table-responsive {
   min-height: 500px;
   overflow-x: auto;
+}
+
+table.dataTable thead>tr>th.dt-orderable-asc:hover,
+table.dataTable thead>tr>th.dt-orderable-desc:hover,
+table.dataTable thead>tr>td.dt-orderable-asc:hover,
+table.dataTable thead>tr>td.dt-orderable-desc:hover {
+  outline: 2px solid var(--color-text-muted) !important;
+  outline-offset: -2px;
+}
+
+#postsTable thead>tr>th.th-filterable:hover {
+  outline: 2px solid var(--color-text-muted);
+  outline-offset: -2px;
+  cursor: pointer;
 }
