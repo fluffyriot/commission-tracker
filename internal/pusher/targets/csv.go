@@ -41,7 +41,7 @@ func GeneratePostsCsv(dbQueries *database.Queries, target database.Target, expor
 	}
 
 	filename := fmt.Sprintf("outputs/export_id_%s_posts_%s.csv", export.ID.String(), time.Now().Format("20060102_150405"))
-	file, err := os.Create(filename)
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return "", err
 	}
@@ -127,7 +127,7 @@ func GenerateWebsiteCsv(dbQueries *database.Queries, target database.Target, exp
 	}
 
 	filename := fmt.Sprintf("outputs/export_id_%s_website_%s.csv", export.ID.String(), time.Now().Format("20060102_150405"))
-	file, err := os.Create(filename)
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return "", err
 	}
@@ -174,7 +174,7 @@ func GeneratePageViewsCsv(dbQueries *database.Queries, target database.Target, e
 	}
 
 	filename := fmt.Sprintf("outputs/export_id_%s_webpages_%s.csv", export.ID.String(), time.Now().Format("20060102_150405"))
-	file, err := os.Create(filename)
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return "", err
 	}

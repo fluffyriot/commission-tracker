@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -78,6 +79,14 @@ func FetchTelegramPosts(dbQueries *database.Queries, encryptionKey []byte, sourc
 
 	sessionFile := fmt.Sprintf("outputs/telegram_session_%s.json", sourceId.String())
 	sess := &session.FileStorage{Path: sessionFile}
+
+	f, err := os.OpenFile(sessionFile, os.O_RDWR|os.O_CREATE, 0600)
+	if err == nil {
+		f.Close()
+		if err := os.Chmod(sessionFile, 0600); err != nil {
+			log.Printf("Warning: failed to chmod telegram session file: %v", err)
+		}
+	}
 
 	client := telegram.NewClient(appID, appHash, telegram.Options{
 		SessionStorage: sess,

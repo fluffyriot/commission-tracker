@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/exports"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -68,9 +69,46 @@ func (h *Handler) ExportDeleteAllHandler(c *gin.Context) {
 }
 
 func (h *Handler) DownloadExportHandler(c *gin.Context) {
-	p := c.Param("filepath")[1:]
+	ctx := c.Request.Context()
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
 
-	path := filepath.Clean(p)
+	requestedFilename := c.Param("filepath")[1:]
+	requestedFilename = filepath.Clean(requestedFilename)
+
+	userExports, err := h.DB.GetAllExportsByUserId(ctx, user.ID)
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
+			"error": "Internal server error fetching exports",
+			"title": "Error",
+		}))
+		return
+	}
+
+	var matchedExport *database.Export
+	for _, exp := range userExports {
+		if exp.DownloadUrl.Valid {
+
+			storedPath := exp.DownloadUrl.String
+			storedFilename := filepath.Base(storedPath)
+
+			if storedFilename == requestedFilename {
+				matchedExport = &exp
+				break
+			}
+		}
+	}
+
+	if matchedExport == nil {
+		c.HTML(http.StatusForbidden, "error.html", h.CommonData(c, gin.H{
+			"error": "Access denied",
+			"title": "Error",
+		}))
+		return
+	}
 
 	baseDir, err := filepath.Abs("./outputs")
 	if err != nil {
@@ -81,17 +119,9 @@ func (h *Handler) DownloadExportHandler(c *gin.Context) {
 		return
 	}
 
-	fullPath, err := filepath.Abs(filepath.Join(baseDir, path))
-	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(c, gin.H{
-			"error": "Invalid path",
-			"title": "Error",
-		}))
-		return
-	}
+	fullPath := filepath.Join(baseDir, requestedFilename)
 
-	rel, err := filepath.Rel(baseDir, fullPath)
-	if err != nil || strings.HasPrefix(rel, "..") {
+	if !strings.HasPrefix(fullPath, baseDir) {
 		c.HTML(http.StatusForbidden, "error.html", h.CommonData(c, gin.H{
 			"error": "Access denied",
 			"title": "Error",
@@ -99,5 +129,5 @@ func (h *Handler) DownloadExportHandler(c *gin.Context) {
 		return
 	}
 
-	c.FileAttachment(fullPath, filepath.Base(fullPath))
+	c.FileAttachment(fullPath, requestedFilename)
 }
