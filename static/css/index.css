@@ -768,7 +768,7 @@ a:hover {
   top: 100%;
   margin-top: 0.25rem;
   background-color: var(--color-bg-surface);
-  min-width: 160px;
+  min-width: 200px;
   box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
   z-index: 50;
   border: 1px solid var(--color-border);
@@ -1501,4 +1501,19 @@ table.dataTable thead>tr>td.dt-orderable-desc:hover {
   outline: 2px solid var(--color-text-muted);
   outline-offset: -2px;
   cursor: pointer;
+}
+
+.child-row-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.child-row-details-row {
+  padding: 0.3rem 0;
+}
+
+@media (max-width: 768px) {
+  .child-row-value {
+    font-size: 0.6rem;
+  }
 }

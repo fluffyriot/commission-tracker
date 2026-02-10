@@ -1,10 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/fluffyriot/rpsync/internal/config"
 	"github.com/fluffyriot/rpsync/internal/database"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +22,12 @@ func (h *Handler) GetReleaseNotesHandler(c *gin.Context) {
 		lastSeenVersion = "0.0.0"
 	}
 
-	notes, err := h.Updater.GetReleaseNotes(lastSeenVersion, currentVersion)
+	limit := 0
+	if l := c.Query("limit"); l != "" {
+		fmt.Sscanf(l, "%d", &limit)
+	}
+
+	notes, err := h.Updater.GetReleaseNotes(lastSeenVersion, currentVersion, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -58,6 +66,10 @@ func (h *Handler) UpdateLastSeenVersionHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user version"})
 		return
 	}
+
+	session := sessions.Default(c)
+	session.Set("last_seen_version", req.Version)
+	session.Save()
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

@@ -43,6 +43,12 @@
     </div>
   </div>
   {{end}}
+  {{if and .top_sources (eq (len .top_sources) 3)}}
+  <button id="show-all-sources-btn" class="btn btn-secondary w-full" style="grid-column: 1 / -1;"
+    onclick="loadRestSources(this)">
+    <i data-lucide="chevrons-down"></i> Show All
+  </button>
+  {{end}}
 </div>
 {{end}}
 
@@ -570,4 +576,127 @@
       );
     }
   });
+</script>
+
+<script>
+  function loadRestSources(btn) {
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Loading...';
+    lucide.createIcons();
+
+    fetch('/analytics/top-sources')
+      .then(response => response.json())
+      .then(data => {
+        if (!data || data.length === 0) {
+          btn.remove();
+          return;
+        }
+
+        const grid = document.querySelector('.top-sources-grid');
+        let networkColors = {};
+        try {
+          networkColors = JSON.parse(document.getElementById('network-colors-data').textContent);
+        } catch (e) {
+          console.error("Failed to parse network colors", e);
+        }
+
+        btn.remove();
+
+        data.forEach(source => {
+          const tile = document.createElement('div');
+          tile.className = 'source-tile';
+
+          const networkLower = source.Network.toLowerCase();
+          const networkColor = networkColors[source.Network] || '#888';
+          const networkInitial = source.Network.substring(0, 1).toUpperCase();
+          const userNameStripped = source.UserName.replace(/^@/, '');
+
+          const header = document.createElement('div');
+          header.className = 'source-tile-header';
+
+          const img = document.createElement('img');
+          img.src = `/static/images/sources/${networkLower}_logo.svg`;
+          img.alt = source.Network;
+          img.className = 'source-logo';
+          img.onerror = function () {
+            this.style.display = 'none';
+            const ph = this.nextElementSibling;
+            if (ph) {
+              ph.style.display = 'flex';
+              ph.style.backgroundColor = ph.dataset.color;
+            }
+          };
+          header.appendChild(img);
+
+          const placeholder = document.createElement('div');
+          placeholder.className = 'source-logo-placeholder';
+          placeholder.style.display = 'none';
+          placeholder.dataset.color = networkColor;
+          placeholder.textContent = networkInitial;
+          header.appendChild(placeholder);
+
+          const infoDiv = document.createElement('div');
+          infoDiv.style.minWidth = '0';
+
+          const link = document.createElement('a');
+          link.href = source.ProfileURL;
+          link.target = '_blank';
+          link.className = 'source-name';
+          link.title = source.UserName;
+          link.textContent = userNameStripped;
+          infoDiv.appendChild(link);
+
+          const networkDiv = document.createElement('div');
+          networkDiv.className = 'source-network';
+          networkDiv.textContent = source.Network;
+          infoDiv.appendChild(networkDiv);
+
+          header.appendChild(infoDiv);
+          tile.appendChild(header);
+
+          const statsDiv = document.createElement('div');
+          statsDiv.className = 'source-stats';
+
+          const stat1 = document.createElement('div');
+          stat1.className = 'source-stat';
+          const val1 = document.createElement('span');
+          val1.className = 'source-stat-value formatted-metric';
+          val1.textContent = Number(source.TotalInteractions).toLocaleString();
+          stat1.appendChild(val1);
+          const label1 = document.createElement('span');
+          label1.className = 'source-stat-label';
+          label1.textContent = 'Interactions';
+          stat1.appendChild(label1);
+          statsDiv.appendChild(stat1);
+
+          const stat2 = document.createElement('div');
+          stat2.className = 'source-stat source-stat-right';
+          const val2 = document.createElement('span');
+          val2.className = 'source-stat-value formatted-metric';
+          val2.textContent = Number(source.FollowersCount).toLocaleString();
+          stat2.appendChild(val2);
+          const label2 = document.createElement('span');
+          label2.className = 'source-stat-label';
+          label2.textContent = 'Followers';
+          stat2.appendChild(label2);
+          statsDiv.appendChild(stat2);
+
+          tile.appendChild(statsDiv);
+
+          grid.appendChild(tile);
+
+          if (placeholder) {
+            placeholder.style.backgroundColor = networkColor;
+          }
+        });
+
+      })
+      .catch(err => {
+        console.error("Error loading sources:", err);
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+        alert("Failed to load more sources.");
+      });
+  }
 </script>

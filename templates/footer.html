@@ -1,16 +1,18 @@
 </main>
 
 <footer class="container text-center" style="color: var(--color-text-muted); font-size: 0.85rem;">
-    <p><a href="https://github.com/fluffyriot/rpsync" target="_blank">RPSync by Fluffy Riot.</a>
-        App version: <a href="https://github.com/fluffyriot/rpsync/releases" target="_blank">v.{{.app_version}}</a>.
-        &copy; 2026
+    <p>&copy; 2026 RPSync <a href="https://github.com/fluffyriot/rpsync/releases"
+            target="_blank">v.{{.app_version}}</a><br>
+        Licensed under the GNU AGPL v3<br>
+        Source code: <a href="https://github.com/fluffyriot/rpsync"
+            target="_blank">https://github.com/fluffyriot/rpsync</a>
     </p>
 </footer>
 
 <div id="release-notes-overlay" class="drawer-overlay" onclick="closeReleaseNotes()"></div>
 <div id="release-notes-sidebar" class="drawer-sidebar">
     <div class="drawer-header">
-        <h3>What's New in v<span id="release-notes-version"></span></h3>
+        <h3>What's New in <span id="release-notes-version"></span></h3>
         <button onclick="closeReleaseNotes()" class="btn btn-ghost btn-icon"><i data-lucide="x"></i></button>
     </div>
     <div class="drawer-body" id="release-notes-body">

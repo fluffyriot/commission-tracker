@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 package main
 
 import (
@@ -235,6 +236,7 @@ func main() {
 	authorized.GET("/analytics/engagement", h.AnalyticsEngagementHandler)
 	authorized.GET("/analytics/website", h.AnalyticsWebsiteHandler)
 	authorized.GET("/analytics/summary", h.AnalyticsDashboardSummaryHandler)
+	authorized.GET("/analytics/top-sources", h.AnalyticsTopSourcesHandler)
 
 	authorized.GET("/posts", h.PostsHandler)
 
@@ -249,6 +251,7 @@ func main() {
 
 	authorized.GET("/api/updates/notes", h.GetReleaseNotesHandler)
 	authorized.POST("/api/user/ack-version", h.UpdateLastSeenVersionHandler)
+	authorized.POST("/api/user/intro-completed", h.UpdateUserIntroCompletedHandler)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.AppPort,
