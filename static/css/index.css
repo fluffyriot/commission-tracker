@@ -1508,6 +1508,10 @@ table.dataTable thead>tr>td.dt-orderable-desc:hover {
   word-break: break-word;
 }
 
+.child-row-details-row {
+  padding: 0.3rem 0;
+}
+
 @media (max-width: 768px) {
   .child-row-value {
     font-size: 0.6rem;

@@ -103,7 +103,7 @@
       const $info = $('<div/>').addClass('mb-4');
 
       const createRow = (label, value) => {
-        const $row = $('<div/>');
+        const $row = $('<div/>').addClass('child-row-details-row');
         $row.append($('<strong/>').text(label + ': '));
         $row.append($('<span/>').addClass('child-row-value').text(' ' + (value || '-')));
         return $row;
