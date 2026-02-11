@@ -1517,7 +1517,7 @@ tr.shown .details-control:before {
 }
 
 .posts-table-footer {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .date-filter-dropdown {
@@ -1537,4 +1537,8 @@ tr.shown .details-control:before {
 .dropdown-input {
   margin-bottom: 0.2rem !important;
   width: 95% !important;
+}
+
+.sticky-header {
+  font-size: 0.8rem;
 }
