@@ -144,9 +144,9 @@ func CreateOrUpdatePost(
 	author string,
 	content string,
 ) (uuid.UUID, error) {
-	post, err := dbQueries.GetPostByNetworkAndId(ctx, database.GetPostByNetworkAndIdParams{
+	post, err := dbQueries.GetPostBySourceAndNetworkId(ctx, database.GetPostBySourceAndNetworkIdParams{
 		NetworkInternalID: networkInternalID,
-		Network:           network,
+		SourceID:          sourceID,
 	})
 
 	if err != nil {

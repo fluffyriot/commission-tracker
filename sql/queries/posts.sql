@@ -25,13 +25,12 @@ VALUES (
 RETURNING
     *;
 
--- name: GetPostByNetworkAndId :one
+-- name: GetPostBySourceAndNetworkId :one
 SELECT posts.*
 FROM posts
-    join sources on posts.source_id = sources.id
 where
     network_internal_id = $1
-    and sources.network = $2;
+    and source_id = $2;
 
 -- name: CheckCountOfPostsForUser :one
 SELECT COUNT(*)
