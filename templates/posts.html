@@ -534,7 +534,6 @@
       }
     });
 
-    // Close filter dropdowns on table body scroll (DataTables 2)
     $('.dt-scroll-body, .dataTables_scrollBody').on('scroll', function () {
       if (isFiltering) return;
       $('.filter-dropdown.show').removeClass('show');
