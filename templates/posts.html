@@ -6,7 +6,42 @@
     <p class="text-muted">All your synchronized posts across networks</p>
   </div>
 
-  <div class="flex gap-2">
+  <div class="flex gap-2 items-end">
+    <div class="dropdown" id="dateFilterDropdown">
+      <button class="btn btn-secondary btn-icon" id="dateFilterBtn" type="button">
+        <i data-lucide="calendar"></i> Dates <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+      </button>
+      <div class="filter-dropdown date-filter-dropdown p-3">
+        <div class="mb-4">
+          <label class="form-label-bold mb-2">Suggested</label>
+          <div class="flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="today">Today</button>
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="yesterday">Yesterday</button>
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="thisWeek">This Week</button>
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="thisMonth">This Month</button>
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="thisYear">This Year</button>
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="last7">Last 7 Days</button>
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="last30">Last 30 Days</button>
+            <button class="btn btn-sm btn-ghost date-suggestion" data-range="last365">Last 365 Days</button>
+          </div>
+        </div>
+        <div class="mb-2 border-t pt-2">
+          <label class="form-label-bold mb-2">Custom</label>
+        </div>
+        <div class="form-group mb-sm">
+          <label class="form-label">Start Date</label>
+          <input type="date" id="startDate" class="form-input dropdown-input" />
+        </div>
+        <div class="form-group mb-4">
+          <label class="form-label">End Date</label>
+          <input type="date" id="endDate" class="form-input dropdown-input" />
+        </div>
+        <div class="flex justify-between">
+          <button class="btn btn-sm btn-ghost" id="clearDates">Clear</button>
+          <button class="btn btn-sm btn-primary" id="applyDates">Apply</button>
+        </div>
+      </div>
+    </div>
     <form method="GET" action="/posts">
       <button class="btn btn-secondary btn-icon" title="Refresh">
         <i data-lucide="refresh-cw"></i> Refresh
@@ -38,6 +73,15 @@
           <th>Content</th>
         </tr>
       </thead>
+      <tfoot class="posts-table-footer">
+        <tr>
+          <th colspan="4" class="text-right">Total:</th>
+          <th id="totalLikes"></th>
+          <th id="totalViews"></th>
+          <th></th>
+          <th></th>
+        </tr>
+      </tfoot>
       <tbody>
         {{range .posts}}
         <tr data-network-id="{{.Post.NetworkInternalID}}"
@@ -135,7 +179,7 @@
           class: 'btn btn-secondary btn-sm',
           text: ' Go to Post'
         });
-        $link.prepend($('<i/>', { 'data-lucide': 'external-link', style: 'width: 16px; height: 16px;' }));
+        $link.prepend($('<i/>', { 'data-lucide': 'external-link', class: 'icon-sm' }));
         $buttons.append($link);
       }
 
@@ -143,7 +187,7 @@
         class: 'btn btn-danger btn-sm',
         text: ' Remove from Sync'
       });
-      $excludeBtn.prepend($('<i/>', { 'data-lucide': 'file-x', style: 'width: 16px; height: 16px;' }));
+      $excludeBtn.prepend($('<i/>', { 'data-lucide': 'file-x', class: 'icon-sm' }));
       $excludeBtn.on('click', function () {
         excludePost(sourceId, networkId);
       });
@@ -156,14 +200,57 @@
       return $div;
     }
 
+    $.fn.dataTable.ext.search.push(
+      function (settings, data, dataIndex) {
+        const minStr = $('#startDate').val();
+        const maxStr = $('#endDate').val();
+
+        if (!minStr && !maxStr) return true;
+
+        const createdAtUnix = parseFloat(settings.aoData[dataIndex]._aData[1]['@data-order']) || 0;
+
+        let minTime = null;
+        if (minStr) {
+          const parts = minStr.split('-');
+          minTime = new Date(parts[0], parts[1] - 1, parts[2]).getTime() / 1000;
+        }
+
+        let maxTime = null;
+        if (maxStr) {
+          const parts = maxStr.split('-');
+          const d = new Date(parts[0], parts[1] - 1, parts[2]);
+          d.setDate(d.getDate() + 1);
+          maxTime = d.getTime() / 1000;
+        }
+
+        if (minTime && maxTime) {
+          return createdAtUnix >= minTime && createdAtUnix < maxTime;
+        }
+        if (minTime) {
+          return createdAtUnix >= minTime;
+        }
+        if (maxTime) {
+          return createdAtUnix < maxTime;
+        }
+        return true;
+      }
+    );
+
     const table = $('#postsTable').DataTable({
-      pageLength: 25,
       order: [[1, 'desc']],
       responsive: false,
-      searching: true,
-      ordering: true,
+      scrollY: '60vh',
+      scrollCollapse: true,
       paging: true,
-      lengthChange: true,
+      layout: {
+        topStart: 'pageLength',
+        topEnd: 'search',
+        top2Start: 'info',
+        top2End: 'paging',
+        bottomStart: null,
+        bottomEnd: null
+      },
+      ordering: true,
       lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
       columnDefs: [
         {
@@ -181,8 +268,141 @@
         lengthMenu: "Show _MENU_ posts per page",
         info: "_START_ to _END_ of _TOTAL_ posts",
         infoEmpty: "No posts found",
-        infoFiltered: "(out of _MAX_ posts)"
+        infoFiltered: ""
+      },
+      footerCallback: function (row, data, start, end, display) {
+        var api = this.api();
+
+        var intVal = function (i) {
+          return typeof i === 'string' ?
+            i.replace(/[\$,]/g, '') * 1 :
+            typeof i === 'number' ?
+              i : 0;
+        };
+
+        totalLikes = api
+          .column(4, { search: 'applied' })
+          .data()
+          .reduce(function (a, b) {
+            if (b === '-') return intVal(a);
+            return intVal(a) + intVal(b);
+          }, 0);
+
+        totalViews = api
+          .column(5, { search: 'applied' })
+          .data()
+          .reduce(function (a, b) {
+            if (b === '-') return intVal(a);
+            return intVal(a) + intVal(b);
+          }, 0);
+
+        $(api.column(4).footer()).html(totalLikes);
+        $(api.column(5).footer()).html(totalViews);
       }
+    });
+
+    function updateDateButtonState() {
+      const hasFilter = $('#startDate').val() || $('#endDate').val();
+      const $btn = $('#dateFilterBtn');
+      if (hasFilter) {
+        $btn.removeClass('btn-secondary').addClass('btn-primary');
+      } else {
+        $btn.removeClass('btn-primary').addClass('btn-secondary');
+      }
+    }
+
+    $('#applyDates').on('click', function () {
+      updateDateButtonState();
+      table.draw();
+      $('#dateFilterDropdown .filter-dropdown').removeClass('show');
+    });
+
+    $('#clearDates').on('click', function () {
+      $('#startDate').val('');
+      $('#endDate').val('');
+      updateDateButtonState();
+      table.draw();
+      $('#dateFilterDropdown .filter-dropdown').removeClass('show');
+      $('.date-suggestion').removeClass('btn-primary').addClass('btn-ghost');
+    });
+
+    $('#dateFilterBtn').on('click', function (e) {
+      e.stopPropagation();
+      $('#dateFilterDropdown .filter-dropdown').toggleClass('show');
+    });
+
+    $('#dateFilterDropdown .filter-dropdown').on('click', function (e) {
+      e.stopPropagation();
+    });
+
+    $(document).on('click', function (e) {
+      if (!$(e.target).closest('#dateFilterDropdown').length) {
+        $('#dateFilterDropdown .filter-dropdown').removeClass('show');
+      }
+    });
+
+    $('.date-suggestion').on('click', function () {
+      const range = $(this).data('range');
+      const today = new Date();
+      let start = new Date();
+      let end = new Date();
+
+      switch (range) {
+        case 'today':
+          break;
+        case 'yesterday':
+          start.setDate(today.getDate() - 1);
+          end.setDate(today.getDate() - 1);
+          break;
+        case 'thisWeek':
+          const day = today.getDay();
+          const diff = today.getDate() - day + (day == 0 ? -6 : 1);
+          start.setDate(diff);
+          break;
+        case 'thisMonth':
+          start = new Date(today.getFullYear(), today.getMonth(), 1);
+          break;
+        case 'thisYear':
+          start = new Date(today.getFullYear(), 0, 1);
+          break;
+        case 'last7':
+          start.setDate(today.getDate() - 6);
+          break;
+        case 'last30':
+          start.setDate(today.getDate() - 29);
+          break;
+        case 'last365':
+          start.setDate(today.getDate() - 364);
+          break;
+      }
+
+      const formatDate = (date) => {
+        const d = new Date(date);
+        let month = '' + (d.getMonth() + 1);
+        let day = '' + d.getDate();
+        const year = d.getFullYear();
+
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+
+        return [year, month, day].join('-');
+      }
+
+      $('#startDate').val(formatDate(start));
+      $('#endDate').val(formatDate(end));
+
+      updateDateButtonState();
+      table.draw();
+      $('.date-suggestion').removeClass('btn-primary').addClass('btn-ghost');
+      $(this).removeClass('btn-ghost').addClass('btn-primary');
+    });
+
+    $('#startDate, #endDate').on('input', function () {
+      $('.date-suggestion').removeClass('btn-primary').addClass('btn-ghost');
+    });
+
+    $('#clearDates').on('click', function () {
+      $('.date-suggestion').removeClass('btn-primary').addClass('btn-ghost');
     });
 
     table.columns([2, 3]).every(function () {
@@ -233,8 +453,25 @@
       trigger.on('click', function (e) {
         e.stopPropagation();
         $('.filter-dropdown').not(dropdown).removeClass('show');
-        dropdown.toggleClass('show');
-        trigger.toggleClass('active');
+        $('.filter-trigger').not(trigger).removeClass('active');
+
+        if (dropdown.hasClass('show')) {
+          dropdown.removeClass('show');
+          trigger.removeClass('active');
+        } else {
+          const rect = this.getBoundingClientRect();
+          dropdown.css({
+            'position': 'fixed',
+            'top': (rect.bottom + 5) + 'px',
+            'left': rect.left + 'px',
+            'width': 'auto',
+            'min-width': '200px',
+            'max-width': '300px',
+            'z-index': 10001
+          });
+          dropdown.addClass('show');
+          trigger.addClass('active');
+        }
       });
       dropdown.on('click', function (e) {
         e.stopPropagation();
@@ -290,6 +527,11 @@
         row.child(formatChildRow(tr)).show();
         tr.addClass('shown');
       }
+    });
+
+    $('.dt-scroll-body, .dataTables_scrollBody').on('scroll', function () {
+      $('.filter-dropdown.show').removeClass('show');
+      $('.filter-trigger.active').removeClass('active');
     });
 
   });
