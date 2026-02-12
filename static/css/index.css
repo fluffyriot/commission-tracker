@@ -551,7 +551,7 @@ a:hover {
   color: var(--color-text-main);
 }
 
-@media (min-width: 769px) {
+@media (min-width: 768px) {
   .menu-toggle {
     display: none !important;
   }

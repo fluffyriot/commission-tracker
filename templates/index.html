@@ -308,7 +308,6 @@
             },
             plugins: {
               legend: {
-                display: window.innerWidth >= 768,
                 position: 'bottom',
                 labels: { padding: 20, usePointStyle: true }
               },
@@ -412,6 +411,7 @@
           id: 'totalLabels',
           afterDatasetsDraw: (chart, args, options) => {
             const { ctx, scales: { x, y } } = chart;
+            if (window.innerWidth < 768) return;
             ctx.save();
             ctx.font = 'bold 11px sans-serif';
             ctx.fillStyle = '#a0a0a0';
@@ -475,7 +475,6 @@
             },
             plugins: {
               legend: {
-                display: window.innerWidth >= 768,
                 position: 'bottom',
                 labels: { padding: 20, usePointStyle: true }
               },
@@ -578,7 +577,6 @@
           },
           plugins: {
             legend: {
-              display: window.innerWidth >= 768,
               position: 'bottom',
               labels: {
                 usePointStyle: true,
