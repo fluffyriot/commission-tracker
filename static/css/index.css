@@ -1240,31 +1240,21 @@ table.dataTable tbody tr:hover {
   margin-bottom: 1rem;
 }
 
-.dt-container .dt-search input,
-.dt-container .dt-length select,
-.dataTables_wrapper .dataTables_filter input,
-.dataTables_wrapper .dataTables_length select {
-  background-color: var(--color-bg-input);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-main);
-  padding: 0.4rem;
-  border-radius: var(--radius-sm);
-}
-
-html body .dt-container .dt-search input,
-html body .dt-container .dt-length select {
+.header-search-input {
   background-color: var(--color-bg-input) !important;
   border: 1px solid var(--color-border) !important;
   color: var(--color-text-main) !important;
-  padding: 0.4rem 0.6rem !important;
+  padding: 0.35rem 0.6rem !important;
   border-radius: var(--radius-sm) !important;
   outline: none !important;
   box-shadow: none !important;
   height: auto !important;
+  width: 200px !important;
+  display: inline-block !important;
+  margin-bottom: 0 !important;
 }
 
-html body .dt-container .dt-search input:focus,
-html body .dt-container .dt-length select:focus {
+.header-search-input:focus {
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.2) !important;
 }

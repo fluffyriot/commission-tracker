@@ -50,7 +50,10 @@
 </div>
 
 <div class="card">
-  <div class="card-header">All Posts ({{len .posts}} total)</div>
+  <div class="card-header flex justify-between items-center">
+    <span>All Posts ({{len .posts}} total)</span>
+    <div id="tableSearchContainer"></div>
+  </div>
 
   {{if not .posts}}
   <div class="text-center posts-empty-state">
@@ -257,14 +260,19 @@
       responsive: false,
       scrollY: '60vh',
       scrollCollapse: true,
-      paging: true,
+      paging: false,
       layout: {
-        topStart: 'pageLength',
+        topStart: null,
         topEnd: 'search',
-        top2Start: 'info',
-        top2End: 'paging',
         bottomStart: null,
         bottomEnd: null
+      },
+      initComplete: function () {
+        const $searchInput = $('#postsTable_wrapper .dt-search input');
+        $searchInput.addClass('header-search-input').attr('placeholder', 'Search posts...');
+
+        $searchInput.appendTo('#tableSearchContainer');
+        $('#postsTable_wrapper .dt-search').remove();
       },
       ordering: true,
       lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
@@ -281,10 +289,7 @@
       ],
       language: {
         search: "Search posts: ",
-        lengthMenu: "Show _MENU_ posts per page",
-        info: "_START_ to _END_ of _TOTAL_ posts",
         infoEmpty: "No posts found",
-        infoFiltered: ""
       },
       footerCallback: function (row, data, start, end, display) {
         var api = this.api();
@@ -610,11 +615,7 @@
   function openPreviewModal(network, url) {
     const modal = document.getElementById('previewPostModal');
     const container = $(modal).find('.preview-frame-container');
-
-    // Clear previous content
     container.empty();
-
-    // Create and append new content securely
     const $embed = getEmbedElement(network, url);
     container.append($embed);
 
@@ -624,12 +625,11 @@
   function closePreviewModal() {
     const modal = document.getElementById('previewPostModal');
     const container = $(modal).find('.preview-frame-container');
-    container.empty(); // Clears iframe and stops video playback
+    container.empty();
     modal.style.display = 'none';
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    // Close modal when clicking outside
     const modal = document.getElementById('previewPostModal');
     if (modal) {
       modal.addEventListener('click', function (e) {
