@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM --platform=$BUILDPLATFORM golang:1.25.7 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.0 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -16,7 +16,7 @@ COPY . .
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o rpsync .
 
 # Stage 2: Runtime
-FROM --platform=$TARGETPLATFORM debian:bookworm
+FROM --platform=$TARGETPLATFORM debian:trixie
 
 WORKDIR /app
 
