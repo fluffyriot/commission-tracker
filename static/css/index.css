@@ -49,6 +49,12 @@
   --font-family: 'Atkinson Hyperlegible', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+@media (max-width: 768px) {
+  :root {
+    font-size: 90%;
+  }
+}
+
 *,
 *::before,
 *::after {
