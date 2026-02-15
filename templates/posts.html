@@ -51,14 +51,14 @@
 
 <div class="card">
   <div class="card-header flex justify-between items-center">
-    <span>All Posts ({{len .posts}} total)</span>
+    <span class="text-md">All Posts ({{len .posts}} total)</span>
     <div id="tableSearchContainer"></div>
   </div>
 
   {{if not .posts}}
   <div class="text-center posts-empty-state">
     <i data-lucide="file-text" class="posts-empty-icon"></i>
-    <p>No posts found.</p>
+    <p class="text-md">No posts found.</p>
   </div>
   {{else}}
   <div class="table-responsive">
@@ -68,9 +68,9 @@
           <th></th>
           <th>Date</th>
           <th class="th-filterable">Source</th>
-          <th class="th-filterable">Post Type</th>
           <th>Likes & Reposts</th>
           <th>Views</th>
+          <th class="th-filterable">Post Type</th>
           <th>Link</th>
           <th>Content</th>
         </tr>
@@ -101,10 +101,10 @@
             </span>
             {{else}}-{{end}}
           </td>
-          <td data-search="{{if .Post.PostType}}{{.Post.PostType}}{{else}}-{{end}}">{{if
-            .Post.PostType}}{{.Post.PostType}}{{else}}-{{end}}</td>
           <td>{{.Post.Interactions}}</td>
           <td>{{if .Post.Views.Valid}}{{.Post.Views.Int64}}{{else}}-{{end}}</td>
+          <td data-search="{{if .Post.PostType}}{{.Post.PostType}}{{else}}-{{end}}">{{if
+            .Post.PostType}}{{.Post.PostType}}{{else}}-{{end}}</td>
           <td>
             {{if .URL}}
             <a href="{{.URL}}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-ghost btn-icon"

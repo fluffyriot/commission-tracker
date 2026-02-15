@@ -38,7 +38,7 @@
                         placeholder="username (no @)" required autocapitalize="off">
                 </div>
 
-                <div class="form-group" id="instagram_section" style="display:none;">
+                <div class="form-group hidden" id="instagram_section">
                     <label class="form-label" for="instagram_profile_id">Instagram Profile ID</label>
                     <input id="instagram_profile_id" name="instagram_profile_id" class="form-input"
                         placeholder="123456789" autocapitalize="off">
@@ -52,22 +52,22 @@
                         placeholder="Facebook App Secret" autocapitalize="off">
                 </div>
 
-                <div class="form-group" id="google_analytics_section" style="display:none;">
+                <div class="form-group hidden" id="google_analytics_section">
                     <label class="form-label" for="google_analytics_property_id">Property ID</label>
                     <input id="google_analytics_property_id" name="google_analytics_property_id" class="form-input"
                         placeholder="e.g. 34221144" autocapitalize="off">
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Found in Admin > Property
+                    <p class="text-muted text-xs mt-1">Found in Admin > Property
                         Settings</p>
 
                     <label class="form-label" for="google_service_account_key">Service Account JSON Key</label>
                     <textarea id="google_service_account_key" name="google_service_account_key" class="form-input"
                         rows="5" placeholder='{"type": "service_account", ...}' autocapitalize="off"></textarea>
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Create a Service Account in
+                    <p class="text-muted text-xs mt-1">Create a Service Account in
                         Google Cloud
                         Console, download the JSON key, and paste it here.</p>
                 </div>
 
-                <div class="form-group" id="telegram_section" style="display:none;">
+                <div class="form-group hidden" id="telegram_section">
 
                     <label class="form-label" for="telegram_bot_token">Telegram Bot Token</label>
                     <input id="telegram_bot_token" name="telegram_bot_token" class="form-input"
@@ -87,7 +87,7 @@
 
                 </div>
 
-                <div class="form-group" id="discord_section" style="display:none;">
+                <div class="form-group hidden" id="discord_section">
                     <label class="form-label" for="discord_bot_token">Discord Bot Token</label>
                     <input id="discord_bot_token" name="discord_bot_token" class="form-input"
                         placeholder="your_bot_token" autocapitalize="off">
@@ -99,11 +99,11 @@
                     <label class="form-label" for="discord_channel_ids">Channel IDs (comma-separated)</label>
                     <input id="discord_channel_ids" name="discord_channel_ids" class="form-input"
                         placeholder="123456,789012,345678" autocapitalize="off">
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Enter multiple channel IDs
+                    <p class="text-muted text-xs mt-1">Enter multiple channel IDs
                         separated by commas</p>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%">
+                <button type="submit" class="btn btn-primary w-full">
                     <i data-lucide="plus"></i> Add Source
                 </button>
             </form>
@@ -115,9 +115,9 @@
             <div class="card-header">User Sources</div>
 
             {{if not .sources}}
-            <div class="text-center" style="padding: 2rem; color: var(--color-text-muted);">
-                <i data-lucide="ghost" style="width: 48px; height: 48px; opacity: 0.5;"></i>
-                <p>No sources connected yet.</p>
+            <div class="text-center p-8 text-muted">
+                <i data-lucide="ghost" class="icon-xl opacity-50"></i>
+                <p class="text-md">No sources connected yet.</p>
             </div>
             {{else}}
             <div class="flex flex-col gap-2">
@@ -130,12 +130,12 @@
                                 <img src='/static/images/sources/badge/{{replace (lower .Network) " " "_"}}_logo.svg'
                                     alt="{{.Network}}" class="badge-logo"
                                     onerror="this.style.display='none'; var ph=this.nextElementSibling; ph.style.display='flex';">
-                                <div class="badge-logo-placeholder" style="display: none;">
+                                <div class="badge-logo-placeholder hidden">
                                     {{slice .Network 0 1 | upper}}
                                 </div>
                                 {{.Network}}
                             </span>
-                            <span style="font-weight: bold; font-size: 1.05rem;">{{.UserName}}</span>
+                            <span class="font-bold text-sm">{{.UserName}}</span>
                         </div>
 
                         <div class="source-meta flex items-center gap-2">
@@ -158,8 +158,7 @@
                             {{end}}
 
                             {{if .StatusReason.Valid}}
-                            <span title="{{.StatusReason.String}}"><i data-lucide="info"
-                                    style="width: 14px; height: 14px;"></i></span>
+                            <span title="{{.StatusReason.String}}"><i data-lucide="info" class="icon-xs"></i></span>
                             {{end}}
                         </div>
                     </div>

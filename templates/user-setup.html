@@ -1,26 +1,24 @@
 {{ template "header.html" . }}
 
-<div style="max-width: 500px; margin: 4rem auto;">
+<div class="mw-500 my-16 mx-auto">
   <div class="card">
     <div class="text-center mb-4">
       <h1>Create Account</h1>
-      <p class="text-muted">Welcome to RPSync. Create your account to get started.</p>
+      <p class="text-muted text-md">Welcome to RPSync. Create your account to get started.</p>
     </div>
 
     {{if .Message1}}
-    <div class="card"
-      style="background: var(--color-success-bg); border-color: var(--color-success); color: var(--color-success-fg);">
-      <p>{{.Message1}}</p>
+    <div class="card" class="bg-success-bg border-success text-success-fg">
+      <p class="text-md">{{.Message1}}</p>
     </div>
     {{end}}
 
     {{if .Message2}}
-    <div class="card"
-      style="background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning-fg);">
-      <p>{{.Message2}}</p>
+    <div class="card" class="bg-warning-bg border-warning text-warning-fg">
+      <p class="text-md">{{.Message2}}</p>
     </div>
     <form method="GET" action="/status" class="mt-4">
-      <button class="btn btn-primary" type="submit" style="width: 100%">Go To Dashboard</button>
+      <button class="btn btn-primary w-full" type="submit">Go To Dashboard</button>
     </form>
     {{else}}
     <form method="POST" action="/register">
@@ -31,10 +29,10 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+        <button type="submit" class="btn btn-primary w-full mt-4">
           Create Account & Continue
         </button>
-        <a href="/login" class="btn btn-secondary" style="width: 100%; text-align: center;">Back to Login</a>
+        <a href="/login" class="btn btn-secondary w-full text-center">Back to Login</a>
       </div>
     </form>
     {{end}}

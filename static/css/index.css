@@ -38,6 +38,14 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
 
+  --font-xs: 0.75rem;
+  --font-sm: 0.85rem;
+  --font-md: 0.9rem;
+  --font-lg: 1.1rem;
+  --font-xl: 1.4rem;
+  --font-2xl: 1.6rem;
+  --font-3xl: 2.8rem;
+
   --font-family: 'Atkinson Hyperlegible', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -66,11 +74,11 @@ h4 {
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: var(--font-2xl);
 }
 
 h2 {
-  font-size: 1.5rem;
+  font-size: var(--font-xl);
 }
 
 a {
@@ -105,7 +113,7 @@ a:hover {
 
 .helper-text {
   margin-top: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-xs);
 }
 
 .helper-text.indent {
@@ -175,8 +183,193 @@ a:hover {
   gap: 1rem;
 }
 
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
 .mt-4 {
   margin-top: 1rem;
+}
+
+.mt-6 {
+  margin-top: 1.5rem;
+}
+
+.mb-8 {
+  margin-bottom: 2rem;
+}
+
+.m-0 {
+  margin: 0;
+}
+
+.p-1 {
+  padding: 0.25rem;
+}
+
+.p-3 {
+  padding: 0.75rem;
+}
+
+.p-8 {
+  padding: 2rem;
+}
+
+.underline {
+  text-decoration: underline;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.my-16 {
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+}
+
+.mw-450 {
+  max-width: 450px;
+}
+
+.mw-500 {
+  max-width: 500px;
+}
+
+.text-danger {
+  color: var(--color-danger);
+}
+
+.bg-danger-bg {
+  background-color: var(--color-danger-bg);
+}
+
+.text-danger-fg {
+  color: var(--color-danger-fg);
+}
+
+.bg-success-bg {
+  background-color: var(--color-success-bg);
+}
+
+.text-success-fg {
+  color: var(--color-success-fg);
+}
+
+.bg-warning-bg {
+  background-color: var(--color-warning-bg);
+}
+
+.text-warning-fg {
+  color: var(--color-warning-fg);
+}
+
+.w-full {
+  width: 100%;
+}
+
+.col-span-full {
+  grid-column: 1 / -1;
+}
+
+.relative {
+  position: relative;
+}
+
+.h-64 {
+  height: 250px !important;
+}
+
+.h-96 {
+  height: 400px !important;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.border-collapse {
+  border-collapse: collapse;
+}
+
+.border-b {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.text-left {
+  text-align: left;
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.icon-xs {
+  width: 14px;
+  height: 14px;
+}
+
+.icon-md {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-xl {
+  width: 48px;
+  height: 48px;
+}
+
+.text-sm {
+  font-size: var(--font-sm);
+}
+
+.text-xs {
+  font-size: var(--font-xs);
+}
+
+.text-lg {
+  font-size: var(--font-lg);
+}
+
+.text-md {
+  font-size: var(--font-md);
+}
+
+.text-xl {
+  font-size: var(--font-xl);
+}
+
+.text-2xl {
+  font-size: var(--font-2xl);
+}
+
+.text-3xl {
+  font-size: var(--font-3xl);
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.border-t {
+  border-top: 1px solid var(--color-border);
+}
+
+.pt-4 {
+  padding-top: 1rem;
 }
 
 .mb-4 {
@@ -221,7 +414,7 @@ a:hover {
   padding: 0.5rem 0.75rem;
   font-family: inherit;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--font-sm);
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
@@ -285,15 +478,15 @@ a:hover {
 }
 
 .btn-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   stroke-width: 2;
 }
 
 .form-label {
   display: block;
   margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  font-size: var(--font-xs);
   color: var(--color-text-muted);
 }
 
@@ -301,6 +494,7 @@ a:hover {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
+  font-size: var(--font-sm);
 }
 
 .form-input,
@@ -313,6 +507,7 @@ a:hover {
   border-radius: var(--radius-sm);
   color: var(--color-text-main);
   font-family: inherit;
+  font-size: var(--font-sm);
   transition: border-color 0.2s;
 }
 
@@ -356,7 +551,7 @@ a:hover {
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--color-border);
-  font-size: 1.1rem;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--color-text-main);
 }
@@ -366,7 +561,7 @@ a:hover {
   align-items: center;
   padding: 0.25rem 0.6rem;
   border-radius: 99px;
-  font-size: 0.75rem;
+  font-size: var(--font-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -398,7 +593,7 @@ a:hover {
   gap: 6px;
   padding: 4px 8px;
   border-radius: 99px;
-  font-size: 0.75rem;
+  font-size: var(--font-xs);
   font-weight: 600;
   text-transform: uppercase;
   color: white;
@@ -419,7 +614,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-weight: bold;
 }
 
@@ -455,7 +650,7 @@ a:hover {
   align-items: center;
   gap: 0.75rem;
   font-weight: bold;
-  font-size: 1.25rem;
+  font-size: var(--font-lg);
   color: var(--color-primary-fg);
   text-decoration: none;
 }
@@ -512,13 +707,14 @@ a:hover {
 
 .drawer-header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--font-lg);
 }
 
 .drawer-body {
   padding: 1.5rem;
   overflow-y: auto;
   flex-grow: 1;
+  font-size: var(--font-sm);
 }
 
 .drawer-footer {
@@ -534,7 +730,7 @@ a:hover {
 .drawer-close-btn {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: var(--font-xl);
   cursor: pointer;
   color: var(--color-text-muted);
   width: 2rem;
@@ -645,7 +841,7 @@ a:hover {
   color: var(--color-text-main);
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--font-sm);
   text-decoration: none;
 }
 
@@ -671,7 +867,7 @@ a:hover {
   color: var(--color-text-main);
   cursor: pointer;
   font-family: inherit;
-  font-size: 0.9rem;
+  font-size: var(--font-sm);
   text-decoration: none;
   flex-direction: row-reverse;
   justify-content: flex-start;
@@ -698,7 +894,7 @@ a:hover {
 }
 
 .dropdown-user-label {
-  font-size: 0.75rem;
+  font-size: var(--font-xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -709,7 +905,7 @@ a:hover {
 .dropdown-user-name {
   font-weight: bold;
   color: var(--color-text-main);
-  font-size: 1rem;
+  font-size: var(--font-sm);
 }
 
 @media (max-width: 768px) {
@@ -773,7 +969,7 @@ a:hover {
 }
 
 .source-meta {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
   color: var(--color-text-muted);
   margin-top: 0.25rem;
 }
@@ -827,7 +1023,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
+  font-size: var(--font-3xl);
   font-weight: bold;
 }
 
@@ -864,7 +1060,7 @@ a:hover {
 }
 
 .stat-value {
-  font-size: 2rem;
+  font-size: var(--font-2xl);
   font-weight: bold;
   margin-bottom: 0.25rem;
   color: var(--color-text-main);
@@ -872,13 +1068,13 @@ a:hover {
 
 .stat-label {
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--font-sm);
   font-weight: 500;
 }
 
 .stat-link {
   margin-top: 1rem;
-  font-size: 0.85rem;
+  font-size: var(--font-sm);
   color: var(--color-primary);
   font-weight: 600;
   display: inline-flex;
@@ -961,21 +1157,21 @@ a:hover {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 1.2rem;
+  font-size: var(--font-md);
   color: white;
   flex-shrink: 0;
 }
 
 .source-name {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--font-md);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .source-network {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
   color: var(--color-text-muted);
 }
 
@@ -998,11 +1194,11 @@ a:hover {
 
 .source-stat-value {
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: var(--font-md);
 }
 
 .source-stat-label {
-  font-size: 0.75rem;
+  font-size: var(--font-xs);
   color: var(--color-text-muted);
 }
 
@@ -1028,18 +1224,18 @@ a:hover {
 }
 
 .login-secondary-actions .text-muted {
-  font-size: 0.8rem;
+  font-size: var(--font-xs);
   margin-top: 0.5rem;
 }
 
 .password-requirements {
-  font-size: 0.8rem;
+  font-size: var(--font-xs);
   padding-left: 1.2rem;
   margin-top: 0.5rem;
 }
 
 .match-error {
-  font-size: 0.8rem;
+  font-size: var(--font-xs);
   margin-top: 0.25rem;
   display: none;
 }
@@ -1073,6 +1269,7 @@ a:hover {
   border-left: 3px solid transparent;
   font-weight: 500;
   white-space: nowrap;
+  font-size: var(--font-sm);
 }
 
 .settings-nav-item:hover {
@@ -1110,7 +1307,7 @@ a:hover {
   background-color: var(--color-bg-surface-hover);
   color: var(--color-text-main);
   font-weight: bold;
-  font-size: 1rem;
+  font-size: var(--font-lg);
   flex-shrink: 0;
   vertical-align: middle;
 }
@@ -1267,7 +1464,7 @@ table.dataTable tbody tr:hover {
   padding: 0.5rem 0.75rem;
   font-family: inherit;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--font-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   cursor: pointer;
@@ -1434,7 +1631,7 @@ table.dataTable thead>tr>td.dt-orderable-desc:hover {
 }
 
 .filter-action-btn {
-  font-size: 0.75rem;
+  font-size: var(--font-xs);
   color: var(--color-primary);
   cursor: pointer;
   font-weight: 600;
@@ -1453,7 +1650,7 @@ table.dataTable thead>tr>td.dt-orderable-desc:hover {
 
 .details-control:before {
   content: '+';
-  font-size: 16px;
+  font-size: var(--font-sm);
 }
 
 tr.shown .details-control:before {
@@ -1488,26 +1685,26 @@ tr.shown .details-control:before {
 
 @media (max-width: 768px) {
   .child-row-value {
-    font-size: 0.6rem;
+    font-size: var(--font-xs);
   }
 }
 
 #postsTable {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
 }
 
 #postsTable thead th,
 #postsTable tbody td {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
 }
 
 .network-badge {
   color: white !important;
-  font-size: 0.6rem !important;
+  font-size: var(--font-xs) !important;
 }
 
 .posts-table-footer {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
 }
 
 .date-filter-dropdown {
@@ -1530,5 +1727,5 @@ tr.shown .details-control:before {
 }
 
 .sticky-header {
-  font-size: 0.8rem;
+  font-size: var(--font-sm);
 }

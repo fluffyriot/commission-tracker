@@ -1,22 +1,21 @@
 {{ template "header.html" . }}
 
-<div style="max-width: 500px; margin: 4rem auto;">
-  <div class="card" style="border-color: var(--color-danger);">
+<div class="mw-500 my-16 mx-auto">
+  <div class="card border-danger">
     <div class="text-center mb-4">
-      <h1 style="color: var(--color-danger);">System Error</h1>
-      <i data-lucide="alert-triangle"
-        style="width: 48px; height: 48px; color: var(--color-danger); margin: 1rem 0;"></i>
+      <h1 class="text-danger">System Error</h1>
+      <i data-lucide="alert-triangle" class="icon-xl text-danger my-4"></i>
     </div>
 
-    <div class="card" style="background: var(--color-danger-bg); border: none; color: var(--color-danger-fg);">
-      <p style="white-space: pre-wrap; word-break: break-all;">{{.error}}</p>
+    <div class="card bg-danger-bg border-none text-danger-fg">
+      <p class="whitespace-pre-wrap break-all text-md">{{.error}}</p>
     </div>
 
     <div class="text-center mt-4">
       <button type="button" class="btn btn-secondary" onclick="history.back()">
         <i data-lucide="arrow-left"></i> Go Back
       </button>
-      <a href="/" class="btn btn-primary" style="margin-left: 0.5rem;">
+      <a href="/" class="btn btn-primary ml-2">
         <i data-lucide="home"></i> Home
       </a>
     </div>

@@ -30,7 +30,7 @@
 
         .status {
             margin-top: 1rem;
-            font-size: 1.2rem;
+            font-size: var(--font-lg);
             color: var(--color-text-muted);
         }
 
@@ -46,14 +46,15 @@
 </head>
 
 <body>
-    <div class="card text-center" style="max-width: 450px; width: 100%;">
+    <div class="card text-center mw-450 w-full">
         <h1>Scan to Login</h1>
-        <p>Open TikTok on your mobile device, go to Profile > Menu > QR Code > Scan, and scan this code.</p>
+        <p class="text-md">Open TikTok on your mobile device, go to Profile > Menu > QR Code > Scan, and scan this code.
+        </p>
 
         {{ if .QRCode }}
         <img src="data:image/png;base64,{{ .QRCode }}" class="qr" alt="TikTok Login QR Code">
         {{ else }}
-        <p>Error loading QR code.</p>
+        <p class="text-md">Error loading QR code.</p>
         {{ end }}
 
         <div id="status" class="status">Waiting for scan...</div>
