@@ -57,11 +57,11 @@
                     <div class="flex flex-col gap-2">
                         <label class="btn btn-secondary cursor-pointer">
                             <i data-lucide="upload"></i> Upload Avatar
-                            <input type="file" id="avatar-upload" accept="image/*" style="display: none;"
+                            <input type="file" id="avatar-upload" accept="image/*" class="hidden"
                                 onchange="handleAvatarUpload(this)">
                         </label>
                         <button class="btn btn-ghost" onclick="handleRemoveAvatar()" {{ if not .has_avatar
-                            }}style="display: none;" {{ end }} id="remove-avatar-btn">
+                            }}class="hidden" {{ end }} id="remove-avatar-btn">
                             <i data-lucide="trash-2"></i> Remove Avatar
                         </button>
                     </div>
@@ -80,10 +80,10 @@
             </div>
         </div>
 
-        <div id="account-security" class="card settings-section" style="margin-top: 1.5rem;">
+        <div id="account-security" class="card settings-section mt-6">
             <div class="card-header">Account Security</div>
             <div>
-                <p class="text-muted mb-4">
+                <p class="text-muted mb-4 text-md">
                     Manage your account security settings.
                 </p>
                 <div class="flex gap-2 flex-wrap">
@@ -127,7 +127,7 @@
                     <label class="checkbox-label">
                         <input type="checkbox" name="allow_new_user_creation" id="allow_new_user_creation" {{if
                             .allow_new_user_creation}}checked{{end}} class="checkbox-input">
-                        <span style="font-weight: 500;">Allow new user creation</span>
+                        <span class="text-md" style="font-weight: 500;">Allow new user creation</span>
                     </label>
                     <p class="text-muted helper-text indent">
                         If disabled, new users cannot register from login page.
@@ -138,7 +138,7 @@
                     <label class="checkbox-label">
                         <input type="checkbox" name="enabled_on_startup" id="enabled_on_startup" {{if
                             .enable_worker_on_startup}}checked{{end}} class="checkbox-input">
-                        <span style="font-weight: 500;">Enable worker on startup</span>
+                        <span class="text-md" style="font-weight: 500;">Enable worker on startup</span>
                     </label>
                     <p class="text-muted helper-text indent">
                         When enabled, the worker will automatically start when the application launches.
@@ -153,7 +153,7 @@
             </form>
         </div>
 
-        <div id="syncer-config" class="card settings-section" style="margin-top: 1.5rem;">
+        <div id="syncer-config" class="card settings-section mt-6">
             <div class="card-header">Syncer Configuration</div>
 
             <form method="POST" action="/settings/sync">
@@ -189,11 +189,11 @@
             </form>
         </div>
 
-        <div id="manual-control" class="card settings-section" style="margin-top: 1.5rem;">
+        <div id="manual-control" class="card settings-section mt-6">
             <div class="card-header">Manual Control</div>
 
             <div>
-                <p class="text-muted" style="margin-bottom: 1rem;">
+                <p class="text-muted mb-4 text-md">
                     Manually control the background worker and a syncronizer.
                 </p>
 
@@ -225,11 +225,11 @@
             </div>
         </div>
 
-        <div id="post-exclusions" class="card settings-section" style="margin-top: 1.5rem;">
+        <div id="post-exclusions" class="card settings-section mt-6">
             <div class="card-header">Post Exclusions</div>
 
             <div>
-                <p class="text-muted" style="margin-bottom: 1rem;">
+                <p class="text-muted mb-4 text-md">
                     Exclude specific posts from being synced. Excluded posts will be permanently deleted from the
                     database and will not be re-synced in future fetches.
                 </p>
@@ -246,7 +246,7 @@
                 </div>
 
                 <div id="exclusions-list">
-                    <p class="text-muted exclusion-list-empty">Loading exclusions...</p>
+                    <p class="text-muted exclusion-list-empty text-md">Loading exclusions...</p>
                 </div>
 
                 <div id="pagination-controls" class="pagination-controls">
@@ -254,7 +254,7 @@
                         title="Previous Page">
                         <i data-lucide="chevron-left"></i>
                     </button>
-                    <span id="pageInfo" class="text-muted" style="font-weight: 500;">Page 1 of 1</span>
+                    <span id="pageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of 1</span>
                     <button id="nextBtn" class="btn btn-secondary btn-icon" onclick="changePage(1)" disabled
                         title="Next Page">
                         <i data-lucide="chevron-right"></i>
@@ -267,7 +267,7 @@
             <div class="card-header">Page Redirects</div>
 
             <div>
-                <p class="text-muted" style="margin-bottom: 1rem;">
+                <p class="text-muted text-md" style="margin-bottom: 1rem;">
                     Configure page path redirects. Stats for the "From Path" will be merged into the "To Path".
                 </p>
 
@@ -283,7 +283,7 @@
                 </div>
 
                 <div id="redirects-list">
-                    <p class="text-muted exclusion-list-empty">Loading redirects...</p>
+                    <p class="text-muted exclusion-list-empty text-md">Loading redirects...</p>
                 </div>
 
                 <div id="redirect-pagination-controls" class="pagination-controls">
@@ -291,7 +291,7 @@
                         disabled title="Previous Page">
                         <i data-lucide="chevron-left"></i>
                     </button>
-                    <span id="redirectPageInfo" class="text-muted" style="font-weight: 500;">Page 1 of 1</span>
+                    <span id="redirectPageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of 1</span>
                     <button id="nextRedirectBtn" class="btn btn-secondary btn-icon" onclick="changeRedirectPage(1)"
                         disabled title="Next Page">
                         <i data-lucide="chevron-right"></i>
@@ -566,7 +566,7 @@
             <div class="card exclusion-item">
                 <div>
                     <strong>${excl.network_internal_id}</strong><br>
-                    <span class="text-muted" style="font-size: 0.875rem;">${excl.network} - ${excl.user_name}</span>
+                    <span class="text-muted text-xs">${excl.network} - ${excl.user_name}</span>
                 </div>
                 <button class="btn btn-danger btn-icon" onclick="deleteExclusion('${excl.id}')" title="Delete">
                     <i data-lucide="trash-2"></i>
@@ -600,7 +600,7 @@
                         <i data-lucide="arrow-right" style="width: 16px;"></i>
                         <strong>${r.to_path}</strong>
                     </div>
-                    <span class="text-muted" style="font-size: 0.875rem;">${r.network} - ${r.user_name}</span>
+                    <span class="text-muted text-xs">${r.network} - ${r.user_name}</span>
                 </div>
                 <button class="btn btn-danger btn-icon" onclick="deleteRedirect('${r.id}')" title="Delete">
                     <i data-lucide="trash-2"></i>
@@ -712,7 +712,6 @@
             to_path: formData.get('to_path')
         };
 
-        // Basic validation
         if (data.from_path === data.to_path) {
             alert("From and To paths must be different.");
             return;

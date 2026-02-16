@@ -23,10 +23,10 @@
     <div class="source-tile-header">
       <img src="/static/images/sources/{{.Network | lower}}_logo.svg" alt="{{.Network}}" class="source-logo"
         onerror="this.style.display='none'; var ph=this.nextElementSibling; ph.style.display='flex'; ph.style.backgroundColor=ph.dataset.color;">
-      <div class="source-logo-placeholder" style="display: none;" data-color="{{index $.network_colors .Network}}">
+      <div class="source-logo-placeholder hidden" data-color="{{index $.network_colors .Network}}">
         {{slice .Network 0 1 | upper}}
       </div>
-      <div style="min-width: 0;">
+      <div class="min-w-0">
         <a href="{{.ProfileURL}}" target="_blank" class="source-name" title="{{.UserName}}">{{.UserName | stripAt}}</a>
         <div class="source-network">{{.Network}}</div>
       </div>
@@ -44,8 +44,7 @@
   </div>
   {{end}}
   {{if and .top_sources (eq (len .top_sources) 3)}}
-  <button id="show-all-sources-btn" class="btn btn-secondary w-full" style="grid-column: 1 / -1;"
-    onclick="loadRestSources(this)">
+  <button id="show-all-sources-btn" class="btn btn-secondary w-full col-span-full" onclick="loadRestSources(this)">
     <i data-lucide="chevrons-down"></i> Show All
   </button>
   {{end}}
@@ -55,13 +54,13 @@
 <div class="dashboard-comparison-grid">
   <div class="card">
     <div class="card-header">Your Engagement</div>
-    <div style="position: relative; height: 250px; width: 100%;">
+    <div class="relative w-full h-64">
       <canvas id="engagementComparisonChart"></canvas>
     </div>
   </div>
   <div class="card">
     <div class="card-header">Your Followers</div>
-    <div style="position: relative; height: 250px; width: 100%;">
+    <div class="relative w-full h-64">
       <canvas id="followersComparisonChart"></canvas>
     </div>
   </div>
@@ -70,7 +69,7 @@
 <div class="grid-dashboard">
 
   <div class="stat-card {{if .worker_is_off}}has-errors{{end}}">
-    <div class="stat-icon"><i data-lucide="activity" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="activity" class="icon-md"></i></div>
     <div class="stat-value">{{.worker_status}}</div>
     <div class="stat-label">Syncer Status</div>
     <a href="/settings/sync#syncer-config" class="stat-link">Manage Settings &rarr;</a>
@@ -79,7 +78,7 @@
 
   {{if not .worker_is_off}}
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="clock" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="clock" class="icon-md"></i></div>
     <div class="stat-value">{{.sync_period}}</div>
     <div class="stat-label">Sync Frequency</div>
     <a href="/settings/sync#syncer-config" class="stat-link">Change Frequency &rarr;</a>
@@ -88,81 +87,81 @@
 
 
   <div class="stat-card {{if gt .sync_errors_30d 0}}has-errors{{end}}">
-    <div class="stat-icon"><i data-lucide="alert-circle" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="alert-circle" class="icon-md"></i></div>
     <div class="stat-value">{{.sync_errors_30d}}</div>
     <div class="stat-label">Sync Errors (Last 30 days)</div>
     <a href="#recent-logs" class="stat-link">View Errors &rarr;</a>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="server" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="server" class="icon-md"></i></div>
     <div class="stat-value">{{.active_sources}}</div>
     <div class="stat-label">Active Sources</div>
     <a href="/sources" class="stat-link">Manage Sources &rarr;</a>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="database" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="database" class="icon-md"></i></div>
     <div class="stat-value">{{.active_targets}}</div>
     <div class="stat-label">Active Targets</div>
     <a href="/targets" class="stat-link">Manage Targets &rarr;</a>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="file-text" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="file-text" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.total_posts}}</div>
     <div class="stat-label">Total Posts Tracked</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="heart" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="heart" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.total_likes}}</div>
     <div class="stat-label">Total Likes</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="share-2" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="share-2" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.total_shares}}</div>
     <div class="stat-label">Total Shares/Reposts</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="eye" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="eye" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.total_views}}</div>
     <div class="stat-label">Total Post Views</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="users" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="users" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.total_visitors}}</div>
     <div class="stat-label">Website Visitors</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="mouse-pointer" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="mouse-pointer" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.total_page_views}}</div>
     <div class="stat-label">Website Page Views</div>
   </div>
 
   <div class="stat-card">
-    <div class="stat-icon"><i data-lucide="hourglass" style="width: 24px; height: 24px;"></i></div>
+    <div class="stat-icon"><i data-lucide="hourglass" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.average_website_session}}s</div>
     <div class="stat-label">Average Website Session</div>
   </div>
 
 </div>
 
-<div class="card" style="margin-bottom: 2rem;">
+<div class="card mb-8">
   <div class="card-header">Engagement Over Time</div>
-  <div style="position: relative; height: 400px; width: 100%;">
+  <div class="relative w-full h-96">
     <canvas id="engagementChart"></canvas>
   </div>
 </div>
 
 
-<div class="card" style="margin-bottom: 2rem;">
+<div class="card mb-8">
   <div class="card-header">Website Analytics Over Time</div>
-  <div style="position: relative; height: 400px; width: 100%;">
+  <div class="relative w-full h-96">
     <canvas id="analyticsChart"></canvas>
   </div>
 </div>
@@ -170,27 +169,27 @@
 <div class="card" id="recent-logs">
   <div class="card-header">Recent Sync Errors</div>
   {{if not .recent_logs}}
-  <div class="text-center" style="padding: 2rem; color: var(--color-text-muted);">
-    <i data-lucide="check-circle" style="width: 48px; height: 48px; opacity: 0.5; color: var(--color-success);"></i>
+  <div class="text-center p-8 text-muted">
+    <i data-lucide="check-circle" class="icon-xl opacity-50 text-success"></i>
     <p>No recent errors found.</p>
   </div>
   {{else}}
   <div style="overflow-x: auto;">
-    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+    <table class="w-full border-collapse text-sm">
       <thead>
-        <tr style="text-align: left; border-bottom: 1px solid var(--color-border);">
-          <th style="padding: 0.75rem;">Time</th>
-          <th style="padding: 0.75rem;">Source/Target</th>
-          <th style="padding: 0.75rem;">Message</th>
+        <tr class="text-left border-b">
+          <th class="p-3">Time</th>
+          <th class="p-3">Source/Target</th>
+          <th class="p-3">Message</th>
         </tr>
       </thead>
       <tbody>
         {{range .recent_logs}}
-        <tr style="border-bottom: 1px solid var(--color-border);">
-          <td style="padding: 0.75rem; white-space: nowrap; color: var(--color-text-muted);">
+        <tr class="border-b">
+          <td class="p-3 whitespace-nowrap text-muted">
             {{.CreatedAt.Format "Jan 02 15:04"}}
           </td>
-          <td style="padding: 0.75rem;">
+          <td class="p-3">
             {{if .SourceNetwork.Valid}}
             <div class="flex items-center gap-2">
               <span class="badge badge-neutral">{{.SourceNetwork.String}}</span>
@@ -205,14 +204,13 @@
             <span class="text-muted">System</span>
             {{end}}
           </td>
-          <td style="padding: 0.75rem; color: var(--color-danger);">
+          <td class="p-3 text-danger">
             <div class="flex justify-between items-start gap-2">
               <span>{{.Message}}</span>
-              <form method="POST" action="/logs/dismiss" style="margin: 0;">
+              <form method="POST" action="/logs/dismiss" class="m-0">
                 <input type="hidden" name="id" value="{{.ID}}">
-                <button type="submit" class="btn btn-sm btn-ghost btn-icon" title="Dismiss"
-                  style="padding: 2px; height: auto;">
-                  <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                <button type="submit" class="btn btn-sm btn-ghost btn-icon" title="Dismiss" class="p-0.5 h-auto">
+                  <i data-lucide="x" class="icon-sm"></i>
                 </button>
               </form>
             </div>
@@ -308,7 +306,6 @@
             },
             plugins: {
               legend: {
-                display: window.innerWidth >= 768,
                 position: 'bottom',
                 labels: { padding: 20, usePointStyle: true }
               },
@@ -355,8 +352,8 @@
 
         const ctx = document.getElementById('engagementChart').getContext('2d');
 
-        const datasets = [];
         const allDates = new Set();
+        const networkGroups = {};
 
         Chart.defaults.color = '#a0a0a0';
         Chart.defaults.borderColor = '#333';
@@ -368,39 +365,91 @@
           console.error("Failed to parse network colors", e);
         }
 
-        data.forEach((source, index) => {
+        data.forEach(source => {
+          if (!networkGroups[source.network]) {
+            networkGroups[source.network] = new Map();
+          }
           const points = source.points || [];
-          const dataPoints = points.map(p => {
-            const dateStr = p.date;
-            allDates.add(dateStr);
-            return {
-              x: dateStr,
-              y: p.likes + p.reposts
-            };
-          });
-
-          const color = networkColors[source.network] || '#9167e4';
-
-          datasets.push({
-            label: `  ${source.network} (${source.username})`,
-            data: dataPoints,
-            borderColor: color,
-            backgroundColor: color + '20',
-            fill: false,
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 3
+          points.forEach(p => {
+            allDates.add(p.date);
+            const current = networkGroups[source.network].get(p.date) || 0;
+            networkGroups[source.network].set(p.date, current + p.likes + p.reposts);
           });
         });
 
         const sortedDates = Array.from(allDates).sort();
 
+        const datasets = [];
+
+        Object.keys(networkGroups).forEach(network => {
+          const dateMap = networkGroups[network];
+          const dataPoints = [];
+
+          sortedDates.forEach(date => {
+            let val = 0;
+            if (dateMap.has(date)) {
+              val = dateMap.get(date);
+            }
+            dataPoints.push(val);
+          });
+
+          const color = networkColors[network] || '#9167e4';
+
+          datasets.push({
+            label: ' ' + network,
+            data: dataPoints,
+            backgroundColor: color,
+            borderColor: color,
+            borderWidth: 1,
+            fill: true,
+          });
+        });
+
+        const totalLabelsPlugin = {
+          id: 'totalLabels',
+          afterDatasetsDraw: (chart, args, options) => {
+            const { ctx, scales: { x, y } } = chart;
+            if (window.innerWidth < 768) return;
+            ctx.save();
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillStyle = '#a0a0a0';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            chart.data.labels.forEach((label, index) => {
+              let total = 0;
+              let hasData = false;
+
+              chart.data.datasets.forEach((dataset, i) => {
+                if (chart.isDatasetVisible(i)) {
+                  const val = dataset.data[index];
+                  if (typeof val === 'number') {
+                    total += val;
+                    if (val > 0) hasData = true;
+                  }
+                }
+              });
+
+              if (hasData && total > 0) {
+                const meta = chart.getDatasetMeta(0);
+                if (meta.data[index]) {
+                  const xPos = meta.data[index].x;
+                  const yPos = y.getPixelForValue(total);
+                  ctx.fillText(total, xPos, yPos - 5);
+                }
+              }
+            });
+            ctx.restore();
+          }
+        };
+
         new Chart(ctx, {
-          type: 'line',
+          type: 'bar',
           data: {
             labels: sortedDates,
             datasets: datasets
           },
+          plugins: [totalLabelsPlugin],
           options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -410,18 +459,20 @@
             },
             scales: {
               x: {
+                stacked: true,
                 type: 'category',
                 grid: { color: 'rgba(255, 255, 255, 0.05)' }
               },
               y: {
+                stacked: true,
                 beginAtZero: true,
-                title: { display: true, text: 'Total Engagement' },
+                grace: '5%',
+                title: { display: true, text: 'Posts Engagement' },
                 grid: { color: 'rgba(255, 255, 255, 0.05)' }
               }
             },
             plugins: {
               legend: {
-                display: window.innerWidth >= 768,
                 position: 'bottom',
                 labels: { padding: 20, usePointStyle: true }
               },
@@ -434,7 +485,7 @@
                 displayColors: true,
                 callbacks: {
                   label: function (context) {
-                    let label = context.dataset.label.trim() || '';
+                    let label = context.dataset.label || '';
                     if (label) {
                       label += ': ';
                     }
@@ -524,7 +575,6 @@
           },
           plugins: {
             legend: {
-              display: window.innerWidth >= 768,
               position: 'bottom',
               labels: {
                 usePointStyle: true,

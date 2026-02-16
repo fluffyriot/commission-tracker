@@ -220,22 +220,21 @@ func (q *Queries) GetAllPostsWithTheLatestInfoForUser(ctx context.Context, userI
 	return items, nil
 }
 
-const getPostByNetworkAndId = `-- name: GetPostByNetworkAndId :one
+const getPostBySourceAndNetworkId = `-- name: GetPostBySourceAndNetworkId :one
 SELECT posts.id, posts.created_at, posts.last_synced_at, posts.source_id, posts.is_archived, posts.network_internal_id, posts.post_type, posts.author, posts.content
 FROM posts
-    join sources on posts.source_id = sources.id
 where
     network_internal_id = $1
-    and sources.network = $2
+    and source_id = $2
 `
 
-type GetPostByNetworkAndIdParams struct {
+type GetPostBySourceAndNetworkIdParams struct {
 	NetworkInternalID string
-	Network           string
+	SourceID          uuid.UUID
 }
 
-func (q *Queries) GetPostByNetworkAndId(ctx context.Context, arg GetPostByNetworkAndIdParams) (Post, error) {
-	row := q.db.QueryRowContext(ctx, getPostByNetworkAndId, arg.NetworkInternalID, arg.Network)
+func (q *Queries) GetPostBySourceAndNetworkId(ctx context.Context, arg GetPostBySourceAndNetworkIdParams) (Post, error) {
+	row := q.db.QueryRowContext(ctx, getPostBySourceAndNetworkId, arg.NetworkInternalID, arg.SourceID)
 	var i Post
 	err := row.Scan(
 		&i.ID,

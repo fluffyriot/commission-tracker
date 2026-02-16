@@ -38,18 +38,18 @@
             autocapitalize="off">
         </div>
 
-        <div class="form-group" id="tokenized_db" style="display:none;">
+        <div class="form-group hidden" id="tokenized_db">
           <label class="form-label" for="api_token">API Bearer Token</label>
           <input id="api_token" name="api_token" class="form-input" placeholder="xxxxxxxxxxxxxxxxxxxxxx"
             autocapitalize="off">
         </div>
 
-        <div class="form-group" id="db_with_url" style="display:none;">
+        <div class="form-group hidden" id="db_with_url">
           <label class="form-label" for="host_url">Host Url</label>
           <input id="host_url" name="host_url" class="form-input" placeholder="http://127.0.0.1" autocapitalize="off">
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%">
+        <button type="submit" class="btn btn-primary w-full">
           <i data-lucide="plus"></i> Add Target
         </button>
       </form>
@@ -61,9 +61,9 @@
       <div class="card-header">Active Targets</div>
 
       {{if not .targets}}
-      <div class="text-center" style="padding: 2rem; color: var(--color-text-muted);">
-        <i data-lucide="ghost" style="width: 48px; height: 48px; opacity: 0.5;"></i>
-        <p>No targets added yet.</p>
+      <div class="text-center p-8 text-muted">
+        <i data-lucide="ghost" class="icon-xl opacity-50"></i>
+        <p class="text-md">No targets added yet.</p>
       </div>
       {{else}}
       <div class="flex flex-col gap-2">
@@ -75,12 +75,12 @@
                 <img src='/static/images/targets/badge/{{replace (lower .TargetType) " " "_"}}_logo.svg'
                   alt="{{.TargetType}}" class="badge-logo"
                   onerror="this.style.display='none'; var ph=this.nextElementSibling; ph.style.display='flex';">
-                <div class="badge-logo-placeholder" style="display: none;">
+                <div class="badge-logo-placeholder hidden">
                   {{slice .TargetType 0 1 | upper}}
                 </div>
                 {{.TargetType}}
               </span>
-              <span style="font-weight: bold; font-size: 1.05rem;">{{.DbID.String}}</span>
+              <span class="font-bold text-sm">{{.DbID.String}}</span>
             </div>
 
 
@@ -104,8 +104,7 @@
               {{end}}
 
               {{if .StatusReason.Valid}}
-              <span title="{{.StatusReason.String}}"><i data-lucide="info"
-                  style="width: 14px; height: 14px;"></i></span>
+              <span title="{{.StatusReason.String}}"><i data-lucide="info" class="icon-xs"></i></span>
               {{end}}
             </div>
           </div>

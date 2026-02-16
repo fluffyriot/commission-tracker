@@ -38,72 +38,38 @@
                         placeholder="username (no @)" required autocapitalize="off">
                 </div>
 
-                <div class="form-group" id="instagram_section" style="display:none;">
-                    <label class="form-label" for="instagram_profile_id">Instagram Profile ID</label>
-                    <input id="instagram_profile_id" name="instagram_profile_id" class="form-input"
-                        placeholder="123456789" autocapitalize="off">
+                <div id="generic_fields_container">
+                    <div class="form-group hidden" id="field_1_wrapper">
+                        <label class="form-label" id="label_field_1" for="field_1">Field 1</label>
+                        <input id="field_1" name="field_1" class="form-input" placeholder="" autocapitalize="off">
+                        <p class="text-muted text-xs mt-1 hidden" id="desc_field_1"></p>
+                    </div>
 
-                    <label class="form-label" for="app_id">App ID</label>
-                    <input id="app_id" name="app_id" class="form-input" placeholder="Facebook App ID"
-                        autocapitalize="off">
+                    <div class="form-group hidden" id="field_2_wrapper">
+                        <label class="form-label" id="label_field_2" for="field_2">Field 2</label>
+                        <input id="field_2" name="field_2" class="form-input" placeholder="" autocapitalize="off">
+                    </div>
 
-                    <label class="form-label" for="app_secret">App Secret</label>
-                    <input id="app_secret" name="app_secret" type="password" class="form-input"
-                        placeholder="Facebook App Secret" autocapitalize="off">
+                    <div class="form-group hidden" id="field_3_wrapper">
+                        <label class="form-label" id="label_field_3" for="field_3">Field 3</label>
+                        <input id="field_3" name="field_3" class="form-input" placeholder="" autocapitalize="off">
+                        <p class="text-muted text-xs mt-1 hidden" id="desc_field_3"></p>
+                    </div>
+
+                    <div class="form-group hidden" id="field_4_wrapper">
+                        <label class="form-label" id="label_field_4" for="field_4">Field 4</label>
+                        <input id="field_4" name="field_4" class="form-input" placeholder="" autocapitalize="off">
+                    </div>
+
+                    <div class="form-group hidden" id="field_long_wrapper">
+                        <label class="form-label" id="label_field_long" for="field_long">Service Key</label>
+                        <textarea id="field_long" name="field_long" class="form-input" rows="5" placeholder=""
+                            autocapitalize="off"></textarea>
+                        <p class="text-muted text-xs mt-1 hidden" id="desc_field_long"></p>
+                    </div>
                 </div>
 
-                <div class="form-group" id="google_analytics_section" style="display:none;">
-                    <label class="form-label" for="google_analytics_property_id">Property ID</label>
-                    <input id="google_analytics_property_id" name="google_analytics_property_id" class="form-input"
-                        placeholder="e.g. 34221144" autocapitalize="off">
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Found in Admin > Property
-                        Settings</p>
-
-                    <label class="form-label" for="google_service_account_key">Service Account JSON Key</label>
-                    <textarea id="google_service_account_key" name="google_service_account_key" class="form-input"
-                        rows="5" placeholder='{"type": "service_account", ...}' autocapitalize="off"></textarea>
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Create a Service Account in
-                        Google Cloud
-                        Console, download the JSON key, and paste it here.</p>
-                </div>
-
-                <div class="form-group" id="telegram_section" style="display:none;">
-
-                    <label class="form-label" for="telegram_bot_token">Telegram Bot Token</label>
-                    <input id="telegram_bot_token" name="telegram_bot_token" class="form-input"
-                        placeholder="your_bot-token" autocapitalize="off">
-
-                    <label class="form-label" for="telegram_channel_id">Telegram Channel ID</label>
-                    <input id="telegram_channel_id" name="telegram_channel_id" class="form-input"
-                        placeholder="your_channel_id" autocapitalize="off">
-
-                    <label class="form-label" for="telegram_app_id">Telegram App ID</label>
-                    <input id="telegram_app_id" name="telegram_app_id" class="form-input" placeholder="your_app_id"
-                        autocapitalize="off">
-
-                    <label class="form-label" for="telegram_app_hash">Telegram App Hash</label>
-                    <input id="telegram_app_hash" name="telegram_app_hash" class="form-input"
-                        placeholder="your_app_hash" autocapitalize="off">
-
-                </div>
-
-                <div class="form-group" id="discord_section" style="display:none;">
-                    <label class="form-label" for="discord_bot_token">Discord Bot Token</label>
-                    <input id="discord_bot_token" name="discord_bot_token" class="form-input"
-                        placeholder="your_bot_token" autocapitalize="off">
-
-                    <label class="form-label" for="discord_server_id">Server ID</label>
-                    <input id="discord_server_id" name="discord_server_id" class="form-input" placeholder="123456789"
-                        autocapitalize="off">
-
-                    <label class="form-label" for="discord_channel_ids">Channel IDs (comma-separated)</label>
-                    <input id="discord_channel_ids" name="discord_channel_ids" class="form-input"
-                        placeholder="123456,789012,345678" autocapitalize="off">
-                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.25rem;">Enter multiple channel IDs
-                        separated by commas</p>
-                </div>
-
-                <button type="submit" class="btn btn-primary" style="width: 100%">
+                <button type="submit" class="btn btn-primary w-full">
                     <i data-lucide="plus"></i> Add Source
                 </button>
             </form>
@@ -115,9 +81,9 @@
             <div class="card-header">User Sources</div>
 
             {{if not .sources}}
-            <div class="text-center" style="padding: 2rem; color: var(--color-text-muted);">
-                <i data-lucide="ghost" style="width: 48px; height: 48px; opacity: 0.5;"></i>
-                <p>No sources connected yet.</p>
+            <div class="text-center p-8 text-muted">
+                <i data-lucide="ghost" class="icon-xl opacity-50"></i>
+                <p class="text-md">No sources connected yet.</p>
             </div>
             {{else}}
             <div class="flex flex-col gap-2">
@@ -130,12 +96,12 @@
                                 <img src='/static/images/sources/badge/{{replace (lower .Network) " " "_"}}_logo.svg'
                                     alt="{{.Network}}" class="badge-logo"
                                     onerror="this.style.display='none'; var ph=this.nextElementSibling; ph.style.display='flex';">
-                                <div class="badge-logo-placeholder" style="display: none;">
+                                <div class="badge-logo-placeholder hidden">
                                     {{slice .Network 0 1 | upper}}
                                 </div>
                                 {{.Network}}
                             </span>
-                            <span style="font-weight: bold; font-size: 1.05rem;">{{.UserName}}</span>
+                            <span class="font-bold text-sm">{{.UserName}}</span>
                         </div>
 
                         <div class="source-meta flex items-center gap-2">
@@ -158,8 +124,7 @@
                             {{end}}
 
                             {{if .StatusReason.Valid}}
-                            <span title="{{.StatusReason.String}}"><i data-lucide="info"
-                                    style="width: 14px; height: 14px;"></i></span>
+                            <span title="{{.StatusReason.String}}"><i data-lucide="info" class="icon-xs"></i></span>
                             {{end}}
                         </div>
                     </div>
@@ -207,7 +172,7 @@
 
                         {{if eq .Network "Instagram"}}
                         <form method="POST" action="/auth/facebook/refresh"
-                            onsubmit="return submitWithConfirm(this, 'Refresh access token for this source?');">
+                            onsubmit="return submitWithConfirm(this, 'Refresh access token for this?');">
                             <input type="hidden" name="source_id" value="{{.ID}}">
                             <button type="submit" class="btn btn-secondary btn-icon" {{if not .IsActive}}disabled{{end}}
                                 title="Refresh Token">
@@ -268,99 +233,131 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const networkSelect = document.getElementById("network");
-        const discordSection = document.getElementById("discord_section");
-        const discordBotToken = document.getElementById("discord_bot_token");
-        const discordServerId = document.getElementById("discord_server_id");
-        const discordChannelIds = document.getElementById("discord_channel_ids");
-        const instagramSection = document.getElementById("instagram_section");
-        const profileInput = document.getElementById("instagram_profile_id");
-        const InstAppId = document.getElementById("app_id");
-        const InstAppSecret = document.getElementById("app_secret");
-
-        const googleSection = document.getElementById("google_analytics_section");
-        const googlePropertyId = document.getElementById("google_analytics_property_id");
-        const googleKey = document.getElementById("google_service_account_key");
-
-        const telegramSection = document.getElementById("telegram_section");
-        const channelInput = document.getElementById("telegram_channel_id");
-        const tgBotToken = document.getElementById("telegram_bot_token");
-        const tgAppId = document.getElementById("telegram_app_id");
-        const tgAppHash = document.getElementById("telegram_app_hash");
         const usernameInput = document.getElementById("username_input");
+        const wrappers = {
+            1: document.getElementById("field_1_wrapper"),
+            2: document.getElementById("field_2_wrapper"),
+            3: document.getElementById("field_3_wrapper"),
+            4: document.getElementById("field_4_wrapper"),
+            long: document.getElementById("field_long_wrapper")
+        };
+        const inputs = {
+            1: document.getElementById("field_1"),
+            2: document.getElementById("field_2"),
+            3: document.getElementById("field_3"),
+            4: document.getElementById("field_4"),
+            long: document.getElementById("field_long")
+        };
+        const labels = {
+            1: document.getElementById("label_field_1"),
+            2: document.getElementById("label_field_2"),
+            3: document.getElementById("label_field_3"),
+            4: document.getElementById("label_field_4"),
+            long: document.getElementById("label_field_long")
+        };
+        const descs = {
+            1: document.getElementById("desc_field_1"),
+            3: document.getElementById("desc_field_3"),
+            long: document.getElementById("desc_field_long")
+        };
+
+        const config = {
+            "Instagram": {
+                userPlaceholder: "username (no @)",
+                fields: {
+                    1: { label: "Instagram Profile ID", placeholder: "123456789", required: true },
+                    2: { label: "App ID", placeholder: "Facebook App ID", required: true },
+                    3: { label: "App Secret", placeholder: "Facebook App Secret", type: "password", required: true }
+                }
+            },
+            "Google Analytics": {
+                userPlaceholder: "Your website URL (e.g. https://example.com)",
+                fields: {
+                    1: { label: "Property ID", placeholder: "e.g. 34221144", desc: "Found in Admin > Property Settings", required: true },
+                    long: { label: "Service Account JSON Key", placeholder: '{"type": "service_account", ...}', desc: "Create a Service Account in Google Cloud Console, download the JSON key, and paste it here.", required: true }
+                }
+            },
+            "YouTube": {
+                userPlaceholder: "Your Channel Handle (e.g. @username)",
+                fields: {
+                    long: { label: "Service Account JSON Key", placeholder: '{"type": "service_account", ...}', desc: "Create a Service Account in Google Cloud Console, download the JSON key, and paste it here.", required: true }
+                }
+            },
+            "Telegram": {
+                userPlaceholder: "username (no @)",
+                fields: {
+                    1: { label: "Telegram Bot Token", placeholder: "Bot Token", required: true },
+                    2: { label: "Telegram Channel ID", placeholder: "Channel ID", required: true },
+                    3: { label: "Telegram App ID", placeholder: "App ID", required: true },
+                    4: { label: "Telegram App Hash", placeholder: "App Hash", required: true }
+                }
+            },
+            "Discord": {
+                userPlaceholder: "Discord Username",
+                fields: {
+                    1: { label: "Discord Bot Token", placeholder: "Bot Token", required: true },
+                    2: { label: "Server ID", placeholder: "Server (Guild) ID", required: true },
+                    3: { label: "Channel IDs (comma-separated)", placeholder: "123456,789012", desc: "Enter multiple channel IDs separated by commas", required: true }
+                }
+            },
+            "e621": {
+                userPlaceholder: "e621 Username (to sync)",
+                fields: {
+                    1: { label: "API Username", placeholder: "API username", required: true },
+                    2: { label: "API Key", placeholder: "API key", required: true }
+                }
+            },
+            "Mastodon": {
+                userPlaceholder: "username@instance.social",
+                fields: {}
+            },
+            "Generic": {
+                userPlaceholder: "Username (no @)",
+                fields: {}
+            }
+        };
+
 
         if (!networkSelect) return;
 
-        function updateVisibility() {
-            const network = networkSelect.value;
+        function updateForm() {
+            const network = networkSelect.value || "Generic";
+            const currentConfig = config[network] || config["Generic"];
 
-            instagramSection.style.display = "none";
-            profileInput.required = false;
-            InstAppId.required = false;
-            InstAppSecret.required = false;
+            usernameInput.placeholder = currentConfig.userPlaceholder;
 
-            googleSection.style.display = "none";
-            googlePropertyId.required = false;
-            googleKey.required = false;
-
-            telegramSection.style.display = "none";
-            channelInput.required = false;
-            tgBotToken.required = false;
-            tgAppId.required = false;
-            tgAppHash.required = false;
-
-            discordSection.style.display = "none";
-            discordBotToken.required = false;
-            discordServerId.required = false;
-            discordChannelIds.required = false;
-
-
-            if (network === "Instagram") {
-                instagramSection.style.display = "block";
-                profileInput.required = true;
-                InstAppId.required = true;
-                InstAppSecret.required = true;
-            } else if (network === "Google Analytics") {
-                googleSection.style.display = "block";
-                googlePropertyId.required = true;
-                googleKey.required = true;
-            } else if (network === "Telegram") {
-                telegramSection.style.display = "block";
-                channelInput.required = true;
-                tgBotToken.required = true;
-                tgAppId.required = true;
-                tgAppHash.required = true;
-            } else if (network === "Discord") {
-                discordSection.style.display = "block";
-                discordBotToken.required = true;
-                discordServerId.required = true;
-                discordChannelIds.required = true;
-            } else if (network === "YouTube") {
-                googleSection.style.display = "block";
-                googlePropertyId.required = false;
-                document.querySelector('label[for="google_analytics_property_id"]').style.display = 'none';
-                googlePropertyId.style.display = 'none';
-                googleKey.required = true;
+            for (const key in wrappers) {
+                wrappers[key].classList.add("hidden");
+                inputs[key].required = false;
+                inputs[key].value = "";
+                if (key !== 'long') inputs[key].type = "text";
+                if (descs[key]) descs[key].classList.add("hidden");
             }
 
-            if (network === "Mastodon") {
-                usernameInput.placeholder = "username@instance.social";
-            } else if (network === "Google Analytics") {
-                usernameInput.placeholder = "Your website URL (e.g. https://example.com)";
-            } else if (network === "Discord") {
-                discordSection.style.display = "block";
-                discordBotToken.required = true;
-                discordServerId.required = true;
-                discordChannelIds.required = true;
-            } else if (network === "YouTube") {
-                usernameInput.placeholder = "Your Channel Handle (e.g. @username)";
-            } else if (network === "Discord") {
-                usernameInput.placeholder = "Discord Username";
-            } else {
-                usernameInput.placeholder = "username (no @)";
+            const fields = currentConfig.fields;
+            for (const key in fields) {
+                const settings = fields[key];
+                if (wrappers[key]) {
+                    wrappers[key].classList.remove("hidden");
+
+                    labels[key].textContent = settings.label;
+                    inputs[key].placeholder = settings.placeholder;
+                    inputs[key].required = settings.required;
+
+                    if (settings.type) {
+                        inputs[key].type = settings.type;
+                    }
+
+                    if (settings.desc && descs[key]) {
+                        descs[key].textContent = settings.desc;
+                        descs[key].classList.remove("hidden");
+                    }
+                }
             }
         }
 
-        networkSelect.addEventListener("change", updateVisibility);
+        networkSelect.addEventListener("change", updateForm);
+        updateForm();
     });
 
     async function showDiscordChannels(sourceId) {

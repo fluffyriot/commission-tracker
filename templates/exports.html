@@ -30,7 +30,7 @@
     {{if not .exports}}
     <div class="text-center" style="padding: 2rem; color: var(--color-text-muted);">
         <i data-lucide="folder-open" style="width: 48px; height: 48px; opacity: 0.5;"></i>
-        <p>No exports available.</p>
+        <p class="text-md">No exports available.</p>
     </div>
     {{else}}
     <div class="flex flex-col gap-2">
@@ -38,7 +38,7 @@
         <div class="source-item">
             <div class="source-info">
                 <div class="flex items-center gap-2">
-                    <strong style="font-size: 1.05rem;">Export {{.ID}}</strong>
+                    <strong class="font-bold text-sm">Export {{.ID}}</strong>
                     <span class="badge badge-neutral">{{.ExportMethod}}</span>
 
                     {{if eq .ExportStatus "Requested"}}

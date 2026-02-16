@@ -41,7 +41,7 @@
             </a>
 
             {{ if not .is_auth_page }}
-            <button class="btn btn-ghost btn-icon menu-toggle" id="menu-toggle" style="display: none;">
+            <button class="btn btn-ghost btn-icon menu-toggle hidden" id="menu-toggle">
                 <i data-lucide="menu"></i>
             </button>
 
@@ -76,7 +76,7 @@
                         <button class="dropdown-item-right w-full text-left" onclick="startOnboarding()">
                             <i data-lucide="play-circle"></i> Launch App Demo
                         </button>
-                        <form method="POST" action="/logout" style="margin: 0;">
+                        <form method="POST" action="/logout" class="m-0">
                             <button type="submit" class="dropdown-item-right text-danger">
                                 <i data-lucide="log-out"></i> Logout
                             </button>

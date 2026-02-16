@@ -3,10 +3,10 @@
     <div class="card auth-card">
         <h3 class="card-header">Setup Two-Factor Authentication</h3>
         <div class="card-body">
-            <p>Scan this QR code with your authenticator app (e.g. Google Authenticator).</p>
+            <p class="text-md">Scan this QR code with your authenticator app (e.g. Google Authenticator).</p>
             <div class="qr-code-container">
                 <img src="data:image/png;base64,{{ .qr_code }}" alt="QR Code" class="qr-code-img">
-                <p class="u-margin-top-small">Secret: <code>{{ .secret }}</code></p>
+                <p class="u-margin-top-small text-md">Secret: <code>{{ .secret }}</code></p>
             </div>
 
             <form method="POST" action="/settings/2fa/verify">
@@ -16,7 +16,7 @@
                     <input class="form-input" type="text" name="code" placeholder="123456" required autocomplete="off"
                         pattern="[0-9]{6}" title="Please enter a 6-digit code">
                 </div>
-                <button class="btn btn-primary input-block" style="width: 100%;" type="submit">Verify & Enable</button>
+                <button class="btn btn-primary input-block w-full" type="submit">Verify & Enable</button>
                 {{ if .error }}
                 <div class="alert alert-danger u-margin-top-small">{{ .error }}</div>
                 {{ end }}

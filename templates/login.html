@@ -13,10 +13,10 @@
                     <label class="form-label">Password</label>
                     <input class="form-input" type="password" name="password" required autocomplete="current-password">
                 </div>
-                <div class="flex gap-2" style="margin-top: 1.5rem;">
-                    <button class="btn btn-primary" style="flex: 1;" type="submit">Login</button>
-                    <button class="btn btn-secondary" style="flex: 1;" onclick="loginPasskey()" type="button"
-                        id="btn-passkey" disabled>
+                <div class="flex gap-2 mt-6">
+                    <button class="btn btn-primary flex-1" type="submit">Login</button>
+                    <button class="btn btn-secondary flex-1" onclick="loginPasskey()" type="button" id="btn-passkey"
+                        disabled>
                         <i data-lucide="key"></i> Passkey
                     </button>
                 </div>
@@ -25,18 +25,18 @@
                 {{ end }}
 
                 {{ if .allow_registration }}
-                <div style="margin-top: 1rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
-                    <a href="/register" class="btn btn-secondary" style="width: 100%; text-align: center;">
+                <div class="mt-4 border-t pt-4">
+                    <a href="/register" class="btn btn-secondary w-full text-center">
                         <i data-lucide="user-plus"></i> Create Account
                     </a>
                 </div>
                 {{ end }}
             </form>
 
-            <div class="login-secondary-actions" style="margin-top: 1rem; text-align: center;">
-                <p class="text-muted" style="font-size: 0.85rem;">
+            <div class="login-secondary-actions mt-4 text-center">
+                <p class="text-muted text-xs">
                     <a href="https://github.com/fluffyriot/rpsync#cli-user-management" target="_blank"
-                        style="color: var(--color-text-muted); text-decoration: underline;">Forgot Password?</a>
+                        class="text-muted underline">Forgot Password?</a>
                 </p>
             </div>
         </div>
