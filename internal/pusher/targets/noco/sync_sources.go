@@ -15,6 +15,46 @@ import (
 
 func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKey []byte, target database.Target, tableId string) error {
 
+	log.Println("Checking 'sources' table mapping for column update...")
+	tmSources, err := dbQueries.GetTableMappingsByTargetAndName(context.Background(), database.GetTableMappingsByTargetAndNameParams{
+		TargetID:        target.ID,
+		TargetTableName: "sources",
+	})
+	if err != nil {
+		log.Printf("Error fetching 'sources' table mapping: %v", err)
+	} else {
+		log.Printf("Found 'sources' table mapping, ID: %s", tmSources.ID)
+		colMapping, err := dbQueries.GetColumnMappingsByTableAndName(context.Background(), database.GetColumnMappingsByTableAndNameParams{
+			TableMappingID:   tmSources.ID,
+			TargetColumnName: "network",
+		})
+		if err != nil {
+			log.Printf("Error fetching 'network' column mapping: %v", err)
+		} else if !colMapping.TargetColumnCode.Valid {
+			log.Printf("Network column mapping found but TargetColumnCode is invalid/null")
+		} else {
+			log.Printf("Found 'network' column mapping, ID: %s, Code: %s", colMapping.ID, colMapping.TargetColumnCode.String)
+			var choices []NocoColumnTypeOptions
+			for _, network := range helpers.AvailableSources {
+				choices = append(choices, NocoColumnTypeOptions{Title: network.Name, Color: network.Color})
+			}
+
+			log.Printf("Updating network column options with %d choices...", len(choices))
+			err = updateNocoColumn(c, dbQueries, encryptionKey, target, tableId, colMapping.TargetColumnCode.String, NocoColumn{
+				Title: "network",
+				Type:  "SingleSelect",
+				Options: NocoColumnTypeSelectOptions{
+					Choices: choices,
+				},
+			})
+			if err != nil {
+				log.Printf("Failed to update network column options: %v", err)
+			} else {
+				log.Println("Successfully updated network column options")
+			}
+		}
+	}
+
 	var createSources []database.Source
 	var removeSources []database.SourcesOnTarget
 
@@ -196,36 +236,6 @@ func syncNocoSources(c *common.Client, dbQueries *database.Queries, encryptionKe
 		})
 		if err != nil {
 			return fmt.Errorf("failed to delete source target mapping: %w", err)
-		}
-	}
-
-	tm, err := dbQueries.GetTableMappingsByTargetAndName(context.Background(), database.GetTableMappingsByTargetAndNameParams{
-		TargetID:        target.ID,
-		TargetTableName: "sources",
-	})
-	if err == nil {
-		colMapping, err := dbQueries.GetColumnMappingsByTableAndName(context.Background(), database.GetColumnMappingsByTableAndNameParams{
-			TableMappingID:   tm.ID,
-			TargetColumnName: "network",
-		})
-		if err == nil && colMapping.TargetColumnCode.Valid {
-			var choices []NocoColumnTypeOptions
-			for _, network := range helpers.AvailableSources {
-				choices = append(choices, NocoColumnTypeOptions{Title: network.Name, Color: network.Color})
-			}
-
-			err = updateNocoColumn(c, dbQueries, encryptionKey, target, tableId, colMapping.TargetColumnCode.String, NocoColumn{
-				Title: "network",
-				Type:  "SingleSelect",
-				Options: NocoColumnTypeSelectOptions{
-					Choices: choices,
-				},
-			})
-			if err != nil {
-				log.Printf("Failed to update network column options: %v", err)
-			} else {
-				log.Println("Updated network column options")
-			}
 		}
 	}
 
