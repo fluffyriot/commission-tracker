@@ -77,7 +77,9 @@
       </thead>
       <tfoot class="posts-table-footer">
         <tr>
-          <th colspan="3" class="text-right">Total:</th>
+          <td></td>
+          <th class="text-right">Totals:</th>
+          <th id="totalRows"></th>
           <th id="totalLikes"></th>
           <th id="totalViews"></th>
           <th></th>
@@ -302,8 +304,11 @@
             return intVal(a) + intVal(b);
           }, 0);
 
-        $(api.column(3).footer()).html(totalLikes);
-        $(api.column(4).footer()).html(totalViews);
+        totalRows = api.rows({ search: 'applied' }).count();
+
+        $(api.column(2).footer()).html(totalRows + " posts");
+        $(api.column(3).footer()).html(totalLikes + " interactions");
+        $(api.column(4).footer()).html(totalViews + " views");
       }
     });
 
