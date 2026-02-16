@@ -141,16 +141,20 @@ ORDER BY total_views DESC
 LIMIT 50;
 
 -- name: GetSiteStatsOverTime :many
-SELECT
-    TO_CHAR(date, 'YYYY-MM-DD') as date_str,
-    COALESCE(SUM(visitors), 0)::BIGINT as total_visitors,
-    COALESCE(AVG(avg_session_duration), 0)::FLOAT as avg_session_duration
-FROM analytics_site_stats ass
-JOIN sources s ON ass.source_id = s.id
-WHERE s.user_id = $1
-GROUP BY date_str
-ORDER BY date_str ASC
-LIMIT 90;
+SELECT * FROM (
+    SELECT
+        TO_CHAR(DATE_TRUNC('week', date), 'IYYY-"W"IW') as date_str,
+        COALESCE(SUM(visitors), 0)::BIGINT as total_visitors,
+        COALESCE(AVG(avg_session_duration), 0)::FLOAT as avg_session_duration
+    FROM analytics_site_stats ass
+    JOIN sources s ON ass.source_id = s.id
+    WHERE s.user_id = $1
+    GROUP BY DATE_TRUNC('week', date)
+    ORDER BY DATE_TRUNC('week', date) DESC
+    LIMIT 52
+) recent_weeks
+ORDER BY date_str ASC;
+
 
 -- name: GetPostingConsistency :many
 SELECT
