@@ -111,7 +111,7 @@ func FetchFurAffinityPosts(dbQueries *database.Queries, c *common.Client, uid uu
 
 	processedLinks := make(map[string]struct{})
 	page := 1
-	const maxPages = 50 // reasonable limit
+	const maxPages = 500
 
 	for page <= maxPages {
 		galleryUrl := fmt.Sprintf("https://www.furaffinity.net/gallery/%s/%d/?", username, page)
@@ -146,7 +146,7 @@ func FetchFurAffinityPosts(dbQueries *database.Queries, c *common.Client, uid uu
 			if !exists {
 				return
 			}
-			// href is like /view/53397431/
+
 			parts := strings.Split(href, "/")
 			if len(parts) < 3 {
 				return
