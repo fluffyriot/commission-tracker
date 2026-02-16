@@ -133,6 +133,53 @@ window.onclick = function (event) {
     }
 }
 
+/**
+ * Initialize tab management with URL persistence
+ * @param {string} defaultTab
+ * @param {function} [onTabLoad]
+ */
+function initTabManagement(defaultTab, onTabLoad) {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    if (tabs.length === 0 || contents.length === 0) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || defaultTab;
+
+    function activateTab(tabName, updateHistory = false) {
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.add('hidden'));
+
+        const tabBtn = document.querySelector(`[data-tab="${tabName}"]`);
+        if (tabBtn) {
+            tabBtn.classList.add('active');
+            const tabContent = document.getElementById(`${tabName}-tab`);
+            if (tabContent) {
+                tabContent.classList.remove('hidden');
+            }
+
+            if (updateHistory) {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', tabName);
+                window.history.pushState({}, '', url);
+            }
+
+            if (onTabLoad && typeof onTabLoad === 'function') {
+                onTabLoad(tabName);
+            }
+        }
+    }
+
+    activateTab(initialTab);
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            activateTab(tab.dataset.tab, true);
+        });
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     if (window.lucide) lucide.createIcons();
 

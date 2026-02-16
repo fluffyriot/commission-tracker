@@ -388,7 +388,7 @@ a:hover {
 
 .grid-responsive {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
 }
 
@@ -397,8 +397,23 @@ a:hover {
   top: 1rem;
 }
 
+.grid-list-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+}
+
+.grid-list-sidebar>div:first-child>.card {
+  position: sticky;
+  top: 1rem;
+}
+
 @media (max-width: 768px) {
   .grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-list-sidebar {
     grid-template-columns: 1fr !important;
   }
 
@@ -1740,6 +1755,8 @@ tr.shown .details-control:before {
   display: flex;
   gap: 1rem;
   padding-bottom: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .tab-btn {

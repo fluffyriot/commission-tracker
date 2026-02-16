@@ -94,9 +94,6 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const tabs = document.querySelectorAll('.tab-btn');
-        const contents = document.querySelectorAll('.tab-content');
-
         const colors = {
             primary: '#9167e4',
             primaryLight: '#b39ddb',
@@ -112,36 +109,6 @@
         Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 
         const loadedTabs = new Set();
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const initialTab = urlParams.get('tab') || 'content';
-
-        function activateTab(tabName, updateHistory = false) {
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.add('hidden'));
-
-            const tabBtn = document.querySelector(`[data-tab="${tabName}"]`);
-            if (tabBtn) {
-                tabBtn.classList.add('active');
-                document.getElementById(`${tabName}-tab`).classList.remove('hidden');
-
-                if (updateHistory) {
-                    const url = new URL(window.location);
-                    url.searchParams.set('tab', tabName);
-                    window.history.pushState({}, '', url);
-                }
-
-                loadTab(tabName);
-            }
-        }
-
-        activateTab(initialTab);
-
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                activateTab(tab.dataset.tab, true);
-            });
-        });
 
         function loadTab(tabName) {
             if (loadedTabs.has(tabName)) return;
@@ -166,6 +133,8 @@
                     break;
             }
         }
+
+        initTabManagement('content', loadTab);
 
         function createChart(ctxId, type, data, options = {}) {
             const ctx = document.getElementById(ctxId).getContext('2d');
