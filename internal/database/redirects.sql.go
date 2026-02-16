@@ -27,11 +27,11 @@ RETURNING
 `
 
 type CreateRedirectParams struct {
-	ID        uuid.UUID
-	SourceID  uuid.UUID
-	FromPath  string
-	ToPath    string
-	CreatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	SourceID  uuid.UUID `json:"source_id"`
+	FromPath  string    `json:"from_path"`
+	ToPath    string    `json:"to_path"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (q *Queries) CreateRedirect(ctx context.Context, arg CreateRedirectParams) (Redirect, error) {
@@ -84,8 +84,8 @@ SELECT id, source_id, from_path, to_path, created_at FROM redirects WHERE source
 `
 
 type GetRedirectForPathParams struct {
-	SourceID uuid.UUID
-	FromPath string
+	SourceID uuid.UUID `json:"source_id"`
+	FromPath string    `json:"from_path"`
 }
 
 func (q *Queries) GetRedirectForPath(ctx context.Context, arg GetRedirectForPathParams) (Redirect, error) {

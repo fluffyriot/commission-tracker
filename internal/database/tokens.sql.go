@@ -43,15 +43,15 @@ RETURNING
 `
 
 type CreateTokenParams struct {
-	ID                   uuid.UUID
-	EncryptedAccessToken []byte
-	Nonce                []byte
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	SourceID             uuid.NullUUID
-	TargetID             uuid.NullUUID
-	ProfileID            sql.NullString
-	SourceAppData        json.RawMessage
+	ID                   uuid.UUID       `json:"id"`
+	EncryptedAccessToken []byte          `json:"encrypted_access_token"`
+	Nonce                []byte          `json:"nonce"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
+	SourceID             uuid.NullUUID   `json:"source_id"`
+	TargetID             uuid.NullUUID   `json:"target_id"`
+	ProfileID            sql.NullString  `json:"profile_id"`
+	SourceAppData        json.RawMessage `json:"source_app_data"`
 }
 
 func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) (Token, error) {
@@ -142,9 +142,9 @@ WHERE
 `
 
 type UpdateTokenProfileParams struct {
-	ID        uuid.UUID
-	ProfileID sql.NullString
-	UpdatedAt time.Time
+	ID        uuid.UUID      `json:"id"`
+	ProfileID sql.NullString `json:"profile_id"`
+	UpdatedAt time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) UpdateTokenProfile(ctx context.Context, arg UpdateTokenProfileParams) error {

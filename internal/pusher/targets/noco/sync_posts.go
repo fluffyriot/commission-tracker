@@ -111,9 +111,9 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 			PostType:          post.PostType,
 			Author:            post.Author,
 			Content:           post.Content.String,
-			Likes:             int(post.Likes.Int64),
-			Views:             int(post.Views.Int64),
-			Reposts:           int(post.Reposts.Int64),
+			Likes:             post.Likes.Int64,
+			Views:             post.Views.Int64,
+			Reposts:           post.Reposts.Int64,
 			URL:               url,
 		}
 
@@ -194,9 +194,9 @@ func SyncNoco(dbQueries *database.Queries, c *common.Client, encryptionKey []byt
 			PostType:          post.PostType,
 			Author:            post.Author,
 			Content:           post.Content.String,
-			Likes:             int(post.Likes.Int64),
-			Views:             int(post.Views.Int64),
-			Reposts:           int(post.Reposts.Int64),
+			Likes:             post.Likes.Int64,
+			Views:             post.Views.Int64,
+			Reposts:           post.Reposts.Int64,
 			URL:               url,
 		}
 

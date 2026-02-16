@@ -89,11 +89,11 @@ OFFSET
 `
 
 type GetRestTopSourcesRow struct {
-	ID                uuid.UUID
-	UserName          string
-	Network           string
-	TotalInteractions int64
-	FollowersCount    int64
+	ID                uuid.UUID `json:"id"`
+	UserName          string    `json:"user_name"`
+	Network           string    `json:"network"`
+	TotalInteractions int64     `json:"total_interactions"`
+	FollowersCount    int64     `json:"followers_count"`
 }
 
 func (q *Queries) GetRestTopSources(ctx context.Context, userID uuid.UUID) ([]GetRestTopSourcesRow, error) {
@@ -163,11 +163,11 @@ LIMIT 3
 `
 
 type GetTopSourcesRow struct {
-	ID                uuid.UUID
-	UserName          string
-	Network           string
-	TotalInteractions int64
-	FollowersCount    int64
+	ID                uuid.UUID `json:"id"`
+	UserName          string    `json:"user_name"`
+	Network           string    `json:"network"`
+	TotalInteractions int64     `json:"total_interactions"`
+	FollowersCount    int64     `json:"followers_count"`
 }
 
 func (q *Queries) GetTopSources(ctx context.Context, userID uuid.UUID) ([]GetTopSourcesRow, error) {
@@ -229,14 +229,14 @@ ORDER BY calendar.date ASC
 `
 
 type GetTotalDailyEngagementStatsParams struct {
-	UserID  uuid.UUID
-	Column2 time.Time
-	Column3 time.Time
+	UserID  uuid.UUID `json:"user_id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
 }
 
 type GetTotalDailyEngagementStatsRow struct {
-	PeriodDate      time.Time
-	TotalEngagement int64
+	PeriodDate      time.Time `json:"period_date"`
+	TotalEngagement int64     `json:"total_engagement"`
 }
 
 func (q *Queries) GetTotalDailyEngagementStats(ctx context.Context, arg GetTotalDailyEngagementStatsParams) ([]GetTotalDailyEngagementStatsRow, error) {
@@ -288,14 +288,14 @@ ORDER BY calendar.date ASC
 `
 
 type GetTotalDailyFollowerStatsParams struct {
-	UserID  uuid.UUID
-	Column2 time.Time
-	Column3 time.Time
+	UserID  uuid.UUID `json:"user_id"`
+	Column2 time.Time `json:"column_2"`
+	Column3 time.Time `json:"column_3"`
 }
 
 type GetTotalDailyFollowerStatsRow struct {
-	PeriodDate     time.Time
-	TotalFollowers int64
+	PeriodDate     time.Time `json:"period_date"`
+	TotalFollowers int64     `json:"total_followers"`
 }
 
 func (q *Queries) GetTotalDailyFollowerStats(ctx context.Context, arg GetTotalDailyFollowerStatsParams) ([]GetTotalDailyFollowerStatsRow, error) {
@@ -371,9 +371,9 @@ FROM (
 `
 
 type GetTotalReactionsRow struct {
-	TotalLikes  int64
-	TotalShares int64
-	TotalViews  int64
+	TotalLikes  int64 `json:"total_likes"`
+	TotalShares int64 `json:"total_shares"`
+	TotalViews  int64 `json:"total_views"`
 }
 
 func (q *Queries) GetTotalReactions(ctx context.Context, userID uuid.UUID) (GetTotalReactionsRow, error) {

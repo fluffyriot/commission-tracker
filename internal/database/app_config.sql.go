@@ -31,8 +31,8 @@ SET
 `
 
 type SetAppConfigParams struct {
-	Key   string
-	Value string
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 func (q *Queries) SetAppConfig(ctx context.Context, arg SetAppConfigParams) error {

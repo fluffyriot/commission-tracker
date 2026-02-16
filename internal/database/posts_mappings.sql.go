@@ -27,11 +27,11 @@ RETURNING
 `
 
 type AddPostToTargetParams struct {
-	ID            uuid.UUID
-	FirstSyncedAt time.Time
-	PostID        uuid.NullUUID
-	TargetID      uuid.UUID
-	TargetPostID  string
+	ID            uuid.UUID     `json:"id"`
+	FirstSyncedAt time.Time     `json:"first_synced_at"`
+	PostID        uuid.NullUUID `json:"post_id"`
+	TargetID      uuid.UUID     `json:"target_id"`
+	TargetPostID  string        `json:"target_post_id"`
 }
 
 func (q *Queries) AddPostToTarget(ctx context.Context, arg AddPostToTargetParams) (PostsOnTarget, error) {
@@ -71,8 +71,8 @@ WHERE
 `
 
 type DeletePostsOnTargetAndSourceParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) DeletePostsOnTargetAndSource(ctx context.Context, arg DeletePostsOnTargetAndSourceParams) error {
@@ -90,8 +90,8 @@ where
 `
 
 type GetPostsBySourceAndTargetParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) GetPostsBySourceAndTarget(ctx context.Context, arg GetPostsBySourceAndTargetParams) ([]PostsOnTarget, error) {

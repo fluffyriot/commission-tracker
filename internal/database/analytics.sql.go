@@ -33,11 +33,11 @@ RETURNING
 `
 
 type AddAnalyticsPageStatToTargetParams struct {
-	ID             uuid.UUID
-	SyncedAt       time.Time
-	StatID         uuid.NullUUID
-	TargetID       uuid.UUID
-	TargetRecordID string
+	ID             uuid.UUID     `json:"id"`
+	SyncedAt       time.Time     `json:"synced_at"`
+	StatID         uuid.NullUUID `json:"stat_id"`
+	TargetID       uuid.UUID     `json:"target_id"`
+	TargetRecordID string        `json:"target_record_id"`
 }
 
 func (q *Queries) AddAnalyticsPageStatToTarget(ctx context.Context, arg AddAnalyticsPageStatToTargetParams) (AnalyticsPageStatsOnTarget, error) {
@@ -79,11 +79,11 @@ RETURNING
 `
 
 type AddAnalyticsSiteStatToTargetParams struct {
-	ID             uuid.UUID
-	SyncedAt       time.Time
-	StatID         uuid.NullUUID
-	TargetID       uuid.UUID
-	TargetRecordID string
+	ID             uuid.UUID     `json:"id"`
+	SyncedAt       time.Time     `json:"synced_at"`
+	StatID         uuid.NullUUID `json:"stat_id"`
+	TargetID       uuid.UUID     `json:"target_id"`
+	TargetRecordID string        `json:"target_record_id"`
 }
 
 func (q *Queries) AddAnalyticsSiteStatToTarget(ctx context.Context, arg AddAnalyticsSiteStatToTargetParams) (AnalyticsSiteStatsOnTarget, error) {
@@ -167,11 +167,11 @@ RETURNING
 `
 
 type CreateAnalyticsPageStatParams struct {
-	ID       uuid.UUID
-	Date     time.Time
-	UrlPath  string
-	Views    int
-	SourceID uuid.UUID
+	ID       uuid.UUID `json:"id"`
+	Date     time.Time `json:"date"`
+	UrlPath  string    `json:"url_path"`
+	Views    int64     `json:"views"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) CreateAnalyticsPageStat(ctx context.Context, arg CreateAnalyticsPageStatParams) (AnalyticsPageStat, error) {
@@ -213,11 +213,11 @@ RETURNING
 `
 
 type CreateAnalyticsSiteStatParams struct {
-	ID                 uuid.UUID
-	Date               time.Time
-	Visitors           int
-	AvgSessionDuration float64
-	SourceID           uuid.UUID
+	ID                 uuid.UUID `json:"id"`
+	Date               time.Time `json:"date"`
+	Visitors           int64     `json:"visitors"`
+	AvgSessionDuration float64   `json:"avg_session_duration"`
+	SourceID           uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) CreateAnalyticsSiteStat(ctx context.Context, arg CreateAnalyticsSiteStatParams) (AnalyticsSiteStat, error) {
@@ -256,8 +256,8 @@ WHERE
 `
 
 type DeleteAnalyticsPageStatsByPathAndSourceParams struct {
-	SourceID uuid.UUID
-	UrlPath  string
+	SourceID uuid.UUID `json:"source_id"`
+	UrlPath  string    `json:"url_path"`
 }
 
 func (q *Queries) DeleteAnalyticsPageStatsByPathAndSource(ctx context.Context, arg DeleteAnalyticsPageStatsByPathAndSourceParams) error {
@@ -279,13 +279,13 @@ ORDER BY s.date DESC
 `
 
 type GetAllAnalyticsPageStatsForUserRow struct {
-	ID             uuid.UUID
-	Date           time.Time
-	UrlPath        string
-	Views          int
-	SourceID       uuid.UUID
-	SourceNetwork  string
-	SourceUserName string
+	ID             uuid.UUID `json:"id"`
+	Date           time.Time `json:"date"`
+	UrlPath        string    `json:"url_path"`
+	Views          int64     `json:"views"`
+	SourceID       uuid.UUID `json:"source_id"`
+	SourceNetwork  string    `json:"source_network"`
+	SourceUserName string    `json:"source_user_name"`
 }
 
 func (q *Queries) GetAllAnalyticsPageStatsForUser(ctx context.Context, userID uuid.UUID) ([]GetAllAnalyticsPageStatsForUserRow, error) {
@@ -333,13 +333,13 @@ ORDER BY s.date DESC
 `
 
 type GetAllAnalyticsSiteStatsForUserRow struct {
-	ID                 uuid.UUID
-	Date               time.Time
-	Visitors           int
-	AvgSessionDuration float64
-	SourceID           uuid.UUID
-	SourceNetwork      string
-	SourceUserName     string
+	ID                 uuid.UUID `json:"id"`
+	Date               time.Time `json:"date"`
+	Visitors           int64     `json:"visitors"`
+	AvgSessionDuration float64   `json:"avg_session_duration"`
+	SourceID           uuid.UUID `json:"source_id"`
+	SourceNetwork      string    `json:"source_network"`
+	SourceUserName     string    `json:"source_user_name"`
 }
 
 func (q *Queries) GetAllAnalyticsSiteStatsForUser(ctx context.Context, userID uuid.UUID) ([]GetAllAnalyticsSiteStatsForUserRow, error) {
@@ -384,17 +384,17 @@ WHERE
 `
 
 type GetAllPageStatsWithTargetInfoParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 type GetAllPageStatsWithTargetInfoRow struct {
-	ID             uuid.UUID
-	Date           time.Time
-	UrlPath        string
-	Views          int
-	SourceID       uuid.UUID
-	TargetRecordID sql.NullString
+	ID             uuid.UUID      `json:"id"`
+	Date           time.Time      `json:"date"`
+	UrlPath        string         `json:"url_path"`
+	Views          int64          `json:"views"`
+	SourceID       uuid.UUID      `json:"source_id"`
+	TargetRecordID sql.NullString `json:"target_record_id"`
 }
 
 func (q *Queries) GetAllPageStatsWithTargetInfo(ctx context.Context, arg GetAllPageStatsWithTargetInfoParams) ([]GetAllPageStatsWithTargetInfoRow, error) {
@@ -438,17 +438,17 @@ WHERE
 `
 
 type GetAllSiteStatsWithTargetInfoParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 type GetAllSiteStatsWithTargetInfoRow struct {
-	ID                 uuid.UUID
-	Date               time.Time
-	Visitors           int
-	AvgSessionDuration float64
-	SourceID           uuid.UUID
-	TargetRecordID     sql.NullString
+	ID                 uuid.UUID      `json:"id"`
+	Date               time.Time      `json:"date"`
+	Visitors           int64          `json:"visitors"`
+	AvgSessionDuration float64        `json:"avg_session_duration"`
+	SourceID           uuid.UUID      `json:"source_id"`
+	TargetRecordID     sql.NullString `json:"target_record_id"`
 }
 
 func (q *Queries) GetAllSiteStatsWithTargetInfo(ctx context.Context, arg GetAllSiteStatsWithTargetInfoParams) ([]GetAllSiteStatsWithTargetInfoRow, error) {
@@ -566,9 +566,9 @@ ORDER BY date DESC
 `
 
 type GetAnalyticsSiteStatsBySourceAndRangeParams struct {
-	SourceID uuid.UUID
-	Date     time.Time
-	Date_2   time.Time
+	SourceID uuid.UUID `json:"source_id"`
+	Date     time.Time `json:"date"`
+	Date_2   time.Time `json:"date_2"`
 }
 
 func (q *Queries) GetAnalyticsSiteStatsBySourceAndRange(ctx context.Context, arg GetAnalyticsSiteStatsBySourceAndRangeParams) ([]AnalyticsSiteStat, error) {
@@ -637,12 +637,12 @@ ORDER BY year_month ASC
 `
 
 type GetMonthlyEngagementStatsRow struct {
-	ID           uuid.UUID
-	Network      string
-	UserName     string
-	YearMonth    string
-	TotalLikes   int64
-	TotalReposts int64
+	ID           uuid.UUID `json:"id"`
+	Network      string    `json:"network"`
+	UserName     string    `json:"user_name"`
+	YearMonth    string    `json:"year_month"`
+	TotalLikes   int64     `json:"total_likes"`
+	TotalReposts int64     `json:"total_reposts"`
 }
 
 func (q *Queries) GetMonthlyEngagementStats(ctx context.Context, userID uuid.UUID) ([]GetMonthlyEngagementStatsRow, error) {
@@ -688,8 +688,8 @@ ORDER BY year_month ASC
 `
 
 type GetMonthlyPageViewsRow struct {
-	YearMonth  string
-	TotalViews int64
+	YearMonth  string `json:"year_month"`
+	TotalViews int64  `json:"total_views"`
 }
 
 func (q *Queries) GetMonthlyPageViews(ctx context.Context, userID uuid.UUID) ([]GetMonthlyPageViewsRow, error) {
@@ -730,8 +730,8 @@ ORDER BY year_month ASC
 `
 
 type GetMonthlySiteVisitorsRow struct {
-	YearMonth     string
-	TotalVisitors int64
+	YearMonth     string `json:"year_month"`
+	TotalVisitors int64  `json:"total_visitors"`
 }
 
 func (q *Queries) GetMonthlySiteVisitors(ctx context.Context, userID uuid.UUID) ([]GetMonthlySiteVisitorsRow, error) {
@@ -769,18 +769,18 @@ WHERE
 `
 
 type GetSyncedPageStatsForUpdateParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
-	Date     time.Time
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
+	Date     time.Time `json:"date"`
 }
 
 type GetSyncedPageStatsForUpdateRow struct {
-	ID             uuid.UUID
-	Date           time.Time
-	UrlPath        string
-	Views          int
-	SourceID       uuid.UUID
-	TargetRecordID string
+	ID             uuid.UUID `json:"id"`
+	Date           time.Time `json:"date"`
+	UrlPath        string    `json:"url_path"`
+	Views          int64     `json:"views"`
+	SourceID       uuid.UUID `json:"source_id"`
+	TargetRecordID string    `json:"target_record_id"`
 }
 
 func (q *Queries) GetSyncedPageStatsForUpdate(ctx context.Context, arg GetSyncedPageStatsForUpdateParams) ([]GetSyncedPageStatsForUpdateRow, error) {
@@ -825,18 +825,18 @@ WHERE
 `
 
 type GetSyncedSiteStatsForUpdateParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
-	Date     time.Time
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
+	Date     time.Time `json:"date"`
 }
 
 type GetSyncedSiteStatsForUpdateRow struct {
-	ID                 uuid.UUID
-	Date               time.Time
-	Visitors           int
-	AvgSessionDuration float64
-	SourceID           uuid.UUID
-	TargetRecordID     string
+	ID                 uuid.UUID `json:"id"`
+	Date               time.Time `json:"date"`
+	Visitors           int64     `json:"visitors"`
+	AvgSessionDuration float64   `json:"avg_session_duration"`
+	SourceID           uuid.UUID `json:"source_id"`
+	TargetRecordID     string    `json:"target_record_id"`
 }
 
 func (q *Queries) GetSyncedSiteStatsForUpdate(ctx context.Context, arg GetSyncedSiteStatsForUpdateParams) ([]GetSyncedSiteStatsForUpdateRow, error) {
@@ -881,8 +881,8 @@ WHERE
 `
 
 type GetUnsyncedPageStatsForTargetParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) GetUnsyncedPageStatsForTarget(ctx context.Context, arg GetUnsyncedPageStatsForTargetParams) ([]AnalyticsPageStat, error) {
@@ -926,8 +926,8 @@ WHERE
 `
 
 type GetUnsyncedSiteStatsForTargetParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) GetUnsyncedSiteStatsForTarget(ctx context.Context, arg GetUnsyncedSiteStatsForTargetParams) ([]AnalyticsSiteStat, error) {
@@ -964,8 +964,8 @@ UPDATE analytics_page_stats SET url_path = $2 WHERE id = $1
 `
 
 type UpdateAnalyticsPageStatPathParams struct {
-	ID      uuid.UUID
-	UrlPath string
+	ID      uuid.UUID `json:"id"`
+	UrlPath string    `json:"url_path"`
 }
 
 func (q *Queries) UpdateAnalyticsPageStatPath(ctx context.Context, arg UpdateAnalyticsPageStatPathParams) error {

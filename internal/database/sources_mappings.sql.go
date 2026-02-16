@@ -23,10 +23,10 @@ RETURNING id, source_id, target_id, target_source_id
 `
 
 type AddSourceToTargetParams struct {
-	ID             uuid.UUID
-	SourceID       uuid.UUID
-	TargetID       uuid.UUID
-	TargetSourceID string
+	ID             uuid.UUID `json:"id"`
+	SourceID       uuid.UUID `json:"source_id"`
+	TargetID       uuid.UUID `json:"target_id"`
+	TargetSourceID string    `json:"target_source_id"`
 }
 
 func (q *Queries) AddSourceToTarget(ctx context.Context, arg AddSourceToTargetParams) (SourcesOnTarget, error) {
@@ -52,8 +52,8 @@ where target_id = $1 and source_id = $2
 `
 
 type DeleteSourceTargetParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) DeleteSourceTarget(ctx context.Context, arg DeleteSourceTargetParams) error {
@@ -101,8 +101,8 @@ LIMIT 1
 `
 
 type GetTargetSourceBySourceParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) GetTargetSourceBySource(ctx context.Context, arg GetTargetSourceBySourceParams) (SourcesOnTarget, error) {

@@ -29,13 +29,13 @@ RETURNING
 `
 
 type CreateWebAuthnCredentialParams struct {
-	ID              uuid.UUID
-	UserID          uuid.UUID
-	CredentialID    []byte
-	PublicKey       []byte
-	AttestationType string
-	Aaguid          uuid.NullUUID
-	SignCount       sql.NullInt64
+	ID              uuid.UUID     `json:"id"`
+	UserID          uuid.UUID     `json:"user_id"`
+	CredentialID    []byte        `json:"credential_id"`
+	PublicKey       []byte        `json:"public_key"`
+	AttestationType string        `json:"attestation_type"`
+	Aaguid          uuid.NullUUID `json:"aaguid"`
+	SignCount       sql.NullInt64 `json:"sign_count"`
 }
 
 func (q *Queries) CreateWebAuthnCredential(ctx context.Context, arg CreateWebAuthnCredentialParams) (WebauthnCredential, error) {
@@ -131,8 +131,8 @@ WHERE
 `
 
 type UpdateWebAuthnCredentialSignCountParams struct {
-	ID        uuid.UUID
-	SignCount sql.NullInt64
+	ID        uuid.UUID     `json:"id"`
+	SignCount sql.NullInt64 `json:"sign_count"`
 }
 
 func (q *Queries) UpdateWebAuthnCredentialSignCount(ctx context.Context, arg UpdateWebAuthnCredentialSignCountParams) error {

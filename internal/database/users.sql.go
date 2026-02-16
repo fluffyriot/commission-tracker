@@ -28,11 +28,11 @@ RETURNING
 `
 
 type CreateUserParams struct {
-	ID         uuid.UUID
-	Username   string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	SyncPeriod string
+	ID         uuid.UUID `json:"id"`
+	Username   string    `json:"username"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	SyncPeriod string    `json:"sync_period"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -166,8 +166,8 @@ RETURNING
 `
 
 type UpdateUserIntroCompletedParams struct {
-	ID             uuid.UUID
-	IntroCompleted bool
+	ID             uuid.UUID `json:"id"`
+	IntroCompleted bool      `json:"intro_completed"`
 }
 
 func (q *Queries) UpdateUserIntroCompleted(ctx context.Context, arg UpdateUserIntroCompletedParams) (User, error) {
@@ -201,8 +201,8 @@ RETURNING
 `
 
 type UpdateUserLastSeenVersionParams struct {
-	ID              uuid.UUID
-	LastSeenVersion string
+	ID              uuid.UUID `json:"id"`
+	LastSeenVersion string    `json:"last_seen_version"`
 }
 
 func (q *Queries) UpdateUserLastSeenVersion(ctx context.Context, arg UpdateUserLastSeenVersionParams) (User, error) {
@@ -236,8 +236,8 @@ RETURNING
 `
 
 type UpdateUserPasswordParams struct {
-	ID           uuid.UUID
-	PasswordHash sql.NullString
+	ID           uuid.UUID      `json:"id"`
+	PasswordHash sql.NullString `json:"password_hash"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error) {
@@ -271,8 +271,8 @@ RETURNING
 `
 
 type UpdateUserProfileImageParams struct {
-	ID           uuid.UUID
-	ProfileImage sql.NullString
+	ID           uuid.UUID      `json:"id"`
+	ProfileImage sql.NullString `json:"profile_image"`
 }
 
 func (q *Queries) UpdateUserProfileImage(ctx context.Context, arg UpdateUserProfileImageParams) (User, error) {
@@ -306,8 +306,8 @@ RETURNING
 `
 
 type UpdateUserSyncSettingsParams struct {
-	ID         uuid.UUID
-	SyncPeriod string
+	ID         uuid.UUID `json:"id"`
+	SyncPeriod string    `json:"sync_period"`
 }
 
 func (q *Queries) UpdateUserSyncSettings(ctx context.Context, arg UpdateUserSyncSettingsParams) (User, error) {
@@ -342,9 +342,9 @@ RETURNING
 `
 
 type UpdateUserTOTPParams struct {
-	ID          uuid.UUID
-	TotpSecret  sql.NullString
-	TotpEnabled sql.NullBool
+	ID          uuid.UUID      `json:"id"`
+	TotpSecret  sql.NullString `json:"totp_secret"`
+	TotpEnabled sql.NullBool   `json:"totp_enabled"`
 }
 
 func (q *Queries) UpdateUserTOTP(ctx context.Context, arg UpdateUserTOTPParams) (User, error) {
@@ -378,8 +378,8 @@ RETURNING
 `
 
 type UpdateUserUsernameParams struct {
-	ID       uuid.UUID
-	Username string
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
 }
 
 func (q *Queries) UpdateUserUsername(ctx context.Context, arg UpdateUserUsernameParams) (User, error) {

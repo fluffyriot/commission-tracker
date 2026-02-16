@@ -21,10 +21,10 @@ RETURNING id, created_at, updated_at, target_type, user_id, db_id, is_active, sy
 `
 
 type ChangeTargetStatusByIdParams struct {
-	ID           uuid.UUID
-	IsActive     bool
-	SyncStatus   string
-	StatusReason sql.NullString
+	ID           uuid.UUID      `json:"id"`
+	IsActive     bool           `json:"is_active"`
+	SyncStatus   string         `json:"sync_status"`
+	StatusReason sql.NullString `json:"status_reason"`
 }
 
 func (q *Queries) ChangeTargetStatusById(ctx context.Context, arg ChangeTargetStatusByIdParams) (Target, error) {
@@ -70,16 +70,16 @@ RETURNING id, created_at, updated_at, target_type, user_id, db_id, is_active, sy
 `
 
 type CreateTargetParams struct {
-	ID            uuid.UUID
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	TargetType    string
-	UserID        uuid.UUID
-	DbID          sql.NullString
-	IsActive      bool
-	SyncFrequency string
-	SyncStatus    string
-	HostUrl       sql.NullString
+	ID            uuid.UUID      `json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	TargetType    string         `json:"target_type"`
+	UserID        uuid.UUID      `json:"user_id"`
+	DbID          sql.NullString `json:"db_id"`
+	IsActive      bool           `json:"is_active"`
+	SyncFrequency string         `json:"sync_frequency"`
+	SyncStatus    string         `json:"sync_status"`
+	HostUrl       sql.NullString `json:"host_url"`
 }
 
 func (q *Queries) CreateTarget(ctx context.Context, arg CreateTargetParams) (Target, error) {
@@ -238,10 +238,10 @@ RETURNING id, created_at, updated_at, target_type, user_id, db_id, is_active, sy
 `
 
 type UpdateTargetSyncStatusByIdParams struct {
-	ID           uuid.UUID
-	SyncStatus   string
-	StatusReason sql.NullString
-	LastSynced   sql.NullTime
+	ID           uuid.UUID      `json:"id"`
+	SyncStatus   string         `json:"sync_status"`
+	StatusReason sql.NullString `json:"status_reason"`
+	LastSynced   sql.NullTime   `json:"last_synced"`
 }
 
 func (q *Queries) UpdateTargetSyncStatusById(ctx context.Context, arg UpdateTargetSyncStatusByIdParams) (Target, error) {

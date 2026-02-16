@@ -27,11 +27,11 @@ RETURNING
 `
 
 type ChangeExportStatusByIdParams struct {
-	ID            uuid.UUID
-	ExportStatus  string
-	StatusMessage sql.NullString
-	DownloadUrl   sql.NullString
-	CompletedAt   time.Time
+	ID            uuid.UUID      `json:"id"`
+	ExportStatus  string         `json:"export_status"`
+	StatusMessage sql.NullString `json:"status_message"`
+	DownloadUrl   sql.NullString `json:"download_url"`
+	CompletedAt   time.Time      `json:"completed_at"`
 }
 
 func (q *Queries) ChangeExportStatusById(ctx context.Context, arg ChangeExportStatusByIdParams) (Export, error) {
@@ -86,15 +86,15 @@ RETURNING
 `
 
 type CreateExportParams struct {
-	ID            uuid.UUID
-	CreatedAt     time.Time
-	CompletedAt   time.Time
-	ExportStatus  string
-	StatusMessage sql.NullString
-	UserID        uuid.UUID
-	DownloadUrl   sql.NullString
-	ExportMethod  string
-	TargetID      uuid.NullUUID
+	ID            uuid.UUID      `json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	CompletedAt   time.Time      `json:"completed_at"`
+	ExportStatus  string         `json:"export_status"`
+	StatusMessage sql.NullString `json:"status_message"`
+	UserID        uuid.UUID      `json:"user_id"`
+	DownloadUrl   sql.NullString `json:"download_url"`
+	ExportMethod  string         `json:"export_method"`
+	TargetID      uuid.NullUUID  `json:"target_id"`
 }
 
 func (q *Queries) CreateExport(ctx context.Context, arg CreateExportParams) (Export, error) {
