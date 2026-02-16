@@ -28,6 +28,7 @@ var AvailableSources = []SourceNetwork{
 	{Name: "Murrtube", Color: "#344aa8"},
 	{Name: "Discord", Color: "#5662f6"},
 	{Name: "FurTrack", Color: "#2d0e4c"},
+	{Name: "FurAffinity", Color: "#f9af3B"},
 }
 
 var AvailableTargets = []TargetNetwork{
@@ -60,6 +61,8 @@ func ConvNetworkToURL(network, username string) (string, error) {
 		return fmt.Sprintf("https://%v/@%v", splits[1], splits[0]), nil
 	case "Google Analytics":
 		return "analytics.google.com/analytics/web/", nil
+	case "FurAffinity":
+		return "https://www.furaffinity.net/user/" + username + "/", nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}
@@ -92,6 +95,8 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 	case "Mastodon":
 		splits := strings.Split(author, "@")
 		return fmt.Sprintf("https://%v/@%v/%v", splits[1], splits[0], networkId), nil
+	case "FurAffinity":
+		return "https://www.furaffinity.net/view/" + networkId + "/", nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}
