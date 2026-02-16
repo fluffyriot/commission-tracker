@@ -17,18 +17,14 @@ AND raw_word NOT LIKE 'http%'
 AND raw_word NOT ILIKE '%http%'
 AND raw_word NOT ILIKE '%www.%'
 AND raw_word NOT ILIKE '%.com%'
+AND cleaned_word NOT ILIKE '%iotpho%'
 AND cleaned_word NOT IN (
-    'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
-    'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
-    'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
-    'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
-    'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
-    'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
-    'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other',
-    'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
-    'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way',
-    'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
-    'is', 'are', 'was', 'were', 'has', 'had', 'been'
+    'that', 'have', 'with', 'this', 'from', 'they',  'will', 'would', 'there', 'their', 
+    'about', 'which', 'when', 'make', 'like', 'time', 'just', 'know', 'take', 'what',
+    'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'other', 'cant',
+    'than', 'then', 'look', 'only', 'come', 'over', 'think', 'also', 'back', 'after', 
+    'work', 'first', 'well', 'even', 'want', 'because', 'these', 'give', 'most',
+    'were', 'been', 'here',  'many', 'dont', 'does', 'more', 'less'
 )
 GROUP BY cleaned_word
 ORDER BY count DESC
