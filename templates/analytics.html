@@ -115,29 +115,31 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const initialTab = urlParams.get('tab') || 'content';
-        loadTab(initialTab);
-        tabs.forEach(t => t.classList.remove('active'));
-        contents.forEach(c => c.classList.add('hidden'));
-        const initialTabBtn = document.querySelector(`[data-tab="${initialTab}"]`);
-        if (initialTabBtn) {
-            initialTabBtn.classList.add('active');
-            document.getElementById(`${initialTab}-tab`).classList.remove('hidden');
+
+        function activateTab(tabName, updateHistory = false) {
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.add('hidden'));
+
+            const tabBtn = document.querySelector(`[data-tab="${tabName}"]`);
+            if (tabBtn) {
+                tabBtn.classList.add('active');
+                document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+
+                if (updateHistory) {
+                    const url = new URL(window.location);
+                    url.searchParams.set('tab', tabName);
+                    window.history.pushState({}, '', url);
+                }
+
+                loadTab(tabName);
+            }
         }
+
+        activateTab(initialTab);
 
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                contents.forEach(c => c.classList.add('hidden'));
-
-                tab.classList.add('active');
-                const tabName = tab.dataset.tab;
-                document.getElementById(`${tabName}-tab`).classList.remove('hidden');
-
-                const url = new URL(window.location);
-                url.searchParams.set('tab', tabName);
-                window.history.pushState({}, '', url);
-
-                loadTab(tabName);
+                activateTab(tab.dataset.tab, true);
             });
         });
 
