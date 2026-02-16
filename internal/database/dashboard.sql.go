@@ -43,9 +43,9 @@ where
     sources.user_id = $1
 `
 
-func (q *Queries) GetAverageWebsiteSession(ctx context.Context, userID uuid.UUID) (int, error) {
+func (q *Queries) GetAverageWebsiteSession(ctx context.Context, userID uuid.UUID) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getAverageWebsiteSession, userID)
-	var average_website_session int
+	var average_website_session int64
 	err := row.Scan(&average_website_session)
 	return average_website_session, err
 }
@@ -92,8 +92,8 @@ type GetRestTopSourcesRow struct {
 	ID                uuid.UUID
 	UserName          string
 	Network           string
-	TotalInteractions int
-	FollowersCount    int
+	TotalInteractions int64
+	FollowersCount    int64
 }
 
 func (q *Queries) GetRestTopSources(ctx context.Context, userID uuid.UUID) ([]GetRestTopSourcesRow, error) {
@@ -166,8 +166,8 @@ type GetTopSourcesRow struct {
 	ID                uuid.UUID
 	UserName          string
 	Network           string
-	TotalInteractions int
-	FollowersCount    int
+	TotalInteractions int64
+	FollowersCount    int64
 }
 
 func (q *Queries) GetTopSources(ctx context.Context, userID uuid.UUID) ([]GetTopSourcesRow, error) {
@@ -236,7 +236,7 @@ type GetTotalDailyEngagementStatsParams struct {
 
 type GetTotalDailyEngagementStatsRow struct {
 	PeriodDate      time.Time
-	TotalEngagement int
+	TotalEngagement int64
 }
 
 func (q *Queries) GetTotalDailyEngagementStats(ctx context.Context, arg GetTotalDailyEngagementStatsParams) ([]GetTotalDailyEngagementStatsRow, error) {
@@ -295,7 +295,7 @@ type GetTotalDailyFollowerStatsParams struct {
 
 type GetTotalDailyFollowerStatsRow struct {
 	PeriodDate     time.Time
-	TotalFollowers int
+	TotalFollowers int64
 }
 
 func (q *Queries) GetTotalDailyFollowerStats(ctx context.Context, arg GetTotalDailyFollowerStatsParams) ([]GetTotalDailyFollowerStatsRow, error) {
@@ -330,9 +330,9 @@ where
     sources.user_id = $1
 `
 
-func (q *Queries) GetTotalPageViews(ctx context.Context, userID uuid.UUID) (int, error) {
+func (q *Queries) GetTotalPageViews(ctx context.Context, userID uuid.UUID) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getTotalPageViews, userID)
-	var total_page_views int
+	var total_page_views int64
 	err := row.Scan(&total_page_views)
 	return total_page_views, err
 }
@@ -371,9 +371,9 @@ FROM (
 `
 
 type GetTotalReactionsRow struct {
-	TotalLikes  int
-	TotalShares int
-	TotalViews  int
+	TotalLikes  int64
+	TotalShares int64
+	TotalViews  int64
 }
 
 func (q *Queries) GetTotalReactions(ctx context.Context, userID uuid.UUID) (GetTotalReactionsRow, error) {
@@ -392,9 +392,9 @@ where
     sources.user_id = $1
 `
 
-func (q *Queries) GetTotalSiteStats(ctx context.Context, userID uuid.UUID) (int, error) {
+func (q *Queries) GetTotalSiteStats(ctx context.Context, userID uuid.UUID) (int64, error) {
 	row := q.db.QueryRowContext(ctx, getTotalSiteStats, userID)
-	var total_visitors int
+	var total_visitors int64
 	err := row.Scan(&total_visitors)
 	return total_visitors, err
 }

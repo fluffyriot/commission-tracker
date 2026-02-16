@@ -641,8 +641,8 @@ type GetMonthlyEngagementStatsRow struct {
 	Network      string
 	UserName     string
 	YearMonth    string
-	TotalLikes   int
-	TotalReposts int
+	TotalLikes   int64
+	TotalReposts int64
 }
 
 func (q *Queries) GetMonthlyEngagementStats(ctx context.Context, userID uuid.UUID) ([]GetMonthlyEngagementStatsRow, error) {
@@ -689,7 +689,7 @@ ORDER BY year_month ASC
 
 type GetMonthlyPageViewsRow struct {
 	YearMonth  string
-	TotalViews int
+	TotalViews int64
 }
 
 func (q *Queries) GetMonthlyPageViews(ctx context.Context, userID uuid.UUID) ([]GetMonthlyPageViewsRow, error) {
@@ -731,7 +731,7 @@ ORDER BY year_month ASC
 
 type GetMonthlySiteVisitorsRow struct {
 	YearMonth     string
-	TotalVisitors int
+	TotalVisitors int64
 }
 
 func (q *Queries) GetMonthlySiteVisitors(ctx context.Context, userID uuid.UUID) ([]GetMonthlySiteVisitorsRow, error) {

@@ -293,7 +293,7 @@ type GetRecentPostsForUserRow struct {
 	Network           sql.NullString
 	Likes             sql.NullInt64
 	Reposts           sql.NullInt64
-	Interactions      int
+	Interactions      int64
 	Views             sql.NullInt64
 }
 

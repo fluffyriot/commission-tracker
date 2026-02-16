@@ -129,10 +129,10 @@ WHERE
 `
 
 type GetSourceTotalsRow struct {
-	TotalPosts   int
-	TotalLikes   int
-	TotalReposts int
-	TotalViews   int
+	TotalPosts   int64
+	TotalLikes   int64
+	TotalReposts int64
+	TotalViews   int64
 }
 
 func (q *Queries) GetSourceTotals(ctx context.Context, sourceID uuid.UUID) (GetSourceTotalsRow, error) {
