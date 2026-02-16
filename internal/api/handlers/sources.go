@@ -78,18 +78,11 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 	userID := c.PostForm("user_id")
 	network := c.PostForm("network")
 	username := c.PostForm("username")
-	instaProfileId := c.PostForm("instagram_profile_id")
-	tgBotToken := c.PostForm("telegram_bot_token")
-	tgChannelId := c.PostForm("telegram_channel_id")
-	tgAppId := c.PostForm("telegram_app_id")
-	tgAppHash := c.PostForm("telegram_app_hash")
-	googlePropertyId := c.PostForm("google_analytics_property_id")
-	googleKey := c.PostForm("google_service_account_key")
-	discordBotToken := c.PostForm("discord_bot_token")
-	discordServerId := c.PostForm("discord_server_id")
-	discordChannelIds := c.PostForm("discord_channel_ids")
-	appID := c.PostForm("app_id")
-	appSecret := c.PostForm("app_secret")
+	field1 := c.PostForm("field_1")
+	field2 := c.PostForm("field_2")
+	field3 := c.PostForm("field_3")
+	field4 := c.PostForm("field_4")
+	fieldLong := c.PostForm("field_long")
 
 	if userID == "" || network == "" || username == "" {
 		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(c, gin.H{
@@ -99,22 +92,19 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 		return
 	}
 
-	sid, _, err := config.CreateSourceFromForm(
-		h.DB,
-		userID,
-		network,
-		username,
-		tgBotToken,
-		tgChannelId,
-		tgAppId,
-		tgAppHash,
-		googleKey,
-		googlePropertyId,
-		discordBotToken,
-		discordServerId,
-		discordChannelIds,
-		h.Config.TokenEncryptionKey,
-	)
+	params := config.SourceCreationParams{
+		UserID:        userID,
+		Network:       network,
+		Username:      username,
+		Field1:        field1,
+		Field2:        field2,
+		Field3:        field3,
+		Field4:        field4,
+		FieldLong:     fieldLong,
+		EncryptionKey: h.Config.TokenEncryptionKey,
+	}
+
+	sid, _, err := config.CreateSourceFromForm(h.DB, params)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
 			"error": err.Error(),
@@ -125,11 +115,11 @@ func (h *Handler) SourcesSetupHandler(c *gin.Context) {
 
 	if network == "Instagram" {
 		session := sessions.Default(c)
-		session.Set("app_id_"+sid, appID)
-		session.Set("app_secret_"+sid, appSecret)
+		session.Set("app_id_"+sid, field2)
+		session.Set("app_secret_"+sid, field3)
 		session.Save()
 
-		c.Redirect(http.StatusSeeOther, "/auth/facebook/login?sid="+sid+"&pid="+instaProfileId)
+		c.Redirect(http.StatusSeeOther, "/auth/facebook/login?sid="+sid+"&pid="+field1)
 		return
 	}
 

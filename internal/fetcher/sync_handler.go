@@ -113,6 +113,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *common.Client, 
 		case "FurAffinity":
 			return sources.FetchFurAffinityPosts(dbQueries, c, source.UserID, source.ID)
 
+		case "e621":
+			return sources.FetchE621Posts(dbQueries, encryptionKey, source.ID, c)
+
 		default:
 			return nil
 		}

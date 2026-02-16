@@ -193,35 +193,52 @@ func CreateUserFromForm(dbQueries *database.Queries, userName string) (name, id 
 
 }
 
-func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, tgBotToken, tgChannelId, tgAppId, tgAppHash, googleKey, googlePropertyId, discordBotToken, discordServerId, discordChannelIds string, encryptionKey []byte) (id, networkName string, e error) {
+type SourceCreationParams struct {
+	UserID        string
+	Network       string
+	Username      string
+	Field1        string
+	Field2        string
+	Field3        string
+	Field4        string
+	Field5        string
+	FieldLong     string
+	EncryptionKey []byte
+}
 
-	uidParse, err := uuid.Parse(uid)
+func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationParams) (id, networkName string, e error) {
+
+	uidParse, err := uuid.Parse(params.UserID)
 	if err != nil {
 		return "", "", fmt.Errorf("Failed to parse UUID. Error: %v", err)
 	}
 
-	if network == "Telegram" && (tgBotToken == "" || tgChannelId == "" || tgAppId == "" || tgAppHash == "") {
+	if params.Network == "Telegram" && (params.Field1 == "" || params.Field2 == "" || params.Field3 == "" || params.Field4 == "") {
 		return "", "", fmt.Errorf("Channel Id, Bot Token, App Id and App Hash are required for Telegram")
 	}
 
-	if network == "Google Analytics" && (googleKey == "" || googlePropertyId == "") {
+	if params.Network == "Google Analytics" && (params.FieldLong == "" || params.Field1 == "") {
 		return "", "", fmt.Errorf("Property ID and Service Account Key are required for Google Analytics")
 	}
 
-	if network == "YouTube" && googleKey == "" {
+	if params.Network == "YouTube" && params.FieldLong == "" {
 		return "", "", fmt.Errorf("Service Account Key is required for YouTube")
 	}
 
-	if network == "Discord" && (discordBotToken == "" || discordServerId == "" || discordChannelIds == "") {
+	if params.Network == "Discord" && (params.Field1 == "" || params.Field2 == "" || params.Field3 == "") {
 		return "", "", fmt.Errorf("Bot Token, Server ID, and Channel ID(s) are required for Discord")
+	}
+
+	if params.Network == "e621" && (params.Field1 == "" || params.Field2 == "") {
+		return "", "", fmt.Errorf("API Key and API Username are required for e621")
 	}
 
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
-		Network:      network,
-		UserName:     username,
+		Network:      params.Network,
+		UserName:     params.Username,
 		UserID:       uidParse,
 		IsActive:     true,
 		SyncStatus:   "Initialized",
@@ -232,39 +249,31 @@ func CreateSourceFromForm(dbQueries *database.Queries, uid, network, username, t
 		return "", "", fmt.Errorf("Failed to create source. Error: %v", err)
 	}
 
-	if network == "Telegram" {
-		tokenFormatted := tgBotToken + ":::" + tgAppId + ":::" + tgAppHash
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, tgChannelId, nil, encryptionKey)
-		if err != nil {
-			dbQueries.DeleteSource(context.Background(), s.ID)
-			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
-		}
+	var tokenFormatted, profileFormatted string
+
+	switch params.Network {
+	case "Telegram":
+		tokenFormatted = params.Field1 + ":::" + params.Field3 + ":::" + params.Field4
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, params.Field2, nil, params.EncryptionKey)
+
+	case "Google Analytics":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, params.Field1, nil, params.EncryptionKey)
+
+	case "YouTube":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, "", nil, params.EncryptionKey)
+
+	case "Discord":
+		tokenFormatted = params.Field1
+		profileFormatted = params.Field2 + ":::" + params.Field3
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, profileFormatted, nil, params.EncryptionKey)
+
+	case "e621":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
 	}
 
-	if network == "Google Analytics" {
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, googlePropertyId, nil, encryptionKey)
-		if err != nil {
-			dbQueries.DeleteSource(context.Background(), s.ID)
-			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
-		}
-	}
-
-	if network == "YouTube" {
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, googleKey, "", nil, encryptionKey)
-		if err != nil {
-			dbQueries.DeleteSource(context.Background(), s.ID)
-			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
-		}
-	}
-
-	if network == "Discord" {
-		tokenFormatted := discordBotToken
-		profileFormatted := discordServerId + ":::" + discordChannelIds
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, tokenFormatted, profileFormatted, nil, encryptionKey)
-		if err != nil {
-			dbQueries.DeleteSource(context.Background(), s.ID)
-			return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
-		}
+	if err != nil {
+		dbQueries.DeleteSource(context.Background(), s.ID)
+		return "", "", fmt.Errorf("Failed to create source with auth key. Error: %v", err)
 	}
 
 	return s.ID.String(), s.Network, nil
