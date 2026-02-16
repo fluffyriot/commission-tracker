@@ -17,14 +17,14 @@
     <div class="grid-dashboard">
         <div class="card col-span-full md:col-span-2">
             <div class="card-header">Word Cloud (Top Keywords)</div>
-            <div class="chart-container" id="word-cloud-container">
-                <canvas id="wordCloudCanvas" width="800" height="400"></canvas>
+            <div class="chart-container" id="word-cloud-container" style="overflow: hidden;">
+                <canvas id="wordCloudCanvas" style="width: 100%; height: 100%;"></canvas>
             </div>
         </div>
 
         <div class="card col-span-full">
             <div class="card-header">Top Hashtags Performance</div>
-            <div class="chart-container">
+            <div class="chart-container" style="overflow: hidden;">
                 <canvas id="hashtagsChart"></canvas>
             </div>
         </div>
@@ -154,11 +154,17 @@
                 .then(res => res.json())
                 .then(data => {
                     if (!data || data.length === 0) return;
+                    const canvas = document.getElementById('wordCloudCanvas');
+                    const container = document.getElementById('word-cloud-container');
+
+                    canvas.width = container.clientWidth;
+                    canvas.height = container.clientHeight;
+
                     const list = data.map(item => [item.word, item.count * 5]);
-                    WordCloud(document.getElementById('wordCloudCanvas'), {
+                    WordCloud(canvas, {
                         list: list,
-                        gridSize: 8,
-                        weightFactor: size => Math.min(size * 10, 60),
+                        gridSize: Math.max(4, Math.floor(container.clientWidth / 100)),
+                        weightFactor: size => Math.min(size * (container.clientWidth / 80), 60),
                         fontFamily: 'Inter, system-ui, sans-serif',
                         color: (word, weight) => (weight > 20) ? '#f0f0f0' : colors.text,
                         rotateRatio: 0.5,
@@ -441,6 +447,8 @@
             monthRow.style.height = '20px';
             monthRow.style.width = '100%';
             monthRow.style.paddingLeft = '40px';
+            monthRow.style.overflow = 'hidden';
+            monthRow.style.paddingRight = '20px';
 
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             months.forEach((m, i) => {
@@ -449,6 +457,7 @@
                 label.textContent = m;
                 label.style.position = 'absolute';
                 label.style.left = `calc(${(i / 12) * 100}% + 40px)`;
+                label.style.whiteSpace = 'nowrap';
                 monthRow.appendChild(label);
             });
             mainContainer.appendChild(monthRow);
