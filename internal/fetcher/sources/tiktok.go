@@ -117,7 +117,7 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *common.Client, uid uuid.UU
 					let type = "video";
 					const imageIcon = row.querySelector('span[data-icon="ImageFill"]');
 					if (imageIcon) {
-						type = "photo";
+						type = "image";
 					}
 					
 					posts.push({ id, desc, cover_url: coverUrl, date_text: dateText, views, likes, is_scraped: true, type });
