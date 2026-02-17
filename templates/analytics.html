@@ -28,6 +28,31 @@
                 <canvas id="hashtagsChart"></canvas>
             </div>
         </div>
+
+        <div class="card col-span-full">
+            <div class="card-header">Performance Deviation (Outliers)</div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="performanceDeviationTable">
+                    <thead>
+                        <tr>
+                            <th class="p-2 border-b border-white/10">Date</th>
+                            <th class="p-2 border-b border-white/10">Network</th>
+                            <th class="p-2 border-b border-white/10">Content</th>
+                            <th class="p-2 border-b border-white/10">Engagement</th>
+                            <th class="p-2 border-b border-white/10">Deviation</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card col-span-full">
+            <div class="card-header">Engagement Velocity (Viral Detection)</div>
+            <div class="chart-container">
+                <canvas id="velocityChart"></canvas>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -49,6 +74,27 @@
             <div class="card-header">Top Mentions Performance</div>
             <div class="chart-container">
                 <canvas id="mentionsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card col-span-full">
+            <div class="card-header">Top Collaborations</div>
+            <div class="chart-container">
+                <canvas id="collaborationsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Engagement Rate (Normalized)</div>
+            <div class="chart-container">
+                <canvas id="engagementRateChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Follow Ratio Health</div>
+            <div class="chart-container">
+                <canvas id="followRatioChart"></canvas>
             </div>
         </div>
     </div>
@@ -91,6 +137,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"
     integrity="sha384-EuMVig/i0NsY8k6u37PJ4vzAbjRrxUknKzGF1JX32n8tasgHVvG817xx3+6WatZe"
     crossorigin="anonymous"></script>
+<script src="/static/js/chartjs-adapter-date-fns.bundle.min.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -118,11 +165,16 @@
                 case 'content':
                     loadWordCloud();
                     loadHashtags();
+                    loadPerformanceDeviation();
+                    loadEngagementVelocity();
                     break;
                 case 'engagement':
                     loadPostTypes();
                     loadNetworkEfficiency();
                     loadMentions();
+                    loadEngagementRate();
+                    loadFollowRatio();
+                    loadCollaborations();
                     break;
                 case 'timing':
                     loadTiming();
@@ -333,7 +385,7 @@
 
         function renderHeatmap(data) {
             const container = document.getElementById('heatmap-container');
-            container.innerHTML = '';
+            container.replaceChildren();
 
             const mainContainer = document.createElement('div');
             mainContainer.className = 'calendar-heatmap-container';
@@ -420,7 +472,7 @@
 
         function renderCalendarHeatmap(data) {
             const container = document.getElementById('calendar-heatmap-container');
-            container.innerHTML = '';
+            container.replaceChildren();
 
             const weeklyData = Array.from({ length: 53 }, () => Array(7).fill(0));
 
@@ -555,6 +607,207 @@
                     });
                 }
             });
+        }
+
+
+        function loadEngagementRate() {
+            fetch('/analytics/data/engagement-rate')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) return;
+
+                    const networks = [...new Set(data.map(d => d.network))];
+                    const datasets = networks.map((network, i) => {
+                        const netData = data.filter(d => d.network === network);
+                        netData.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+                        return {
+                            label: network,
+                            data: netData.map(d => {
+                                const engagement = d.likes + d.reposts;
+                                const rate = d.followers_count > 0 ? (engagement / d.followers_count) * 100 : 0;
+                                return { x: d.created_at, y: rate };
+                            }),
+                            borderColor: colors.highContrast[i % colors.highContrast.length],
+                            backgroundColor: colors.highContrast[i % colors.highContrast.length],
+                            showLine: false,
+                            pointRadius: 4
+                        };
+                    });
+
+                    createChart('engagementRateChart', 'scatter', {
+                        datasets: datasets
+                    }, {
+                        scales: {
+                            x: { type: 'time', time: { unit: 'month' }, title: { display: true, text: 'Date' } },
+                            y: { title: { display: true, text: 'Engagement Rate (%)' } }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.y.toFixed(3)}%`
+                                }
+                            }
+                        }
+                    });
+                });
+        }
+
+        function loadFollowRatio() {
+            fetch('/analytics/data/follow-ratio')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) return;
+                    createChart('followRatioChart', 'bar', {
+                        labels: data.map(d => d.network),
+                        datasets: [{
+                            label: 'Follow Ratio (Following/Followers)',
+                            data: data.map(d => d.following_count > 0 ? d.followers_count / d.following_count : 0),
+                            backgroundColor: colors.accent
+                        }]
+                    }, {
+                        scales: {
+                            y: { title: { display: true, text: 'Ratio' } }
+                        }
+                    });
+                });
+        }
+
+        function loadCollaborations() {
+            fetch('/analytics/data/collaborations')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) return;
+                    createChart('collaborationsChart', 'bar', {
+                        labels: data.map(d => d.collaborator),
+                        datasets: [{
+                            label: 'Avg Likes',
+                            data: data.map(d => d.avg_likes),
+                            backgroundColor: colors.primary,
+                            yAxisID: 'y',
+                            order: 2
+                        }, {
+                            label: 'Collaboration Count',
+                            data: data.map(d => d.collaboration_count),
+                            type: 'line',
+                            borderColor: colors.accent,
+                            backgroundColor: colors.accent,
+                            yAxisID: 'y1',
+                            order: 1
+                        }]
+                    }, {
+                        scales: {
+                            y: { title: { display: true, text: 'Avg Likes' } },
+                            y1: { position: 'right', title: { display: true, text: 'Count' }, grid: { drawOnChartArea: false } }
+                        }
+                    });
+                });
+        }
+
+        function loadPerformanceDeviation() {
+            fetch('/analytics/data/performance-deviation')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) return;
+                    const tbody = document.querySelector('#performanceDeviationTable tbody');
+                    tbody.replaceChildren();
+                    data.forEach(d => {
+                        const row = document.createElement('tr');
+                        const date = new Date(d.created_at).toLocaleDateString();
+                        const engagement = d.likes + d.reposts;
+                        const baseline = d.avg_engagement;
+                        const deviation = baseline > 0 ? ((engagement - baseline) / baseline) * 100 : 0;
+
+                        const dateCell = document.createElement('td');
+                        dateCell.className = 'p-2 border-b border-white/10 text-sm text-gray-400';
+                        dateCell.textContent = date;
+                        row.appendChild(dateCell);
+
+                        const networkCell = document.createElement('td');
+                        networkCell.className = 'p-2 border-b border-white/10';
+                        const badge = document.createElement('span');
+                        badge.className = 'badge badge-outline';
+                        badge.textContent = d.network;
+                        networkCell.appendChild(badge);
+                        row.appendChild(networkCell);
+
+                        const contentCell = document.createElement('td');
+                        contentCell.className = 'p-2 border-b border-white/10 text-sm truncate max-w-xs';
+                        contentCell.title = d.content || '';
+                        contentCell.textContent = d.content ? d.content.substring(0, 50) + '...' : 'Media';
+                        row.appendChild(contentCell);
+
+                        const engagementCell = document.createElement('td');
+                        engagementCell.className = 'p-2 border-b border-white/10 text-sm';
+                        engagementCell.textContent = `${engagement} (Avg: ${Math.round(baseline)})`;
+                        row.appendChild(engagementCell);
+                        const deviationCell = document.createElement('td');
+                        deviationCell.className = 'p-2 border-b border-white/10 text-success font-bold';
+                        deviationCell.textContent = `+${deviation.toFixed(1)}%`;
+                        row.appendChild(deviationCell);
+                        tbody.appendChild(row);
+                    });
+                });
+        }
+
+        function loadEngagementVelocity() {
+            fetch('/analytics/data/velocity')
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) return;
+                    const posts = {};
+                    data.forEach(d => {
+                        if (!posts[d.post_id]) posts[d.post_id] = {
+                            created_at: new Date(d.post_created_at),
+                            content: d.content,
+                            history: []
+                        };
+                        posts[d.post_id].history.push({
+                            t: new Date(d.history_synced_at),
+                            engagement: d.likes + d.reposts
+                        });
+                    });
+
+                    const sortedPostIds = Object.keys(posts).sort((a, b) => {
+                        const lastA = posts[a].history[posts[a].history.length - 1].engagement;
+                        const lastB = posts[b].history[posts[b].history.length - 1].engagement;
+                        return lastB - lastA;
+                    }).slice(0, 5);
+
+                    const datasets = sortedPostIds.map((pid, i) => {
+                        const post = posts[pid];
+                        const dataPoints = post.history.map(h => ({
+                            x: (h.t - post.created_at) / 3600000,
+                            y: h.engagement
+                        })).filter(p => p.x >= 0);
+
+                        return {
+                            label: `${i + 1}. ${post.content ? post.content.substring(0, 30) + '...' : 'Media'}`,
+                            data: dataPoints,
+                            borderColor: colors.highContrast[i],
+                            backgroundColor: 'transparent',
+                            tension: 0.4
+                        };
+                    });
+
+                    createChart('velocityChart', 'line', {
+                        datasets: datasets
+                    }, {
+                        scales: {
+                            x: { type: 'linear', title: { display: true, text: 'Hours since posted' } },
+                            y: { title: { display: true, text: 'Total Engagement' } }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return context.dataset.label + ': ' + context.parsed.y;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
         }
     });
 </script>

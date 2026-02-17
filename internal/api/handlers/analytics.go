@@ -272,3 +272,83 @@ func (h *Handler) AnalyticsPostingConsistencyHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, data)
 }
+
+func (h *Handler) AnalyticsEngagementRateHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetEngagementRateData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting engagement rate data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsFollowRatioHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetFollowRatioData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting follow ratio data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetPerformanceDeviationData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting performance deviation data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetEngagementVelocityData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting engagement velocity data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsCollaborationsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetCollaborationsData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting collaborations data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
