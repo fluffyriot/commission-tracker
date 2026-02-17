@@ -263,6 +263,10 @@ a:hover {
   color: var(--color-danger-fg);
 }
 
+.text-soft-danger {
+  color: rgba(255, 99, 132, 1);
+}
+
 .bg-success-bg {
   background-color: var(--color-success-bg);
 }
@@ -297,6 +301,23 @@ a:hover {
 
 .h-96 {
   height: 400px !important;
+}
+
+.h-500 {
+  height: 500px !important;
+}
+
+.h-600 {
+  height: 600px !important;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.w-full-height-full {
+  width: 100%;
+  height: 100%;
 }
 
 .opacity-50 {

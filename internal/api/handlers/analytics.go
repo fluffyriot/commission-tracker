@@ -4,7 +4,9 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sort"
 
+	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/fluffyriot/rpsync/internal/stats"
 	"github.com/gin-gonic/gin"
@@ -318,7 +320,56 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, data)
+
+	type DeviationItem struct {
+		database.GetPerformanceDeviationDataRow
+		URL       string  `json:"url"`
+		Deviation float64 `json:"deviation"`
+	}
+
+	var positive []DeviationItem
+	var negative []DeviationItem
+
+	for _, item := range data {
+		actual := float64(item.Likes + item.Reposts)
+		deviation := actual - item.ExpectedEngagement
+
+		url := ""
+		if item.Network != "" && item.Author != "" {
+			url, _ = helpers.ConvPostToURL(item.Network, item.Author, item.NetworkInternalID)
+		}
+
+		di := DeviationItem{
+			GetPerformanceDeviationDataRow: item,
+			URL:                            url,
+			Deviation:                      deviation,
+		}
+
+		if deviation >= 0 {
+			positive = append(positive, di)
+		} else {
+			negative = append(negative, di)
+		}
+	}
+
+	sort.Slice(positive, func(i, j int) bool {
+		return positive[i].Deviation > positive[j].Deviation
+	})
+	sort.Slice(negative, func(i, j int) bool {
+		return negative[i].Deviation < negative[j].Deviation
+	})
+
+    if len(positive) > 7 {
+        positive = positive[:7]
+    }
+    if len(negative) > 7 {
+        negative = negative[:7]
+    }
+
+	c.JSON(http.StatusOK, gin.H{
+		"positive": positive,
+		"negative": negative,
+	})
 }
 
 func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
@@ -334,7 +385,25 @@ func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, data)
+
+	type VelocityItem struct {
+		database.GetEngagementVelocityDataRow
+		URL string `json:"url"`
+	}
+
+	items := make([]VelocityItem, len(data))
+	for i, d := range data {
+		url := ""
+		if d.Network != "" && d.Author != "" {
+			url, _ = helpers.ConvPostToURL(d.Network, d.Author, d.NetworkInternalID)
+		}
+		items[i] = VelocityItem{
+			GetEngagementVelocityDataRow: d,
+			URL:                          url,
+		}
+	}
+
+	c.JSON(http.StatusOK, items)
 }
 
 func (h *Handler) AnalyticsCollaborationsHandler(c *gin.Context) {

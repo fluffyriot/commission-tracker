@@ -312,10 +312,19 @@ SELECT p.id,
     p.network_internal_id,
     COALESCE(p.content, '')::TEXT as content,
     p.created_at,
+    p.author,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
-    sa.avg_engagement::FLOAT as avg_engagement
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     JOIN SourceAverages sa ON p.source_id = sa.source_id
@@ -328,22 +337,31 @@ FROM posts p
             synced_at DESC
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
-    AND (
-        COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
-    ) > (sa.avg_engagement * 1.5)
-ORDER BY (
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+ORDER BY ABS(
         (
             COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
-        ) - sa.avg_engagement
+        ) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(
+                    EPOCH
+                    FROM (NOW() - p.created_at)
+                ) / 86400.0
+            )
+        )
     ) DESC
-LIMIT 10;
+LIMIT 100;
 -- name: GetEngagementVelocityData :many
 SELECT prh.post_id,
     prh.synced_at as history_synced_at,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
     p.created_at as post_created_at,
-    COALESCE(p.content, '')::TEXT as content
+    COALESCE(p.content, '')::TEXT as content,
+    p.author,
+    p.network_internal_id,
+    s.network
 FROM posts_reactions_history prh
     JOIN posts p ON prh.post_id = p.id
     JOIN sources s ON p.source_id = s.id
@@ -364,7 +382,6 @@ SELECT collaborator,
     COUNT(*) as collaboration_count,
     COALESCE(AVG(likes), 0)::BIGINT as avg_likes
 FROM (
-        -- Reposts/Quotes where author is the collaborator
         SELECT p.author as collaborator,
             COALESCE(prh.likes, 0) as likes
         FROM posts p

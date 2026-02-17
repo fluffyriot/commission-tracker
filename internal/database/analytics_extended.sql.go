@@ -17,7 +17,6 @@ SELECT collaborator,
     COUNT(*) as collaboration_count,
     COALESCE(AVG(likes), 0)::BIGINT as avg_likes
 FROM (
-        -- Reposts/Quotes where author is the collaborator
         SELECT p.author as collaborator,
             COALESCE(prh.likes, 0) as likes
         FROM posts p
@@ -146,7 +145,10 @@ SELECT prh.post_id,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
     p.created_at as post_created_at,
-    COALESCE(p.content, '')::TEXT as content
+    COALESCE(p.content, '')::TEXT as content,
+    p.author,
+    p.network_internal_id,
+    s.network
 FROM posts_reactions_history prh
     JOIN posts p ON prh.post_id = p.id
     JOIN sources s ON p.source_id = s.id
@@ -165,12 +167,15 @@ ORDER BY prh.post_id,
 `
 
 type GetEngagementVelocityDataRow struct {
-	PostID          uuid.UUID `json:"post_id"`
-	HistorySyncedAt time.Time `json:"history_synced_at"`
-	Likes           int64     `json:"likes"`
-	Reposts         int64     `json:"reposts"`
-	PostCreatedAt   time.Time `json:"post_created_at"`
-	Content         string    `json:"content"`
+	PostID            uuid.UUID `json:"post_id"`
+	HistorySyncedAt   time.Time `json:"history_synced_at"`
+	Likes             int64     `json:"likes"`
+	Reposts           int64     `json:"reposts"`
+	PostCreatedAt     time.Time `json:"post_created_at"`
+	Content           string    `json:"content"`
+	Author            string    `json:"author"`
+	NetworkInternalID string    `json:"network_internal_id"`
+	Network           string    `json:"network"`
 }
 
 func (q *Queries) GetEngagementVelocityData(ctx context.Context, userID uuid.UUID) ([]GetEngagementVelocityDataRow, error) {
@@ -189,6 +194,9 @@ func (q *Queries) GetEngagementVelocityData(ctx context.Context, userID uuid.UUI
 			&i.Reposts,
 			&i.PostCreatedAt,
 			&i.Content,
+			&i.Author,
+			&i.NetworkInternalID,
+			&i.Network,
 		); err != nil {
 			return nil, err
 		}
@@ -519,10 +527,19 @@ SELECT p.id,
     p.network_internal_id,
     COALESCE(p.content, '')::TEXT as content,
     p.created_at,
+    p.author,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
-    sa.avg_engagement::FLOAT as avg_engagement
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     JOIN SourceAverages sa ON p.source_id = sa.source_id
@@ -535,26 +552,33 @@ FROM posts p
             synced_at DESC
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
-    AND (
-        COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
-    ) > (sa.avg_engagement * 1.5)
-ORDER BY (
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+ORDER BY ABS(
         (
             COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
-        ) - sa.avg_engagement
+        ) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(
+                    EPOCH
+                    FROM (NOW() - p.created_at)
+                ) / 86400.0
+            )
+        )
     ) DESC
-LIMIT 10
+LIMIT 100
 `
 
 type GetPerformanceDeviationDataRow struct {
-	ID                uuid.UUID `json:"id"`
-	NetworkInternalID string    `json:"network_internal_id"`
-	Content           string    `json:"content"`
-	CreatedAt         time.Time `json:"created_at"`
-	Network           string    `json:"network"`
-	Likes             int64     `json:"likes"`
-	Reposts           int64     `json:"reposts"`
-	AvgEngagement     float64   `json:"avg_engagement"`
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Likes              int64     `json:"likes"`
+	Reposts            int64     `json:"reposts"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
 }
 
 func (q *Queries) GetPerformanceDeviationData(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationDataRow, error) {
@@ -571,10 +595,11 @@ func (q *Queries) GetPerformanceDeviationData(ctx context.Context, userID uuid.U
 			&i.NetworkInternalID,
 			&i.Content,
 			&i.CreatedAt,
+			&i.Author,
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
-			&i.AvgEngagement,
+			&i.ExpectedEngagement,
 		); err != nil {
 			return nil, err
 		}
