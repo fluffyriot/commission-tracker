@@ -1862,3 +1862,74 @@ tr.shown .details-control:before {
   outline: 2px solid var(--color-text-main);
   z-index: 10;
 }
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.footer-left {
+  text-align: left;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.footer-social-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.social-icons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.social-icon:hover {
+  opacity: 0.7;
+}
+
+.social-icon img {
+  display: block;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .footer-left {
+    text-align: center;
+  }
+
+  .footer-right {
+    justify-content: center;
+  }
+
+  .footer-social-wrapper {
+    align-items: center;
+  }
+
+  .social-icons {
+    justify-content: center;
+    gap: 0.75rem;
+  }
+}

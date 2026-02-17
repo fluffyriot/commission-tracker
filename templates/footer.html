@@ -1,12 +1,42 @@
 </main>
 
-<footer class="container text-center text-muted text-sm">
-    <p>&copy; 2026 RPSync <a href="https://github.com/fluffyriot/rpsync/releases"
-            target="_blank">v.{{.app_version}}</a><br>
-        Licensed under the GNU AGPL v3<br>
-        Source code: <a href="https://github.com/fluffyriot/rpsync"
-            target="_blank">https://github.com/fluffyriot/rpsync</a>
-    </p>
+<footer class="container footer-content text-muted text-sm">
+    <div class="footer-left">
+        <p class="m-0">&copy; 2026 RPSync <a href="https://github.com/fluffyriot/rpsync/releases"
+                target="_blank">v.{{.app_version}}</a><br>
+            Licensed under the GNU AGPL v3<br>
+            Source code: <a href="https://github.com/fluffyriot/rpsync"
+                target="_blank">https://github.com/fluffyriot/rpsync</a>
+        </p>
+    </div>
+    <div class="footer-right">
+        <div class="footer-social-wrapper">
+            <p class="text-muted text-md m-0">Follow us for updates</p>
+            <div class="social-icons">
+                <a href="https://bsky.app/profile/rpsync.net" target="_blank" rel="noopener noreferrer"
+                    title="Follow on Bluesky" class="social-icon">
+                    <img src="/static/images/sources/bluesky_logo.svg" alt="Follow on Bluesky" width="35" height="35">
+                </a>
+                <a href="https://mastodon.social/@rpsync" target="_blank" rel="noopener noreferrer"
+                    title="Follow on Mastodon" class="social-icon">
+                    <img src="/static/images/sources/mastodon_logo.svg" alt="Follow on Mastodon" width="35" height="35">
+                </a>
+                <a href="https://instagram.com/rpsync_net" target="_blank" rel="noopener noreferrer"
+                    title="Follow on Instagram" class="social-icon">
+                    <img src="/static/images/sources/instagram_logo.svg" alt="Follow on Instagram" width="35"
+                        height="35">
+                </a>
+                <a href="https://t.me/rpsync" target="_blank" rel="noopener noreferrer" title="Follow on Telegram"
+                    class="social-icon">
+                    <img src="/static/images/sources/telegram_logo.svg" alt="Follow on Telegram" width="35" height="35">
+                </a>
+                <a href="https://github.com/fluffyriot/rpsync" target="_blank" rel="noopener noreferrer" title="GitHub"
+                    class="social-icon">
+                    <img src="/static/images/sources/github_logo.svg" alt="Follow on GitHub" width="35" height="35">
+                </a>
+            </div>
+        </div>
+    </div>
 </footer>
 
 <div id="release-notes-overlay" class="drawer-overlay" onclick="closeReleaseNotes()"></div>
@@ -56,6 +86,43 @@
 
     .text-muted {
         color: var(--color-text-muted);
+    }
+
+    .footer-social-links {
+        margin-bottom: 1rem;
+    }
+
+    .social-icons {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .social-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.2s ease;
+    }
+
+    .social-icon:hover {
+        opacity: 0.7;
+    }
+
+    .social-icon img {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .footer-social-links {
+            margin-bottom: 0.75rem;
+        }
+
+        .social-icons {
+            gap: 0.75rem;
+        }
     }
 </style>
 </body>
