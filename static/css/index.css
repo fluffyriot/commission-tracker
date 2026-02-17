@@ -1048,13 +1048,6 @@ a:hover {
   font-weight: bold;
 }
 
-.grid-dashboard {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
 .stat-card {
   background-color: var(--color-bg-surface);
   border: 1px solid var(--color-border);
@@ -1793,6 +1786,13 @@ tr.shown .details-control:before {
   .grid-dashboard {
     grid-template-columns: 1fr;
   }
+}
+
+.grid-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .heatmap-grid {
