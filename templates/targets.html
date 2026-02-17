@@ -173,13 +173,15 @@
       const target = targetSelect.value;
 
       if (target === "CSV") {
-        tokenizedSection.style.display = "none";
-        urlSection.style.display = "none";
+        tokenizedSection.classList.add("hidden");
+        urlSection.classList.add("hidden");
         tokenInput.required = false;
+        urlInput.required = false;
         tokenInput.value = "";
+        urlInput.value = "";
       } else {
-        tokenizedSection.style.display = "block";
-        urlSection.style.display = "block";
+        tokenizedSection.classList.remove("hidden");
+        urlSection.classList.remove("hidden");
         tokenInput.required = true;
         urlInput.required = true;
       }
