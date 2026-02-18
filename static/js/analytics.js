@@ -51,23 +51,38 @@ document.addEventListener("DOMContentLoaded", function () {
     const tabs = document.querySelectorAll('.tab-btn');
     const contents = document.querySelectorAll('.tab-content');
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'content';
+
+    function setActiveTab(tabName) {
+        tabs.forEach(t => {
+            if (t.dataset.tab === tabName) t.classList.add('active');
+            else t.classList.remove('active');
+        });
+        contents.forEach(c => {
+            if (c.id === `${tabName}-tab`) {
+                c.classList.remove('hidden');
+                c.classList.add('active');
+            } else {
+                c.classList.add('hidden');
+                c.classList.remove('active');
+            }
+        });
+        loadTab(tabName);
+    }
+
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.add('hidden'));
-            contents.forEach(c => c.classList.remove('active'));
-
-            tab.classList.add('active');
             const tabName = tab.dataset.tab;
-            const content = document.getElementById(`${tabName}-tab`);
-            content.classList.remove('hidden');
-            content.classList.add('active');
+            setActiveTab(tabName);
 
-            loadTab(tabName);
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabName);
+            window.history.pushState({}, '', url);
         });
     });
 
-    loadTab('content');
+    setActiveTab(activeTab);
 
     function createChart(ctxId, type, data, options = {}) {
         const ctx = document.getElementById(ctxId).getContext('2d');
@@ -114,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/hashtags')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
                 createChart('hashtagsChart', 'bar', {
                     labels: data.map(d => d.tag),
                     datasets: [{
@@ -141,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/mentions')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
                 createChart('mentionsChart', 'bar', {
                     labels: data.map(d => d.mention),
                     datasets: [{
@@ -172,7 +187,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/types')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
                 createChart('postTypesChart', 'doughnut', {
                     labels: data.map(d => d.post_type),
                     datasets: [{
@@ -205,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/networks')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
                 createChart('networkEfficiencyChart', 'bar', {
                     labels: data.map(d => d.network),
                     datasets: [{
@@ -497,7 +512,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/engagement-rate')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
 
                 const networks = [...new Set(data.map(d => d.network))];
                 const aggregatedData = networks.map((network, i) => {
@@ -555,7 +570,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/follow-ratio')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
 
                 const labels = data.map(d => d.network);
                 const ratios = data.map(d => d.following_count > 0 ? d.followers_count / d.following_count : 0);
@@ -592,7 +607,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/collaborations')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
                 createChart('collaborationsChart', 'bar', {
                     labels: data.map(d => d.collaborator),
                     datasets: [{
@@ -623,7 +638,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/performance-deviation')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
 
                 const renderTable = (items, tableId) => {
                     const tbody = document.querySelector(`#${tableId} tbody`);
@@ -695,7 +710,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/velocity')
             .then(res => res.json())
             .then(data => {
-                if (!data) return;
+                if (!data || !Array.isArray(data)) return;
                 const posts = {};
                 const postDetails = {};
 

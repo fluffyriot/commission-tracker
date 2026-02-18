@@ -304,6 +304,9 @@ func (h *Handler) AnalyticsFollowRatioHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	if data == nil {
+		data = []database.GetFollowRatioDataRow{}
+	}
 	c.JSON(http.StatusOK, data)
 }
 
