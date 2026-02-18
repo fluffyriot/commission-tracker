@@ -101,28 +101,100 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/wordcloud')
             .then(res => res.json())
             .then(data => {
-                if (!data || data.length === 0) return;
-                const canvas = document.getElementById('wordCloudCanvas');
-                const container = document.getElementById('word-cloud-container');
-
-                if (container.clientWidth === 0) return;
-
-                canvas.width = container.clientWidth;
-                canvas.height = container.clientHeight;
-
-                const list = data.map(item => [item.word, item.count * 5]);
-                WordCloud(canvas, {
-                    list: list,
-                    gridSize: Math.max(4, Math.floor(container.clientWidth / 100)),
-                    weightFactor: size => Math.min(size * (container.clientWidth / 80), 60),
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                    color: (word, weight) => (weight > 20) ? '#f0f0f0' : colors.text,
-                    rotateRatio: 0.5,
-                    backgroundColor: 'transparent',
-                    shrinkToFit: true
-                });
+                renderWordCloud(data, 'wordCloudCanvas', 'word-cloud-container', 'usage_count');
             })
             .catch(err => console.error(err));
+
+        fetch('/analytics/data/wordcloud/engagement')
+            .then(res => res.json())
+            .then(data => {
+                renderWordCloud(data, 'wordCloudEngagementCanvas', 'word-cloud-engagement-container', 'avg_engagement');
+            })
+            .catch(err => console.error(err));
+    }
+
+    function renderWordCloud(data, canvasId, containerId, valueKey) {
+        if (!data || !Array.isArray(data) || data.length === 0) return;
+        const canvas = document.getElementById(canvasId);
+        const container = document.getElementById(containerId);
+
+        if (!container || container.clientWidth === 0) return;
+
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+
+        let minVal = Infinity;
+        let maxVal = -Infinity;
+        data.forEach(item => {
+            const val = parseFloat(item[valueKey]);
+            if (!isNaN(val)) {
+                if (val < minVal) minVal = val;
+                if (val > maxVal) maxVal = val;
+            }
+        });
+
+        if (minVal === Infinity) return;
+
+        const valRange = maxVal - minVal;
+        const widthFactor = container.clientWidth / 6;
+        const maxFontSize = Math.max(60, Math.min(widthFactor, 200));
+        const minFontSize = Math.max(14, maxFontSize / 10);
+
+        const list = data.map(item => {
+            const val = parseFloat(item[valueKey]);
+            if (isNaN(val)) return null;
+
+            if (valRange > 0) {
+                const logMin = Math.log(minVal || 1);
+                const logMax = Math.log(maxVal || 1);
+                if (logMax - logMin > 0) {
+                    normalized = (Math.log(val || 1) - logMin) / (logMax - logMin);
+                } else {
+                    normalized = 0.5;
+                }
+            }
+            const size = minFontSize + (normalized * (maxFontSize - minFontSize));
+
+            return [item.word, size];
+        }).filter(item => item !== null);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        WordCloud(canvas, {
+            list: list,
+            gridSize: Math.round(8 * canvas.width / 1024),
+            weightFactor: (size) => size,
+            fontFamily: 'Inter, system-ui, sans-serif',
+            color: (word, weight) => {
+                const intensity = (weight - minFontSize) / (maxFontSize - minFontSize);
+                if (intensity > 0.8) return '#9167e4';
+                if (intensity > 0.6) return '#b39ddb';
+                if (intensity > 0.4) return '#d1c4e9';
+                if (intensity > 0.2) return '#e0e0e0';
+                return colors.text;
+            },
+            rotateRatio: 0,
+            backgroundColor: 'transparent',
+            shrinkToFit: true,
+            drawOutOfBound: false,
+            origin: [canvas.width / 2, canvas.height / 2],
+            hover: (item, dimension, event) => {
+                if (item) {
+                    const word = item[0];
+                    const dataItem = data.find(d => d.word === word);
+                    if (dataItem) {
+                        let text = `${word}: ${dataItem.usage_count} uses`;
+                        if (dataItem.avg_engagement !== undefined) {
+                            const avg = parseFloat(dataItem.avg_engagement).toFixed(1);
+                            text += `, ${avg} avg engagement (${dataItem.total_engagement} total)`;
+                        }
+                        showTooltip(event, text);
+                    }
+                } else {
+                    hideTooltip();
+                }
+            }
+        });
     }
 
     function loadHashtags() {
@@ -147,6 +219,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     scales: {
                         y: { position: 'left', title: { display: true, text: 'Posts Count' } },
                         y1: { position: 'right', title: { display: true, text: 'Avg Likes' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
                     }
                 });
             });
@@ -178,6 +258,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     scales: {
                         y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
                         y1: { position: 'right', title: { display: true, text: 'Usage Count' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
                     }
                 });
             });
@@ -243,6 +331,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     scales: {
                         y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
                         y1: { position: 'right', title: { display: true, text: 'Post Count' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
                     }
                 });
             });
@@ -489,6 +585,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     scales: {
                         y: { position: 'left', title: { display: true, text: 'Visitors' } },
                         y1: { position: 'right', title: { display: true, text: 'Seconds' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
                     }
                 });
             }
@@ -501,7 +605,15 @@ document.addEventListener("DOMContentLoaded", function () {
                         backgroundColor: colors.primary
                     }]
                 }, {
-                    indexAxis: 'y'
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
                 });
             }
         });
@@ -517,16 +629,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 const networks = [...new Set(data.map(d => d.network))];
                 const aggregatedData = networks.map((network, i) => {
                     const netData = data.filter(d => d.network === network);
-                    const validPosts = netData.filter(d => d.followers_count > 0);
+                    if (netData.length === 0) return null;
 
-                    if (validPosts.length === 0) return null;
+                    const totalEngagement = netData.reduce((sum, d) => sum + d.likes + d.reposts, 0);
+                    const maxFollowers = Math.max(...netData.map(d => d.followers_count));
 
-                    const totalRate = validPosts.reduce((sum, d) => {
-                        const engagement = d.likes + d.reposts;
-                        return sum + ((engagement / d.followers_count) * 100);
-                    }, 0);
+                    if (maxFollowers === 0) return null;
 
-                    const avgRate = totalRate / validPosts.length;
+                    const avgRate = (totalEngagement / maxFollowers) * 100;
 
                     return {
                         x: network,
@@ -556,6 +666,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     },
                     plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: (ctx) => `${ctx.raw.x}: ${ctx.raw.y.toFixed(3)}%`
@@ -584,7 +700,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         backgroundColor: colors.primary,
                         order: 2
                     }, {
-                        label: 'Target (0.5)',
+                        label: 'Target',
                         data: targetLine,
                         type: 'line',
                         borderColor: 'rgba(255, 99, 132, 0.5)',
@@ -597,6 +713,14 @@ document.addEventListener("DOMContentLoaded", function () {
                         y: {
                             beginAtZero: true,
                             title: { display: true, text: 'Ratio' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
                         }
                     }
                 });
@@ -629,6 +753,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     scales: {
                         y: { title: { display: true, text: 'Avg Likes' } },
                         y1: { position: 'right', title: { display: true, text: 'Count' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
                     }
                 });
             });
@@ -638,7 +770,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/performance-deviation')
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data) return;
 
                 const renderTable = (items, tableId) => {
                     const tbody = document.querySelector(`#${tableId} tbody`);
@@ -816,6 +948,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         y: { title: { display: true, text: 'Total Engagement' } }
                     },
                     plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function (context) {

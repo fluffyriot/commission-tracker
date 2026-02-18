@@ -94,7 +94,6 @@ FROM posts p
         LIMIT 1
     ) ss ON true
 WHERE s.user_id = $1
-    AND p.created_at > NOW() - INTERVAL '6 months'
     AND ss.followers_count > 0
 `
 

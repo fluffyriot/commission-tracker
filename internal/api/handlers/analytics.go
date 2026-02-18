@@ -424,3 +424,22 @@ func (h *Handler) AnalyticsCollaborationsHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, data)
 }
+
+func (h *Handler) AnalyticsWordCloudEngagementHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetWordCloudEngagementData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting word cloud engagement data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if data == nil {
+		data = []database.GetWordCloudEngagementDataRow{}
+	}
+	c.JSON(http.StatusOK, data)
+}

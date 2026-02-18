@@ -1862,7 +1862,7 @@ tr.shown .details-control:before {
 }
 
 .analytics-tooltip {
-  position: fixed;
+  position: absolute;
   background: rgba(30, 30, 35, 0.95);
   border: 1px solid var(--color-border);
   color: var(--color-text-main);
@@ -1870,7 +1870,7 @@ tr.shown .details-control:before {
   border-radius: var(--radius-sm);
   font-size: var(--font-xs);
   pointer-events: none;
-  z-index: 1000;
+  z-index: 9999;
   box-shadow: var(--shadow-md);
   transform: translate(-50%, -100%);
   margin-top: -10px;
