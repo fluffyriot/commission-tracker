@@ -95,12 +95,9 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 		return err
 	}
 
-	username, err := dbQueries.GetUserActiveSourceByName(
+	username, err := dbQueries.GetSourceById(
 		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "Mastodon",
-		},
+		sourceId,
 	)
 
 	if err != nil {
@@ -108,6 +105,9 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 	}
 
 	splits := strings.SplitN(username.UserName, "@", 2)
+	if len(splits) < 2 {
+		return fmt.Errorf("invalid mastodon username format (expected user@domain): %s", username.UserName)
+	}
 	user := splits[0]
 	domain := splits[1]
 
@@ -187,7 +187,12 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 				if item.Reblog.Account.Id == item.Account.Id {
 					continue
 				}
-				postId = strings.Split(item.Reblog.Uri, "statuses/")[1]
+				parts := strings.Split(item.Reblog.Uri, "statuses/")
+				if len(parts) > 1 {
+					postId = parts[1]
+				} else {
+					postId = path.Base(item.Reblog.Uri)
+				}
 			} else {
 				postId = item.ID
 			}

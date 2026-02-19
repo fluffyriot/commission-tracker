@@ -30,14 +30,11 @@ type VideoObjectLD struct {
 	} `json:"interactionStatistic"`
 }
 
-func getBadpupsString(dbQueries *database.Queries, uid uuid.UUID) (string, string, error) {
+func getBadpupsString(dbQueries *database.Queries, sourceId uuid.UUID) (string, string, error) {
 
-	username, err := dbQueries.GetUserActiveSourceByName(
+	username, err := dbQueries.GetSourceById(
 		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "BadPups",
-		},
+		sourceId,
 	)
 	if err != nil {
 		return "", "", err
@@ -93,7 +90,7 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cli
 
 	processedLinks := make(map[string]struct{})
 
-	profileURL, username, err := getBadpupsString(dbQueries, uid)
+	profileURL, username, err := getBadpupsString(dbQueries, sourceId)
 	if err != nil {
 		return err
 	}

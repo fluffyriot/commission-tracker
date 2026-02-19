@@ -60,14 +60,11 @@ type bskyProfile struct {
 	PostsCount     int `json:"postsCount"`
 }
 
-func getBskyApiString(dbQueries *database.Queries, uid uuid.UUID, cursor string) (string, string, error) {
+func getBskyApiString(dbQueries *database.Queries, sourceId uuid.UUID, cursor string) (string, string, error) {
 
-	username, err := dbQueries.GetUserActiveSourceByName(
+	username, err := dbQueries.GetSourceById(
 		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "Bluesky",
-		},
+		sourceId,
 	)
 
 	if err != nil {
@@ -136,7 +133,7 @@ func FetchBlueskyPosts(dbQueries *database.Queries, c *common.Client, uid uuid.U
 
 	for page := 0; page < maxPages; page++ {
 
-		url, username, err = getBskyApiString(dbQueries, uid, cursor)
+		url, username, err = getBskyApiString(dbQueries, sourceId, cursor)
 		if err != nil {
 			return err
 		}
