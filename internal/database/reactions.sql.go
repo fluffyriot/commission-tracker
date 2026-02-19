@@ -56,12 +56,12 @@ ORDER BY s.id, date ASC
 `
 
 type GetDailyEngagementStatsRow struct {
-	ID           uuid.UUID
-	Network      string
-	UserName     string
-	Date         time.Time
-	TotalLikes   int64
-	TotalReposts int64
+	ID           uuid.UUID `json:"id"`
+	Network      string    `json:"network"`
+	UserName     string    `json:"user_name"`
+	Date         time.Time `json:"date"`
+	TotalLikes   int64     `json:"total_likes"`
+	TotalReposts int64     `json:"total_reposts"`
 }
 
 func (q *Queries) GetDailyEngagementStats(ctx context.Context, userID uuid.UUID) ([]GetDailyEngagementStatsRow, error) {
@@ -120,12 +120,12 @@ RETURNING
 `
 
 type SyncReactionsParams struct {
-	ID       uuid.UUID
-	SyncedAt time.Time
-	PostID   uuid.UUID
-	Likes    sql.NullInt64
-	Reposts  sql.NullInt64
-	Views    sql.NullInt64
+	ID       uuid.UUID     `json:"id"`
+	SyncedAt time.Time     `json:"synced_at"`
+	PostID   uuid.UUID     `json:"post_id"`
+	Likes    sql.NullInt64 `json:"likes"`
+	Reposts  sql.NullInt64 `json:"reposts"`
+	Views    sql.NullInt64 `json:"views"`
 }
 
 func (q *Queries) SyncReactions(ctx context.Context, arg SyncReactionsParams) (PostsReactionsHistory, error) {

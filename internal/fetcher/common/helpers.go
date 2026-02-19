@@ -24,23 +24,34 @@ func StripHTMLToText(input string) string {
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
 		if n.Type == html.TextNode {
-			text := strings.TrimSpace(n.Data)
-			if text != "" {
-				if b.Len() > 0 {
+			b.WriteString(n.Data)
+		} else if n.Type == html.ElementNode {
+			switch n.Data {
+			case "p", "div", "br", "h1", "h2", "h3", "h4", "h5", "h6", "li":
+				if b.Len() > 0 && !strings.HasSuffix(b.String(), " ") && !strings.HasSuffix(b.String(), "\n") {
 					b.WriteString(" ")
 				}
-				b.WriteString(text)
 			}
 		}
 
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			walk(c)
 		}
+
+		if n.Type == html.ElementNode {
+			switch n.Data {
+			case "p", "div", "br":
+				if b.Len() > 0 && !strings.HasSuffix(b.String(), " ") && !strings.HasSuffix(b.String(), "\n") {
+					b.WriteString(" ")
+				}
+			}
+		}
 	}
 
 	walk(doc)
 
-	return strings.Join(strings.Fields(html.UnescapeString(b.String())), " ")
+	text := html.UnescapeString(b.String())
+	return strings.Join(strings.Fields(text), " ")
 }
 
 func SaveOrUpdateSourceStats(ctx context.Context, dbQueries *database.Queries, sourceID uuid.UUID, stats *ProfileStats) error {

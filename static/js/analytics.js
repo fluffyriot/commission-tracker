@@ -1,0 +1,968 @@
+document.addEventListener("DOMContentLoaded", function () {
+    const colors = {
+        primary: '#9167e4',
+        primaryLight: '#b39ddb',
+        primaryDark: '#5e35b1',
+        accent: '#d1c4e9',
+        text: '#a0a0a0',
+        grid: 'rgba(255,255,255,0.05)',
+        highContrast: ['#9167e4', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#6366f1', '#8b5cf6']
+    };
+
+    Chart.defaults.color = colors.text;
+    Chart.defaults.borderColor = colors.grid;
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+
+    const loadedTabs = new Set();
+
+    function loadTab(tabName) {
+        if (loadedTabs.has(tabName) && tabName !== 'wordcloud') return;
+
+        if (loadedTabs.has(tabName)) return;
+        loadedTabs.add(tabName);
+
+        switch (tabName) {
+            case 'content':
+                loadHashtags();
+                loadPerformanceDeviation();
+                loadEngagementVelocity();
+                break;
+            case 'engagement':
+                loadPostTypes();
+                loadNetworkEfficiency();
+                loadMentions();
+                loadEngagementRate();
+                loadFollowRatio();
+                loadCollaborations();
+                break;
+            case 'timing':
+                loadTiming();
+                loadPostingConsistency();
+                break;
+            case 'wordcloud':
+                loadWordCloud();
+                break;
+            case 'website':
+                loadWebsiteStats();
+                break;
+        }
+    }
+
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab') || 'content';
+
+    function setActiveTab(tabName) {
+        tabs.forEach(t => {
+            if (t.dataset.tab === tabName) t.classList.add('active');
+            else t.classList.remove('active');
+        });
+        contents.forEach(c => {
+            if (c.id === `${tabName}-tab`) {
+                c.classList.remove('hidden');
+                c.classList.add('active');
+            } else {
+                c.classList.add('hidden');
+                c.classList.remove('active');
+            }
+        });
+        loadTab(tabName);
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            setActiveTab(tabName);
+
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabName);
+            window.history.pushState({}, '', url);
+        });
+    });
+
+    setActiveTab(activeTab);
+
+    function createChart(ctxId, type, data, options = {}) {
+        const ctx = document.getElementById(ctxId).getContext('2d');
+        return new Chart(ctx, {
+            type: type,
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                ...options
+            }
+        });
+    }
+
+    function loadWordCloud() {
+        fetch('/analytics/data/wordcloud')
+            .then(res => res.json())
+            .then(data => {
+                renderWordCloud(data, 'wordCloudCanvas', 'word-cloud-container', 'usage_count');
+            })
+            .catch(err => console.error(err));
+
+        fetch('/analytics/data/wordcloud/engagement')
+            .then(res => res.json())
+            .then(data => {
+                renderWordCloud(data, 'wordCloudEngagementCanvas', 'word-cloud-engagement-container', 'avg_engagement');
+            })
+            .catch(err => console.error(err));
+    }
+
+    function renderWordCloud(data, canvasId, containerId, valueKey) {
+        if (!data || !Array.isArray(data) || data.length === 0) return;
+        const canvas = document.getElementById(canvasId);
+        const container = document.getElementById(containerId);
+
+        if (!container || container.clientWidth === 0) return;
+
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+
+        let minVal = Infinity;
+        let maxVal = -Infinity;
+        data.forEach(item => {
+            const val = parseFloat(item[valueKey]);
+            if (!isNaN(val)) {
+                if (val < minVal) minVal = val;
+                if (val > maxVal) maxVal = val;
+            }
+        });
+
+        if (minVal === Infinity) return;
+
+        const valRange = maxVal - minVal;
+        const widthFactor = container.clientWidth / 6;
+        const maxFontSize = Math.max(60, Math.min(widthFactor, 200));
+        const minFontSize = Math.max(14, maxFontSize / 10);
+
+        const list = data.map(item => {
+            const val = parseFloat(item[valueKey]);
+            if (isNaN(val)) return null;
+
+            if (valRange > 0) {
+                const logMin = Math.log(minVal || 1);
+                const logMax = Math.log(maxVal || 1);
+                if (logMax - logMin > 0) {
+                    normalized = (Math.log(val || 1) - logMin) / (logMax - logMin);
+                } else {
+                    normalized = 0.5;
+                }
+            }
+            const size = minFontSize + (normalized * (maxFontSize - minFontSize));
+
+            return [item.word, size];
+        }).filter(item => item !== null);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        WordCloud(canvas, {
+            list: list,
+            gridSize: Math.round(8 * canvas.width / 1024),
+            weightFactor: (size) => size,
+            fontFamily: 'Inter, system-ui, sans-serif',
+            color: (word, weight) => {
+                const intensity = (weight - minFontSize) / (maxFontSize - minFontSize);
+                if (intensity > 0.8) return '#9167e4';
+                if (intensity > 0.6) return '#b39ddb';
+                if (intensity > 0.4) return '#d1c4e9';
+                if (intensity > 0.2) return '#e0e0e0';
+                return colors.text;
+            },
+            rotateRatio: 0,
+            backgroundColor: 'transparent',
+            shrinkToFit: true,
+            drawOutOfBound: false,
+            origin: [canvas.width / 2, canvas.height / 2],
+            hover: (item, dimension, event) => {
+                if (item) {
+                    const word = item[0];
+                    const dataItem = data.find(d => d.word === word);
+                    if (dataItem) {
+                        let text = `${word}: ${dataItem.usage_count} uses`;
+                        if (dataItem.avg_engagement !== undefined) {
+                            const avg = parseFloat(dataItem.avg_engagement).toFixed(1);
+                            text += `, ${avg} avg engagement (${dataItem.total_engagement} total)`;
+                        }
+                        showTooltip(event, text);
+                    }
+                } else {
+                    hideTooltip();
+                }
+            }
+        });
+    }
+
+    function loadHashtags() {
+        fetch('/analytics/data/hashtags')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+                createChart('hashtagsChart', 'bar', {
+                    labels: data.map(d => d.tag),
+                    datasets: [{
+                        label: 'Usage Count',
+                        data: data.map(d => d.usage_count),
+                        backgroundColor: colors.primary,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Avg Likes',
+                        data: data.map(d => d.avg_likes),
+                        backgroundColor: colors.primaryLight,
+                        yAxisID: 'y1'
+                    }]
+                }, {
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Posts Count' } },
+                        y1: { position: 'right', title: { display: true, text: 'Avg Likes' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    function loadMentions() {
+        fetch('/analytics/data/mentions')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+                createChart('mentionsChart', 'bar', {
+                    labels: data.map(d => d.mention),
+                    datasets: [{
+                        label: 'Avg Likes',
+                        data: data.map(d => d.avg_likes),
+                        backgroundColor: colors.primary,
+                        yAxisID: 'y',
+                        order: 2
+                    }, {
+                        label: 'Usage Count',
+                        data: data.map(d => d.usage_count),
+                        borderColor: colors.accent,
+                        backgroundColor: colors.accent,
+                        type: 'line',
+                        yAxisID: 'y1',
+                        order: 1
+                    }]
+                }, {
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
+                        y1: { position: 'right', title: { display: true, text: 'Usage Count' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    function loadPostTypes() {
+        fetch('/analytics/data/types')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+                createChart('postTypesChart', 'doughnut', {
+                    labels: data.map(d => d.post_type),
+                    datasets: [{
+                        data: data.map(d => d.avg_likes),
+                        backgroundColor: colors.highContrast
+                    }]
+                }, {
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { padding: 20, usePointStyle: true }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const count = data[context.dataIndex].post_count;
+                                    return ` ${label}: ${value} avg likes (${count} posts)`;
+                                }
+                            }
+                        }
+                    },
+                    layout: { padding: 20 }
+                });
+            });
+    }
+
+    function loadNetworkEfficiency() {
+        fetch('/analytics/data/networks')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+                createChart('networkEfficiencyChart', 'bar', {
+                    labels: data.map(d => d.network),
+                    datasets: [{
+                        label: 'Avg Likes per Post',
+                        data: data.map(d => d.avg_likes),
+                        backgroundColor: colors.primary,
+                        yAxisID: 'y',
+                        order: 2
+                    }, {
+                        label: 'Post Count',
+                        data: data.map(d => d.post_count),
+                        borderColor: colors.accent,
+                        backgroundColor: colors.accent,
+                        type: 'line',
+                        yAxisID: 'y1',
+                        order: 1
+                    }]
+                }, {
+                    indexAxis: 'x',
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
+                        y1: { position: 'right', title: { display: true, text: 'Post Count' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    function loadTiming() {
+        fetch('/analytics/data/time')
+            .then(res => res.json())
+            .then(data => {
+                if (!data) return;
+                renderHeatmap(data);
+            });
+    }
+
+    let tooltipEl = null;
+
+    function getTooltip() {
+        if (!tooltipEl) {
+            tooltipEl = document.createElement('div');
+            tooltipEl.className = 'analytics-tooltip';
+            document.body.appendChild(tooltipEl);
+        }
+        return tooltipEl;
+    }
+
+    function showTooltip(e, text) {
+        const tip = getTooltip();
+        tip.textContent = text;
+        tip.style.display = 'block';
+        tip.style.left = e.pageX + 'px';
+        tip.style.top = e.pageY + 'px';
+    }
+
+    function hideTooltip() {
+        const tip = getTooltip();
+        tip.style.display = 'none';
+    }
+
+    function renderHeatmap(data) {
+        const container = document.getElementById('heatmap-container');
+        container.replaceChildren();
+
+        const mainContainer = document.createElement('div');
+        mainContainer.className = 'calendar-heatmap-container';
+        mainContainer.style.display = 'flex';
+        mainContainer.style.flexDirection = 'column';
+        mainContainer.style.gap = '5px';
+
+        const headerRow = document.createElement('div');
+        headerRow.style.display = 'flex';
+        headerRow.style.marginLeft = '40px';
+
+        for (let h = 0; h < 24; h++) {
+            const el = document.createElement('div');
+            el.className = 'heatmap-label';
+            el.style.flex = '1';
+            el.style.textAlign = 'center';
+            el.textContent = h;
+            headerRow.appendChild(el);
+        }
+        mainContainer.appendChild(headerRow);
+
+        const gridBody = document.createElement('div');
+        gridBody.style.display = 'flex';
+        gridBody.style.flexDirection = 'column';
+        gridBody.style.gap = '2px';
+
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const maxVal = Math.max(...data.map(d => d.avg_likes));
+        const dataMap = {};
+        data.forEach(d => { dataMap[`${d.day_of_week}-${d.hour_of_day}`] = d.avg_likes; });
+
+        for (let d = 0; d < 7; d++) {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.gap = '2px';
+
+            const label = document.createElement('div');
+            label.className = 'heatmap-label';
+            label.style.width = '40px';
+            label.textContent = days[d];
+            row.appendChild(label);
+
+            for (let h = 0; h < 24; h++) {
+                const val = dataMap[`${d}-${h}`] || 0;
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-cell';
+                cell.style.flex = '1';
+                cell.style.aspectRatio = '1';
+                cell.style.backgroundColor = 'rgba(255,255,255,0.02)';
+                cell.style.borderRadius = '2px';
+
+                if (val > 0) {
+                    const intensity = maxVal > 0 ? (val / maxVal) : 0;
+                    cell.style.backgroundColor = `rgba(145, 103, 228, ${intensity * 0.9 + 0.1})`;
+                }
+
+                cell.addEventListener('mousemove', (e) => showTooltip(e, `${days[d]} ${h}:00 - Avg Likes: ${Math.round(val)}`));
+                cell.addEventListener('mouseleave', hideTooltip);
+
+                row.appendChild(cell);
+            }
+            gridBody.appendChild(row);
+        }
+        mainContainer.appendChild(gridBody);
+        container.appendChild(mainContainer);
+    }
+
+    function loadPostingConsistency() {
+        fetch('/analytics/data/consistency')
+            .then(res => res.json())
+            .then(data => {
+                renderCalendarHeatmap(data || []);
+            });
+    }
+
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
+    }
+
+    function renderCalendarHeatmap(data) {
+        const container = document.getElementById('calendar-heatmap-container');
+        container.replaceChildren();
+
+        const weeklyData = Array.from({ length: 53 }, () => Array(7).fill(0));
+
+        data.forEach(d => {
+            const date = new Date(d.date_str);
+            const weekNum = getWeekNumber(date);
+            const dayOfWeek = date.getDay();
+
+            if (weekNum >= 1 && weekNum <= 52) {
+                weeklyData[weekNum][dayOfWeek] += d.post_count;
+            }
+        });
+
+        const mainContainer = document.createElement('div');
+        mainContainer.className = 'calendar-heatmap-container';
+        mainContainer.style.display = 'flex';
+        mainContainer.style.flexDirection = 'column';
+        mainContainer.style.gap = '5px';
+        mainContainer.style.width = '100%';
+
+        const monthRow = document.createElement('div');
+        monthRow.style.display = 'flex';
+        monthRow.style.position = 'relative';
+        monthRow.style.height = '20px';
+        monthRow.style.width = '100%';
+        monthRow.style.paddingLeft = '40px';
+        monthRow.style.overflow = 'hidden';
+        monthRow.style.paddingRight = '20px';
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        months.forEach((m, i) => {
+            const label = document.createElement('div');
+            label.className = 'heatmap-label';
+            label.textContent = m;
+            label.style.position = 'absolute';
+            label.style.left = `calc(${(i / 12) * 100}% + 40px)`;
+            label.style.whiteSpace = 'nowrap';
+            monthRow.appendChild(label);
+        });
+        mainContainer.appendChild(monthRow);
+
+        const gridBody = document.createElement('div');
+        gridBody.style.display = 'flex';
+        gridBody.style.flexDirection = 'column';
+        gridBody.style.gap = '2px';
+
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        let maxVal = 1;
+        for (let w = 1; w <= 52; w++) {
+            for (let d = 0; d < 7; d++) {
+                maxVal = Math.max(maxVal, weeklyData[w][d]);
+            }
+        }
+
+        for (let d = 0; d < 7; d++) {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.gap = '2px';
+
+            const label = document.createElement('div');
+            label.className = 'heatmap-label';
+            label.style.width = '40px';
+            label.textContent = days[d];
+            row.appendChild(label);
+
+            for (let w = 1; w <= 52; w++) {
+                const count = weeklyData[w][d];
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-cell';
+                cell.style.flex = '1';
+                cell.style.aspectRatio = '1';
+                cell.style.backgroundColor = 'rgba(255,255,255,0.02)';
+                cell.style.borderRadius = '2px';
+
+                if (count > 0) {
+                    const intensity = count / maxVal;
+                    cell.style.backgroundColor = `rgba(145, 103, 228, ${intensity * 0.8 + 0.2})`;
+                }
+
+                cell.addEventListener('mousemove', (e) => showTooltip(e, `Week ${w}, ${days[d]}: ${count} posts`));
+                cell.addEventListener('mouseleave', hideTooltip);
+
+                row.appendChild(cell);
+            }
+            gridBody.appendChild(row);
+        }
+        mainContainer.appendChild(gridBody);
+        container.appendChild(mainContainer);
+    }
+
+    function loadWebsiteStats() {
+        Promise.all([
+            fetch('/analytics/data/site').then(r => r.json()),
+            fetch('/analytics/data/pages').then(r => r.json())
+        ]).then(([siteData, pagesData]) => {
+            if (siteData) {
+                createChart('siteStatsChart', 'line', {
+                    labels: siteData.map(d => d.date_str),
+                    datasets: [{
+                        label: 'Visitors',
+                        data: siteData.map(d => d.total_visitors),
+                        borderColor: colors.primary,
+                        backgroundColor: 'rgba(145, 103, 228, 0.1)',
+                        fill: true,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Avg Session (s)',
+                        data: siteData.map(d => d.avg_session_duration),
+                        borderColor: colors.primaryLight,
+                        borderDash: [5, 5],
+                        yAxisID: 'y1'
+                    }]
+                }, {
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Visitors' } },
+                        y1: { position: 'right', title: { display: true, text: 'Seconds' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                });
+            }
+            if (pagesData) {
+                createChart('topPagesChart', 'bar', {
+                    labels: pagesData.slice(0, 15).map(d => d.url_path),
+                    datasets: [{
+                        label: 'Total Views',
+                        data: pagesData.slice(0, 15).map(d => d.total_views),
+                        backgroundColor: colors.primary
+                    }]
+                }, {
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+    function loadEngagementRate() {
+        fetch('/analytics/data/engagement-rate')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+
+                const networks = [...new Set(data.map(d => d.network))];
+                const aggregatedData = networks.map((network, i) => {
+                    const netData = data.filter(d => d.network === network);
+                    if (netData.length === 0) return null;
+
+                    const totalEngagement = netData.reduce((sum, d) => sum + d.likes + d.reposts, 0);
+                    const maxFollowers = Math.max(...netData.map(d => d.followers_count));
+
+                    if (maxFollowers === 0) return null;
+
+                    const avgRate = (totalEngagement / maxFollowers) * 100;
+
+                    return {
+                        x: network,
+                        y: avgRate,
+                        r: 10
+                    };
+                }).filter(d => d !== null);
+
+                createChart('engagementRateChart', 'bubble', {
+                    datasets: [{
+                        label: 'Avg Engagement Rate',
+                        data: aggregatedData,
+                        backgroundColor: networks.map((_, i) => colors.highContrast[i % colors.highContrast.length]),
+                        borderColor: networks.map((_, i) => colors.highContrast[i % colors.highContrast.length]),
+                    }]
+                }, {
+                    scales: {
+                        x: {
+                            type: 'category',
+                            labels: networks,
+                            title: { display: true, text: 'Network' },
+                            offset: true
+                        },
+                        y: {
+                            title: { display: true, text: 'Avg Engagement Rate (%)' },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.raw.x}: ${ctx.raw.y.toFixed(3)}%`
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    function loadFollowRatio() {
+        fetch('/analytics/data/follow-ratio')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+
+                const labels = data.map(d => d.network);
+                const ratios = data.map(d => d.following_count > 0 ? d.followers_count / d.following_count : 0);
+                const targetLine = new Array(data.length).fill(0.5);
+
+                createChart('followRatioChart', 'bar', {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Follow Ratio (Following/Followers)',
+                        data: ratios,
+                        backgroundColor: colors.primary,
+                        order: 2
+                    }, {
+                        label: 'Target',
+                        data: targetLine,
+                        type: 'line',
+                        borderColor: 'rgba(255, 99, 132, 0.5)',
+                        pointRadius: 0,
+                        fill: false,
+                        order: 1
+                    }]
+                }, {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Ratio' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    function loadCollaborations() {
+        fetch('/analytics/data/collaborations')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+                createChart('collaborationsChart', 'bar', {
+                    labels: data.map(d => d.collaborator),
+                    datasets: [{
+                        label: 'Avg Likes',
+                        data: data.map(d => d.avg_likes),
+                        backgroundColor: colors.primary,
+                        yAxisID: 'y',
+                        order: 2
+                    }, {
+                        label: 'Collaboration Count',
+                        data: data.map(d => d.collaboration_count),
+                        type: 'line',
+                        borderColor: colors.accent,
+                        backgroundColor: colors.accent,
+                        yAxisID: 'y1',
+                        order: 1
+                    }]
+                }, {
+                    scales: {
+                        y: { title: { display: true, text: 'Avg Likes' } },
+                        y1: { position: 'right', title: { display: true, text: 'Count' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        }
+                    }
+                });
+            });
+    }
+
+    function loadPerformanceDeviation() {
+        fetch('/analytics/data/performance-deviation')
+            .then(res => res.json())
+            .then(data => {
+                if (!data) return;
+
+                const renderTable = (items, tableId) => {
+                    const tbody = document.querySelector(`#${tableId} tbody`);
+                    tbody.replaceChildren();
+
+                    if (!items) return;
+
+                    items.forEach(d => {
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-white/5 transition-colors';
+
+                        const date = new Date(d.created_at).toLocaleDateString();
+                        const engagement = d.likes + d.reposts;
+                        const baseline = d.expected_engagement;
+                        const deviation = d.deviation;
+
+                        const dateCell = document.createElement('td');
+                        dateCell.className = 'p-2 border-b border-white/10 text-sm text-gray-400';
+                        dateCell.textContent = date;
+                        row.appendChild(dateCell);
+
+                        const networkCell = document.createElement('td');
+                        networkCell.className = 'p-2 border-b border-white/10';
+                        const badge = document.createElement('span');
+                        badge.className = 'badge badge-outline';
+                        badge.textContent = d.network;
+                        networkCell.appendChild(badge);
+                        row.appendChild(networkCell);
+
+                        const contentCell = document.createElement('td');
+                        contentCell.className = 'p-2 border-b border-white/10 text-sm truncate max-w-xs';
+                        contentCell.title = d.content || '';
+
+                        if (d.url) {
+                            const link = document.createElement('a');
+                            link.href = d.url;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            link.className = 'text-accent hover:underline';
+                            link.textContent = d.content ? d.content.substring(0, 50) + '...' : 'View Post';
+                            contentCell.appendChild(link);
+                        } else {
+                            contentCell.textContent = d.content ? d.content.substring(0, 50) + '...' : 'Media';
+                        }
+                        row.appendChild(contentCell);
+
+                        const engagementCell = document.createElement('td');
+                        engagementCell.className = 'p-2 border-b border-white/10 text-sm';
+                        engagementCell.textContent = `${engagement} (Exp: ${Math.round(baseline)})`;
+                        row.appendChild(engagementCell);
+
+                        const deviationCell = document.createElement('td');
+                        const isPositive = deviation >= 0;
+
+                        deviationCell.className = `p-2 border-b border-white/10 font-bold ${isPositive ? 'text-success' : 'text-soft-danger'}`;
+                        deviationCell.textContent = `${isPositive ? '+' : ''}${Math.round(deviation)}`;
+                        row.appendChild(deviationCell);
+
+                        tbody.appendChild(row);
+                    });
+                };
+
+                renderTable(data.positive, 'performanceDeviationPositiveTable');
+                renderTable(data.negative, 'performanceDeviationNegativeTable');
+            });
+    }
+
+    function loadEngagementVelocity() {
+        fetch('/analytics/data/velocity')
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data)) return;
+                const posts = {};
+                const postDetails = {};
+
+                data.forEach(d => {
+                    if (!posts[d.post_id]) {
+                        posts[d.post_id] = {
+                            created_at: new Date(d.post_created_at),
+                            content: d.content,
+                            history: []
+                        };
+                        postDetails[d.post_id] = {
+                            date: new Date(d.post_created_at),
+                            content: d.content,
+                            likes: d.likes,
+                            reposts: d.reposts,
+                            url: d.url
+                        };
+                    }
+
+                    if (d.likes > postDetails[d.post_id].likes) postDetails[d.post_id].likes = d.likes;
+                    if (d.reposts > postDetails[d.post_id].reposts) postDetails[d.post_id].reposts = d.reposts;
+
+                    posts[d.post_id].history.push({
+                        t: new Date(d.history_synced_at),
+                        engagement: d.likes + d.reposts
+                    });
+                });
+
+                const tbody = document.querySelector('#velocityTable tbody');
+                tbody.replaceChildren();
+
+                const sortedDetails = Object.values(postDetails).sort((a, b) => (b.likes + b.reposts) - (a.likes + a.reposts)).slice(0, 7);
+
+                sortedDetails.forEach(p => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-white/5 transition-colors';
+
+                    const dateCell = document.createElement('td');
+                    dateCell.className = 'p-2 border-b border-white/10 text-sm text-gray-400';
+                    dateCell.textContent = p.date.toLocaleDateString();
+                    row.appendChild(dateCell);
+
+                    const contentCell = document.createElement('td');
+                    contentCell.className = 'p-2 border-b border-white/10 text-sm truncate max-w-xs';
+                    if (p.url) {
+                        const link = document.createElement('a');
+                        link.href = p.url;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.className = 'text-accent hover:underline';
+                        link.textContent = p.content ? p.content.substring(0, 50) + '...' : 'View Post';
+                        contentCell.appendChild(link);
+                    } else {
+                        contentCell.textContent = p.content ? p.content.substring(0, 50) + '...' : 'Media';
+                    }
+                    row.appendChild(contentCell);
+
+                    const likesCell = document.createElement('td');
+                    likesCell.className = 'p-2 border-b border-white/10 text-sm';
+                    likesCell.textContent = p.likes;
+                    row.appendChild(likesCell);
+
+                    const repostsCell = document.createElement('td');
+                    repostsCell.className = 'p-2 border-b border-white/10 text-sm';
+                    repostsCell.textContent = p.reposts;
+                    row.appendChild(repostsCell);
+
+                    const totalCell = document.createElement('td');
+                    totalCell.className = 'p-2 border-b border-white/10 text-sm font-bold';
+                    totalCell.textContent = p.likes + p.reposts;
+                    row.appendChild(totalCell);
+
+                    tbody.appendChild(row);
+                });
+
+                const sortedPostIds = Object.keys(posts).sort((a, b) => {
+                    const lastA = posts[a].history[posts[a].history.length - 1].engagement;
+                    const lastB = posts[b].history[posts[b].history.length - 1].engagement;
+                    return lastB - lastA;
+                }).slice(0, 7);
+
+                const datasets = sortedPostIds.map((pid, i) => {
+                    const post = posts[pid];
+                    const dataPoints = post.history.map(h => ({
+                        x: (h.t.getTime() - post.created_at.getTime()) / 3600000,
+                        y: h.engagement
+                    })).filter(p => p.x >= 0);
+
+                    return {
+                        label: `${i + 1}. ${post.content ? post.content.substring(0, 30) + '...' : 'Media'}`,
+                        data: dataPoints,
+                        borderColor: colors.highContrast[i % colors.highContrast.length],
+                        backgroundColor: 'transparent',
+                        tension: 0.4
+                    };
+                });
+
+                createChart('velocityChart', 'line', {
+                    datasets: datasets
+                }, {
+                    scales: {
+                        x: { type: 'linear', title: { display: true, text: 'Hours since posted' } },
+                        y: { title: { display: true, text: 'Total Engagement' } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+    }
+});

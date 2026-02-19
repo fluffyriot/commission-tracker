@@ -4,7 +4,9 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sort"
 
+	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/fluffyriot/rpsync/internal/stats"
 	"github.com/gin-gonic/gin"
@@ -114,4 +116,330 @@ func (h *Handler) AnalyticsTopSourcesHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, topSources)
+}
+
+func (h *Handler) AnalyticsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	c.HTML(http.StatusOK, "analytics.html", h.CommonData(c, gin.H{
+		"title":   "Advanced Analytics",
+		"user_id": user.ID,
+	}))
+}
+
+func (h *Handler) AnalyticsWordCloudHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetWordCloudData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting word cloud data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsHashtagsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetHashtagAnalytics(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting hashtags data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsMentionsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetMentionsAnalytics(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting mentions data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsTimeHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetTimePerformance(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting time performance data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsPostTypesHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetGlobalPostTypeAnalytics(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting post type analytics: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsNetworkEfficiencyHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetNetworkEfficiency(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting network efficiency: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsTopPagesHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetTopPagesByViews(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting top pages: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsSiteStatsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetSiteStatsOverTime(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting site stats: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsPostingConsistencyHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetPostingConsistency(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting posting consistency: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsEngagementRateHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetEngagementRateData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting engagement rate data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsFollowRatioHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetFollowRatioData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting follow ratio data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if data == nil {
+		data = []database.GetFollowRatioDataRow{}
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetPerformanceDeviationData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting performance deviation data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	type DeviationItem struct {
+		database.GetPerformanceDeviationDataRow
+		URL       string  `json:"url"`
+		Deviation float64 `json:"deviation"`
+	}
+
+	var positive []DeviationItem
+	var negative []DeviationItem
+
+	for _, item := range data {
+		actual := float64(item.Likes + item.Reposts)
+		deviation := actual - item.ExpectedEngagement
+
+		url := ""
+		if item.Network != "" && item.Author != "" {
+			url, _ = helpers.ConvPostToURL(item.Network, item.Author, item.NetworkInternalID)
+		}
+
+		di := DeviationItem{
+			GetPerformanceDeviationDataRow: item,
+			URL:                            url,
+			Deviation:                      deviation,
+		}
+
+		if deviation >= 0 {
+			positive = append(positive, di)
+		} else {
+			negative = append(negative, di)
+		}
+	}
+
+	sort.Slice(positive, func(i, j int) bool {
+		return positive[i].Deviation > positive[j].Deviation
+	})
+	sort.Slice(negative, func(i, j int) bool {
+		return negative[i].Deviation < negative[j].Deviation
+	})
+
+    if len(positive) > 7 {
+        positive = positive[:7]
+    }
+    if len(negative) > 7 {
+        negative = negative[:7]
+    }
+
+	c.JSON(http.StatusOK, gin.H{
+		"positive": positive,
+		"negative": negative,
+	})
+}
+
+func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetEngagementVelocityData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting engagement velocity data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	type VelocityItem struct {
+		database.GetEngagementVelocityDataRow
+		URL string `json:"url"`
+	}
+
+	items := make([]VelocityItem, len(data))
+	for i, d := range data {
+		url := ""
+		if d.Network != "" && d.Author != "" {
+			url, _ = helpers.ConvPostToURL(d.Network, d.Author, d.NetworkInternalID)
+		}
+		items[i] = VelocityItem{
+			GetEngagementVelocityDataRow: d,
+			URL:                          url,
+		}
+	}
+
+	c.JSON(http.StatusOK, items)
+}
+
+func (h *Handler) AnalyticsCollaborationsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetCollaborationsData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting collaborations data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsWordCloudEngagementHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetWordCloudEngagementData(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting word cloud engagement data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if data == nil {
+		data = []database.GetWordCloudEngagementDataRow{}
+	}
+	c.JSON(http.StatusOK, data)
 }

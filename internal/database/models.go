@@ -13,214 +13,214 @@ import (
 )
 
 type AnalyticsPageStat struct {
-	ID       uuid.UUID
-	Date     time.Time
-	UrlPath  string
-	Views    int
-	SourceID uuid.UUID
+	ID       uuid.UUID `json:"id"`
+	Date     time.Time `json:"date"`
+	UrlPath  string    `json:"url_path"`
+	Views    int64     `json:"views"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 type AnalyticsPageStatsOnTarget struct {
-	ID             uuid.UUID
-	SyncedAt       time.Time
-	StatID         uuid.NullUUID
-	TargetID       uuid.UUID
-	TargetRecordID string
+	ID             uuid.UUID     `json:"id"`
+	SyncedAt       time.Time     `json:"synced_at"`
+	StatID         uuid.NullUUID `json:"stat_id"`
+	TargetID       uuid.UUID     `json:"target_id"`
+	TargetRecordID string        `json:"target_record_id"`
 }
 
 type AnalyticsSiteStat struct {
-	ID                 uuid.UUID
-	Date               time.Time
-	Visitors           int
-	AvgSessionDuration float64
-	SourceID           uuid.UUID
+	ID                 uuid.UUID `json:"id"`
+	Date               time.Time `json:"date"`
+	Visitors           int64     `json:"visitors"`
+	AvgSessionDuration float64   `json:"avg_session_duration"`
+	SourceID           uuid.UUID `json:"source_id"`
 }
 
 type AnalyticsSiteStatsOnTarget struct {
-	ID             uuid.UUID
-	SyncedAt       time.Time
-	StatID         uuid.NullUUID
-	TargetID       uuid.UUID
-	TargetRecordID string
+	ID             uuid.UUID     `json:"id"`
+	SyncedAt       time.Time     `json:"synced_at"`
+	StatID         uuid.NullUUID `json:"stat_id"`
+	TargetID       uuid.UUID     `json:"target_id"`
+	TargetRecordID string        `json:"target_record_id"`
 }
 
 type AppConfig struct {
-	Key   string
-	Value string
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type ColumnMapping struct {
-	ID               uuid.UUID
-	CreatedAt        time.Time
-	TableMappingID   uuid.UUID
-	SourceColumnName string
-	TargetColumnName string
-	TargetColumnCode sql.NullString
+	ID               uuid.UUID      `json:"id"`
+	CreatedAt        time.Time      `json:"created_at"`
+	TableMappingID   uuid.UUID      `json:"table_mapping_id"`
+	SourceColumnName string         `json:"source_column_name"`
+	TargetColumnName string         `json:"target_column_name"`
+	TargetColumnCode sql.NullString `json:"target_column_code"`
 }
 
 type Exclusion struct {
-	ID                uuid.UUID
-	CreatedAt         time.Time
-	SourceID          uuid.UUID
-	NetworkInternalID string
+	ID                uuid.UUID `json:"id"`
+	CreatedAt         time.Time `json:"created_at"`
+	SourceID          uuid.UUID `json:"source_id"`
+	NetworkInternalID string    `json:"network_internal_id"`
 }
 
 type Export struct {
-	ID            uuid.UUID
-	CreatedAt     time.Time
-	CompletedAt   time.Time
-	ExportStatus  string
-	StatusMessage sql.NullString
-	UserID        uuid.UUID
-	DownloadUrl   sql.NullString
-	ExportMethod  string
-	TargetID      uuid.NullUUID
+	ID            uuid.UUID      `json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	CompletedAt   time.Time      `json:"completed_at"`
+	ExportStatus  string         `json:"export_status"`
+	StatusMessage sql.NullString `json:"status_message"`
+	UserID        uuid.UUID      `json:"user_id"`
+	DownloadUrl   sql.NullString `json:"download_url"`
+	ExportMethod  string         `json:"export_method"`
+	TargetID      uuid.NullUUID  `json:"target_id"`
 }
 
 type Log struct {
-	ID          uuid.UUID
-	CreatedAt   time.Time
-	SourceID    uuid.NullUUID
-	TargetID    uuid.NullUUID
-	Message     string
-	IsDismissed bool
+	ID          uuid.UUID     `json:"id"`
+	CreatedAt   time.Time     `json:"created_at"`
+	SourceID    uuid.NullUUID `json:"source_id"`
+	TargetID    uuid.NullUUID `json:"target_id"`
+	Message     string        `json:"message"`
+	IsDismissed bool          `json:"is_dismissed"`
 }
 
 type Post struct {
-	ID                uuid.UUID
-	CreatedAt         time.Time
-	LastSyncedAt      time.Time
-	SourceID          uuid.UUID
-	IsArchived        bool
-	NetworkInternalID string
-	PostType          string
-	Author            string
-	Content           sql.NullString
+	ID                uuid.UUID      `json:"id"`
+	CreatedAt         time.Time      `json:"created_at"`
+	LastSyncedAt      time.Time      `json:"last_synced_at"`
+	SourceID          uuid.UUID      `json:"source_id"`
+	IsArchived        bool           `json:"is_archived"`
+	NetworkInternalID string         `json:"network_internal_id"`
+	PostType          string         `json:"post_type"`
+	Author            string         `json:"author"`
+	Content           sql.NullString `json:"content"`
 }
 
 type PostsOnTarget struct {
-	ID            uuid.UUID
-	FirstSyncedAt time.Time
-	PostID        uuid.NullUUID
-	TargetID      uuid.UUID
-	TargetPostID  string
+	ID            uuid.UUID     `json:"id"`
+	FirstSyncedAt time.Time     `json:"first_synced_at"`
+	PostID        uuid.NullUUID `json:"post_id"`
+	TargetID      uuid.UUID     `json:"target_id"`
+	TargetPostID  string        `json:"target_post_id"`
 }
 
 type PostsReactionsHistory struct {
-	ID       uuid.UUID
-	SyncedAt time.Time
-	PostID   uuid.UUID
-	Likes    sql.NullInt64
-	Reposts  sql.NullInt64
-	Views    sql.NullInt64
+	ID       uuid.UUID     `json:"id"`
+	SyncedAt time.Time     `json:"synced_at"`
+	PostID   uuid.UUID     `json:"post_id"`
+	Likes    sql.NullInt64 `json:"likes"`
+	Reposts  sql.NullInt64 `json:"reposts"`
+	Views    sql.NullInt64 `json:"views"`
 }
 
 type Redirect struct {
-	ID        uuid.UUID
-	SourceID  uuid.UUID
-	FromPath  string
-	ToPath    string
-	CreatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	SourceID  uuid.UUID `json:"source_id"`
+	FromPath  string    `json:"from_path"`
+	ToPath    string    `json:"to_path"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Source struct {
-	ID           uuid.UUID
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Network      string
-	UserName     string
-	UserID       uuid.UUID
-	IsActive     bool
-	SyncStatus   string
-	StatusReason sql.NullString
-	LastSynced   sql.NullTime
+	ID           uuid.UUID      `json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	Network      string         `json:"network"`
+	UserName     string         `json:"user_name"`
+	UserID       uuid.UUID      `json:"user_id"`
+	IsActive     bool           `json:"is_active"`
+	SyncStatus   string         `json:"sync_status"`
+	StatusReason sql.NullString `json:"status_reason"`
+	LastSynced   sql.NullTime   `json:"last_synced"`
 }
 
 type SourcesOnTarget struct {
-	ID             uuid.UUID
-	SourceID       uuid.UUID
-	TargetID       uuid.UUID
-	TargetSourceID string
+	ID             uuid.UUID `json:"id"`
+	SourceID       uuid.UUID `json:"source_id"`
+	TargetID       uuid.UUID `json:"target_id"`
+	TargetSourceID string    `json:"target_source_id"`
 }
 
 type SourcesStat struct {
-	ID             uuid.UUID
-	Date           time.Time
-	SourceID       uuid.UUID
-	FollowersCount sql.NullInt64
-	FollowingCount sql.NullInt64
-	PostsCount     sql.NullInt64
-	AverageLikes   sql.NullFloat64
-	AverageReposts sql.NullFloat64
-	AverageViews   sql.NullFloat64
+	ID             uuid.UUID       `json:"id"`
+	Date           time.Time       `json:"date"`
+	SourceID       uuid.UUID       `json:"source_id"`
+	FollowersCount sql.NullInt64   `json:"followers_count"`
+	FollowingCount sql.NullInt64   `json:"following_count"`
+	PostsCount     sql.NullInt64   `json:"posts_count"`
+	AverageLikes   sql.NullFloat64 `json:"average_likes"`
+	AverageReposts sql.NullFloat64 `json:"average_reposts"`
+	AverageViews   sql.NullFloat64 `json:"average_views"`
 }
 
 type SourcesStatsOnTarget struct {
-	ID             uuid.UUID
-	SyncedAt       time.Time
-	StatID         uuid.UUID
-	TargetID       uuid.UUID
-	TargetRecordID string
+	ID             uuid.UUID `json:"id"`
+	SyncedAt       time.Time `json:"synced_at"`
+	StatID         uuid.UUID `json:"stat_id"`
+	TargetID       uuid.UUID `json:"target_id"`
+	TargetRecordID string    `json:"target_record_id"`
 }
 
 type TableMapping struct {
-	ID              uuid.UUID
-	CreatedAt       time.Time
-	SourceTableName string
-	TargetTableName string
-	TargetTableCode sql.NullString
-	TargetID        uuid.UUID
+	ID              uuid.UUID      `json:"id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	SourceTableName string         `json:"source_table_name"`
+	TargetTableName string         `json:"target_table_name"`
+	TargetTableCode sql.NullString `json:"target_table_code"`
+	TargetID        uuid.UUID      `json:"target_id"`
 }
 
 type Target struct {
-	ID            uuid.UUID
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	TargetType    string
-	UserID        uuid.UUID
-	DbID          sql.NullString
-	IsActive      bool
-	SyncFrequency string
-	SyncStatus    string
-	StatusReason  sql.NullString
-	LastSynced    sql.NullTime
-	HostUrl       sql.NullString
+	ID            uuid.UUID      `json:"id"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	TargetType    string         `json:"target_type"`
+	UserID        uuid.UUID      `json:"user_id"`
+	DbID          sql.NullString `json:"db_id"`
+	IsActive      bool           `json:"is_active"`
+	SyncFrequency string         `json:"sync_frequency"`
+	SyncStatus    string         `json:"sync_status"`
+	StatusReason  sql.NullString `json:"status_reason"`
+	LastSynced    sql.NullTime   `json:"last_synced"`
+	HostUrl       sql.NullString `json:"host_url"`
 }
 
 type Token struct {
-	ID                   uuid.UUID
-	EncryptedAccessToken []byte
-	Nonce                []byte
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
-	ProfileID            sql.NullString
-	SourceID             uuid.NullUUID
-	TargetID             uuid.NullUUID
-	SourceAppData        json.RawMessage
+	ID                   uuid.UUID       `json:"id"`
+	EncryptedAccessToken []byte          `json:"encrypted_access_token"`
+	Nonce                []byte          `json:"nonce"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
+	ProfileID            sql.NullString  `json:"profile_id"`
+	SourceID             uuid.NullUUID   `json:"source_id"`
+	TargetID             uuid.NullUUID   `json:"target_id"`
+	SourceAppData        json.RawMessage `json:"source_app_data"`
 }
 
 type User struct {
-	ID              uuid.UUID
-	Username        string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	SyncPeriod      string
-	PasswordHash    sql.NullString
-	TotpSecret      sql.NullString
-	TotpEnabled     sql.NullBool
-	ProfileImage    sql.NullString
-	LastSeenVersion string
-	IntroCompleted  bool
+	ID              uuid.UUID      `json:"id"`
+	Username        string         `json:"username"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	SyncPeriod      string         `json:"sync_period"`
+	PasswordHash    sql.NullString `json:"password_hash"`
+	TotpSecret      sql.NullString `json:"totp_secret"`
+	TotpEnabled     sql.NullBool   `json:"totp_enabled"`
+	ProfileImage    sql.NullString `json:"profile_image"`
+	LastSeenVersion string         `json:"last_seen_version"`
+	IntroCompleted  bool           `json:"intro_completed"`
 }
 
 type WebauthnCredential struct {
-	ID              uuid.UUID
-	UserID          uuid.UUID
-	CredentialID    []byte
-	PublicKey       []byte
-	AttestationType string
-	Aaguid          uuid.NullUUID
-	SignCount       sql.NullInt64
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID              uuid.UUID     `json:"id"`
+	UserID          uuid.UUID     `json:"user_id"`
+	CredentialID    []byte        `json:"credential_id"`
+	PublicKey       []byte        `json:"public_key"`
+	AttestationType string        `json:"attestation_type"`
+	Aaguid          uuid.NullUUID `json:"aaguid"`
+	SignCount       sql.NullInt64 `json:"sign_count"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
 }

@@ -35,6 +35,7 @@ type mastFeed []struct {
 	Account         struct {
 		Id  string `json:"id"`
 		Uri string `json:"uri"`
+		Url string `json:"url"`
 	} `json:"account"`
 	Reblog *struct {
 		ID              string    `json:"id"`
@@ -47,6 +48,7 @@ type mastFeed []struct {
 		Account         struct {
 			Id  string `json:"id"`
 			Uri string `json:"uri"`
+			Url string `json:"url"`
 		} `json:"account"`
 	} `json:"reblog"`
 }
@@ -206,12 +208,12 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 			if item.Reblog != nil {
 				content = common.StripHTMLToText(item.Reblog.Content)
 
-				u, errU := url.Parse(item.Reblog.Account.Uri)
+				u, errU := url.Parse(item.Reblog.Account.Url)
 				if errU != nil {
 					return errU
 				}
 
-				username := path.Base(u.Path)
+				username := strings.TrimPrefix(path.Base(u.Path), "@")
 				domain := u.Host
 
 				createdAt = item.Reblog.CreatedAt
@@ -220,12 +222,12 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 			} else {
 				content = common.StripHTMLToText(item.Content)
 
-				u, errU := url.Parse(item.Account.Uri)
+				u, errU := url.Parse(item.Account.Url)
 				if errU != nil {
 					return errU
 				}
 
-				username := path.Base(u.Path)
+				username := strings.TrimPrefix(path.Base(u.Path), "@")
 				domain := u.Host
 
 				createdAt = item.CreatedAt

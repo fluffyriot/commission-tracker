@@ -152,7 +152,7 @@ func GenerateWebsiteCsv(dbQueries *database.Queries, target database.Target, exp
 		if err := writer.Write([]string{
 			s.ID.String(),
 			s.Date.Format("2006-01-02"),
-			strconv.Itoa(s.Visitors),
+			strconv.FormatInt(s.Visitors, 10),
 			fmt.Sprintf("%f", s.AvgSessionDuration),
 			s.SourceNetwork,
 			s.SourceUserName,
@@ -200,7 +200,7 @@ func GeneratePageViewsCsv(dbQueries *database.Queries, target database.Target, e
 			s.ID.String(),
 			s.Date.Format("2006-01-02"),
 			s.UrlPath,
-			strconv.Itoa(s.Views),
+			strconv.FormatInt(s.Views, 10),
 			s.SourceNetwork,
 			s.SourceUserName,
 		}); err != nil {

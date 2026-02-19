@@ -26,10 +26,10 @@ RETURNING
 `
 
 type CreateExclusionParams struct {
-	ID                uuid.UUID
-	CreatedAt         time.Time
-	SourceID          uuid.UUID
-	NetworkInternalID string
+	ID                uuid.UUID `json:"id"`
+	CreatedAt         time.Time `json:"created_at"`
+	SourceID          uuid.UUID `json:"source_id"`
+	NetworkInternalID string    `json:"network_internal_id"`
 }
 
 func (q *Queries) CreateExclusion(ctx context.Context, arg CreateExclusionParams) (Exclusion, error) {
@@ -63,8 +63,8 @@ DELETE FROM posts WHERE source_id = $1 AND network_internal_id = $2
 `
 
 type DeletePostBySourceAndNetworkIdParams struct {
-	SourceID          uuid.UUID
-	NetworkInternalID string
+	SourceID          uuid.UUID `json:"source_id"`
+	NetworkInternalID string    `json:"network_internal_id"`
 }
 
 func (q *Queries) DeletePostBySourceAndNetworkId(ctx context.Context, arg DeletePostBySourceAndNetworkIdParams) error {
@@ -118,12 +118,12 @@ ORDER BY e.created_at DESC
 `
 
 type GetExclusionsForUserRow struct {
-	ID                uuid.UUID
-	CreatedAt         time.Time
-	SourceID          uuid.UUID
-	NetworkInternalID string
-	Network           string
-	UserName          string
+	ID                uuid.UUID `json:"id"`
+	CreatedAt         time.Time `json:"created_at"`
+	SourceID          uuid.UUID `json:"source_id"`
+	NetworkInternalID string    `json:"network_internal_id"`
+	Network           string    `json:"network"`
+	UserName          string    `json:"user_name"`
 }
 
 func (q *Queries) GetExclusionsForUser(ctx context.Context, userID uuid.UUID) ([]GetExclusionsForUserRow, error) {

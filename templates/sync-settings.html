@@ -6,38 +6,17 @@
     </div>
 </div>
 
-<div class="grid-responsive">
-    <div>
-        <div class="card">
-            <div class="card-header">Sections</div>
-            <nav class="settings-nav">
-                <a href="#user-settings" class="settings-nav-item active" data-section="user-settings">
-                    <i data-lucide="user"></i> User Settings
-                </a>
-                <a href="#account-security" class="settings-nav-item" data-section="account-security">
-                    <i data-lucide="shield"></i> Account Security
-                </a>
-                <a href="#server-config" class="settings-nav-item" data-section="server-config">
-                    <i data-lucide="server"></i> Server Configuration
-                </a>
-                <a href="#syncer-config" class="settings-nav-item" data-section="syncer-config">
-                    <i data-lucide="settings"></i> Syncer Configuration
-                </a>
-                <a href="#manual-control" class="settings-nav-item" data-section="manual-control">
-                    <i data-lucide="sliders"></i> Manual Control
-                </a>
-                <a href="#post-exclusions" class="settings-nav-item" data-section="post-exclusions">
-                    <i data-lucide="file-x"></i> Post Exclusions
-                </a>
-                <a href="#page-redirects" class="settings-nav-item" data-section="page-redirects">
-                    <i data-lucide="corner-down-right"></i> Page Redirects
-                </a>
-            </nav>
-        </div>
-    </div>
+<div class="tabs mb-6">
+    <button class="tab-btn active" data-tab="user-security">User & Security</button>
+    <button class="tab-btn" data-tab="server-config">Server</button>
+    <button class="tab-btn" data-tab="syncer-control">Syncer</button>
+    <button class="tab-btn" data-tab="post-exclusions">Exclusions</button>
+    <button class="tab-btn" data-tab="page-redirects">Redirects</button>
+</div>
 
-    <div>
-        <div id="user-settings" class="card settings-section">
+<div id="user-security-tab" class="tab-content active">
+    <div class="grid-responsive">
+        <div class="card">
             <div class="card-header">User Settings</div>
 
             <div class="flex flex-col gap-4">
@@ -80,7 +59,7 @@
             </div>
         </div>
 
-        <div id="account-security" class="card settings-section mt-6">
+        <div class="card">
             <div class="card-header">Account Security</div>
             <div>
                 <p class="text-muted mb-4 text-md">
@@ -102,58 +81,63 @@
                         <i data-lucide="lock"></i> Update Password
                     </button>
 
-                    <div class="inline-relative">
-                        {{ if .is_passkey_supported }}
-                        <button class="btn btn-secondary" onclick="registerPasskey()">
-                            <i data-lucide="key"></i> Register Passkey
-                        </button>
-                        {{ else }}
-                        <button class="btn btn-secondary" disabled
-                            title="{{ if not .is_secure_context }}Passkeys require HTTPS connection{{ else }}Passkeys require a domain name (not an IP address){{ end }}">
-                            <i data-lucide="key"></i> Register Passkey (Unavailable)
-                        </button>
-                        {{ end }}
-                    </div>
-
+                    {{ if .is_passkey_supported }}
+                    <button class="btn btn-secondary" onclick="registerPasskey()">
+                        <i data-lucide="key"></i> Register Passkey
+                    </button>
+                    {{ else }}
+                    <button class="btn btn-secondary" disabled
+                        title="{{ if not .is_secure_context }}Passkeys require HTTPS connection{{ else }}Passkeys require a domain name (not an IP address){{ end }}">
+                        <i data-lucide="key"></i> Register Passkey (Unavailable)
+                    </button>
+                    {{ end }}
                 </div>
+
             </div>
         </div>
+    </div>
+</div>
+</div>
 
-        <div id="server-config" class="card settings-section">
-            <div class="card-header">Server Configuration</div>
+<div id="server-config-tab" class="tab-content hidden">
+    <div class="card">
+        <div class="card-header">Server Configuration</div>
 
-            <form method="POST" action="/settings/server">
-                <div class="form-group mb-md">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="allow_new_user_creation" id="allow_new_user_creation" {{if
-                            .allow_new_user_creation}}checked{{end}} class="checkbox-input">
-                        <span class="text-md" style="font-weight: 500;">Allow new user creation</span>
-                    </label>
-                    <p class="text-muted helper-text indent">
-                        If disabled, new users cannot register from login page.
-                    </p>
-                </div>
+        <form method="POST" action="/settings/server">
+            <div class="form-group mb-md">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="allow_new_user_creation" id="allow_new_user_creation" {{if
+                        .allow_new_user_creation}}checked{{end}} class="checkbox-input">
+                    <span class="text-md" style="font-weight: 500;">Allow new user creation</span>
+                </label>
+                <p class="text-muted helper-text indent">
+                    If disabled, new users cannot register from login page.
+                </p>
+            </div>
 
-                <div class="form-group mb-md">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="enabled_on_startup" id="enabled_on_startup" {{if
-                            .enable_worker_on_startup}}checked{{end}} class="checkbox-input">
-                        <span class="text-md" style="font-weight: 500;">Enable worker on startup</span>
-                    </label>
-                    <p class="text-muted helper-text indent">
-                        When enabled, the worker will automatically start when the application launches.
-                    </p>
-                </div>
+            <div class="form-group mb-md">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="enabled_on_startup" id="enabled_on_startup" {{if
+                        .enable_worker_on_startup}}checked{{end}} class="checkbox-input">
+                    <span class="text-md" style="font-weight: 500;">Enable worker on startup</span>
+                </label>
+                <p class="text-muted helper-text indent">
+                    When enabled, the worker will automatically start when the application launches.
+                </p>
+            </div>
 
-                <div class="flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i data-lucide="save"></i> Save Server Settings
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i data-lucide="save"></i> Save Server Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-        <div id="syncer-config" class="card settings-section mt-6">
+<div id="syncer-control-tab" class="tab-content hidden">
+    <div class="grid-responsive">
+        <div class="card">
             <div class="card-header">Syncer Configuration</div>
 
             <form method="POST" action="/settings/sync">
@@ -189,7 +173,7 @@
             </form>
         </div>
 
-        <div id="manual-control" class="card settings-section mt-6">
+        <div class="card">
             <div class="card-header">Manual Control</div>
 
             <div>
@@ -224,203 +208,147 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
-        <div id="post-exclusions" class="card settings-section mt-6">
-            <div class="card-header">Post Exclusions</div>
+<div id="post-exclusions-tab" class="tab-content hidden">
+    <div class="grid-list-sidebar">
+        <div>
+            <div class="card">
+                <div class="card-header">Add Exclusion</div>
+                <form id="addExclusionForm" onsubmit="handleAddExclusion(event)">
+                    <div class="form-group mb-sm">
+                        <label for="exclusion_source_id" class="form-label-bold">Source</label>
+                        <select name="source_id" id="exclusion_source_id" class="form-select w-full" required>
+                            <option value="">Select a source...</option>
+                        </select>
+                    </div>
 
-            <div>
-                <p class="text-muted mb-4 text-md">
-                    Exclude specific posts from being synced. Excluded posts will be permanently deleted from the
-                    database and will not be re-synced in future fetches.
-                </p>
+                    <div class="form-group mb-md">
+                        <label for="exclusion_network_id" class="form-label-bold">Network Internal ID(s)</label>
+                        <input type="text" name="network_internal_id" id="exclusion_network_id"
+                            class="form-select w-full" required
+                            placeholder="e.g., post ID, shortcode, or comma-separated list..." autocapitalize="off">
+                        <p class="text-muted helper-text">One or more platform-specific IDs to exclude</p>
+                    </div>
 
-                <div class="exclusion-controls">
-                    <button type="button" class="btn btn-primary" onclick="showAddExclusionModal()">
+                    <button type="submit" class="btn btn-primary w-full">
                         <i data-lucide="plus"></i> Add Exclusion
                     </button>
-
-                    <div class="exclusion-search-container">
-                        <input type="text" id="exclusionSearch" class="form-select" placeholder="Search by ID..."
-                            autocapitalize="off">
-                    </div>
-                </div>
-
-                <div id="exclusions-list">
-                    <p class="text-muted exclusion-list-empty text-md">Loading exclusions...</p>
-                </div>
-
-                <div id="pagination-controls" class="pagination-controls">
-                    <button id="prevBtn" class="btn btn-secondary btn-icon" onclick="changePage(-1)" disabled
-                        title="Previous Page">
-                        <i data-lucide="chevron-left"></i>
-                    </button>
-                    <span id="pageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of 1</span>
-                    <button id="nextBtn" class="btn btn-secondary btn-icon" onclick="changePage(1)" disabled
-                        title="Next Page">
-                        <i data-lucide="chevron-right"></i>
-                    </button>
-                </div>
+                </form>
             </div>
         </div>
 
-        <div id="page-redirects" class="card settings-section" style="margin-top: 1.5rem;">
-            <div class="card-header">Page Redirects</div>
+        <div>
+            <div class="card">
+                <div class="card-header">Post Exclusions</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Exclude specific posts from being synced. Excluded posts will be permanently deleted from the
+                        database and will not be re-synced in future fetches.
+                    </p>
 
-            <div>
-                <p class="text-muted text-md" style="margin-bottom: 1rem;">
-                    Configure page path redirects. Stats for the "From Path" will be merged into the "To Path".
-                </p>
+                    <div class="exclusion-controls">
+                        <div class="exclusion-search-container">
+                            <input type="text" id="exclusionSearch" class="form-select" placeholder="Search by ID..."
+                                autocapitalize="off">
+                        </div>
+                    </div>
 
-                <div class="exclusion-controls">
-                    <button type="button" class="btn btn-primary" onclick="showAddRedirectModal()">
+                    <div id="exclusions-list">
+                        <p class="text-muted exclusion-list-empty text-md">Loading exclusions...</p>
+                    </div>
+
+                    <div id="pagination-controls" class="pagination-controls">
+                        <button id="prevBtn" class="btn btn-secondary btn-icon" onclick="changePage(-1)" disabled
+                            title="Previous Page">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                        <span id="pageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of 1</span>
+                        <button id="nextBtn" class="btn btn-secondary btn-icon" onclick="changePage(1)" disabled
+                            title="Next Page">
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page-redirects-tab" class="tab-content hidden">
+    <div class="grid-list-sidebar">
+        <div>
+            <div class="card">
+                <div class="card-header">Add Redirect</div>
+                <form id="addRedirectForm" onsubmit="handleAddRedirect(event)">
+                    <div class="form-group mb-sm">
+                        <label for="redirect_source_id" class="form-label-bold">Source</label>
+                        <select name="source_id" id="redirect_source_id" class="form-select w-full" required>
+                            <option value="">Select a source...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-sm">
+                        <label for="redirect_from_path" class="form-label-bold">From Path</label>
+                        <input type="text" name="from_path" id="redirect_from_path" class="form-select w-full" required
+                            placeholder="/old-page" autocapitalize="off">
+                    </div>
+
+                    <div class="form-group mb-md">
+                        <label for="redirect_to_path" class="form-label-bold">To Path</label>
+                        <input type="text" name="to_path" id="redirect_to_path" class="form-select w-full" required
+                            placeholder="/new-page" autocapitalize="off">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full">
                         <i data-lucide="plus"></i> Add Redirect
                     </button>
-
-                    <div class="exclusion-search-container">
-                        <input type="text" id="redirectSearch" class="form-select" placeholder="Search by Path..."
-                            autocapitalize="off">
-                    </div>
-                </div>
-
-                <div id="redirects-list">
-                    <p class="text-muted exclusion-list-empty text-md">Loading redirects...</p>
-                </div>
-
-                <div id="redirect-pagination-controls" class="pagination-controls">
-                    <button id="prevRedirectBtn" class="btn btn-secondary btn-icon" onclick="changeRedirectPage(-1)"
-                        disabled title="Previous Page">
-                        <i data-lucide="chevron-left"></i>
-                    </button>
-                    <span id="redirectPageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of 1</span>
-                    <button id="nextRedirectBtn" class="btn btn-secondary btn-icon" onclick="changeRedirectPage(1)"
-                        disabled title="Next Page">
-                        <i data-lucide="chevron-right"></i>
-                    </button>
-                </div>
+                </form>
             </div>
         </div>
-    </div>
-</div>
 
-<div id="addExclusionModal" class="modal-overlay">
-    <div class="card modal-card">
-        <div class="card-header">Add Post Exclusion</div>
         <div>
-            <form id="addExclusionForm" onsubmit="handleAddExclusion(event)">
-                <div class="form-group mb-sm">
-                    <label for="exclusion_source_id" class="form-label-bold">Source</label>
-                    <select name="source_id" id="exclusion_source_id" class="form-select w-full" required>
-                        <option value="">Select a source...</option>
-                    </select>
-                </div>
-
-                <div class="form-group mb-md">
-                    <label for="exclusion_network_id" class="form-label-bold">Network Internal ID(s)</label>
-                    <input type="text" name="network_internal_id" id="exclusion_network_id" class="form-select w-full"
-                        required placeholder="e.g., post ID, shortcode, or comma-separated list..."
-                        autocapitalize="off">
-                    <p class="text-muted helper-text">One or more platform-specific
-                        IDs to exclude</p>
-                </div>
-
-                <div class="flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i data-lucide="save"></i> Add Exclusion
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="hideAddExclusionModal()">
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div id="addRedirectModal" class="modal-overlay">
-    <div class="card modal-card">
-        <div class="card-header">Add Page Redirect</div>
-        <div>
-            <form id="addRedirectForm" onsubmit="handleAddRedirect(event)">
-                <div class="form-group mb-sm">
-                    <label for="redirect_source_id" class="form-label-bold">Source</label>
-                    <select name="source_id" id="redirect_source_id" class="form-select w-full" required>
-                        <option value="">Select a source...</option>
-                    </select>
-                </div>
-
-                <div class="form-group mb-sm">
-                    <label for="redirect_from_path" class="form-label-bold">From Path</label>
-                    <input type="text" name="from_path" id="redirect_from_path" class="form-select w-full" required
-                        placeholder="e.g. /old-page" autocapitalize="off">
-                </div>
-
-                <div class="form-group mb-md">
-                    <label for="redirect_to_path" class="form-label-bold">To
-                        Path</label>
-                    <input type="text" name="to_path" id="redirect_to_path" class="form-select w-full" required
-                        placeholder="e.g. /new-page" autocapitalize="off">
-                    <p class="text-muted helper-text">
-                        Note: Stats will be merged. This action deletes the old path stats.
+            <div class="card">
+                <div class="card-header">Page Redirects</div>
+                <div>
+                    <p class="text-muted text-md" style="margin-bottom: 1rem;">
+                        Configure page path redirects. Stats for the "From Path" will be merged into the "To Path".
                     </p>
-                </div>
 
-                <div class="flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i data-lucide="save"></i> Add Redirect
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="hideAddRedirectModal()">
-                        Cancel
-                    </button>
+                    <div class="exclusion-controls">
+                        <div class="exclusion-search-container">
+                            <input type="text" id="redirectSearch" class="form-select" placeholder="Search by Path..."
+                                autocapitalize="off">
+                        </div>
+                    </div>
+
+                    <div id="redirects-list">
+                        <p class="text-muted exclusion-list-empty text-md">Loading redirects...</p>
+                    </div>
+
+                    <div id="redirect-pagination-controls" class="pagination-controls">
+                        <button id="prevRedirectBtn" class="btn btn-secondary btn-icon" onclick="changeRedirectPage(-1)"
+                            disabled title="Previous Page">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                        <span id="redirectPageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of
+                            1</span>
+                        <button id="nextRedirectBtn" class="btn btn-secondary btn-icon" onclick="changeRedirectPage(1)"
+                            disabled title="Next Page">
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const navItems = document.querySelectorAll('.settings-nav-item');
-        const sections = document.querySelectorAll('.settings-section');
-
-        navItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-
-                navItems.forEach(nav => nav.classList.remove('active'));
-
-                item.classList.add('active');
-                const sectionId = item.getAttribute('data-section');
-                const section = document.getElementById(sectionId);
-
-                if (section) {
-                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-
-        const observerOptions = {
-            root: null,
-            rootMargin: '-20% 0px -70% 0px',
-            threshold: 0
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const sectionId = entry.target.id;
-                    navItems.forEach(nav => {
-                        if (nav.getAttribute('data-section') === sectionId) {
-                            navItems.forEach(n => n.classList.remove('active'));
-                            nav.classList.add('active');
-                        }
-                    });
-                }
-            });
-        }, observerOptions);
-
-        sections.forEach(section => observer.observe(section));
-
-        lucide.createIcons();
+        initTabManagement('user-security');
+        loadSources();
     });
 </script>
 
@@ -453,22 +381,22 @@
             let lastRedirectId = "";
 
             allSources.forEach(source => {
-                if (source.Network !== 'Google Analytics') {
+                if (source.network !== 'Google Analytics') {
                     const option = document.createElement('option');
-                    option.value = source.ID;
-                    option.textContent = `${source.Network} - ${source.UserName}`;
+                    option.value = source.id;
+                    option.textContent = `${source.network} - ${source.user_name}`;
                     select.appendChild(option);
                     exclusionCount++;
-                    lastExclusionId = source.ID;
+                    lastExclusionId = source.id;
                 }
 
-                if (source.Network === 'Google Analytics') {
+                if (source.network === 'Google Analytics') {
                     const option = document.createElement('option');
-                    option.value = source.ID;
-                    option.textContent = `${source.Network} - ${source.UserName}`;
+                    option.value = source.id;
+                    option.textContent = `${source.network} - ${source.user_name}`;
                     redirectSelect.appendChild(option);
                     redirectCount++;
-                    lastRedirectId = source.ID;
+                    lastRedirectId = source.id;
                 }
             });
 
@@ -503,8 +431,21 @@
     async function loadRedirects() {
         try {
             allRedirects = [];
-            for (const source of allSources) {
-                const response = await fetch(`/api/redirects?source_id=${source.ID}`);
+
+            const gaSources = allSources.filter(source => source.network === 'Google Analytics');
+
+            if (gaSources.length === 0) {
+                applyRedirectFilters();
+                return;
+            }
+
+            for (const source of gaSources) {
+                if (!source.id) {
+                    console.error('Source missing ID:', source);
+                    continue;
+                }
+
+                const response = await fetch(`/api/redirects?source_id=${source.id}`);
                 if (response.ok) {
                     const data = await response.json();
                     allRedirects = allRedirects.concat(data);
@@ -655,24 +596,6 @@
         renderRedirects();
     }
 
-    function showAddExclusionModal() {
-        document.getElementById('addExclusionModal').style.display = 'flex';
-    }
-
-    function hideAddExclusionModal() {
-        document.getElementById('addExclusionModal').style.display = 'none';
-        document.getElementById('addExclusionForm').reset();
-    }
-
-    function showAddRedirectModal() {
-        document.getElementById('addRedirectModal').style.display = 'flex';
-    }
-
-    function hideAddRedirectModal() {
-        document.getElementById('addRedirectModal').style.display = 'none';
-        document.getElementById('addRedirectForm').reset();
-    }
-
     async function handleAddExclusion(event) {
         event.preventDefault();
 
@@ -694,7 +617,7 @@
                 throw new Error(error.error || 'Failed to add exclusion');
             }
 
-            hideAddExclusionModal();
+            event.target.reset();
             await loadExclusions();
             alert('Exclusion added successfully! The post has been deleted from the database.');
         } catch (error) {
@@ -729,7 +652,7 @@
                 throw new Error(error.error || 'Failed to add redirect');
             }
 
-            hideAddRedirectModal();
+            event.target.reset();
             await loadRedirects();
             alert('Redirect added successfully! Stats merging started in background.');
         } catch (error) {

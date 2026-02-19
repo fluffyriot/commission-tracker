@@ -77,7 +77,7 @@ func syncNocoAnalyticsSiteStats(dbQueries *database.Queries, c *common.Client, e
 			fieldMap := NocoRecordFields{
 				ID:                 stat.ID.String(),
 				Date:               stat.Date,
-				Visitors:           int(stat.Visitors),
+				Visitors:           stat.Visitors,
 				AvgSessionDuration: stat.AvgSessionDuration,
 			}
 			updateRecords = append(updateRecords, NocoTableRecord{
@@ -158,7 +158,7 @@ func syncNocoAnalyticsSiteStats(dbQueries *database.Queries, c *common.Client, e
 			fieldMap := NocoRecordFields{
 				ID:                 stat.ID.String(),
 				Date:               stat.Date,
-				Visitors:           int(stat.Visitors),
+				Visitors:           stat.Visitors,
 				AvgSessionDuration: stat.AvgSessionDuration,
 			}
 

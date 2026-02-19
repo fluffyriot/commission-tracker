@@ -33,11 +33,11 @@ RETURNING
 `
 
 type AddSourcesStatToTargetParams struct {
-	ID             uuid.UUID
-	SyncedAt       time.Time
-	StatID         uuid.UUID
-	TargetID       uuid.UUID
-	TargetRecordID string
+	ID             uuid.UUID `json:"id"`
+	SyncedAt       time.Time `json:"synced_at"`
+	StatID         uuid.UUID `json:"stat_id"`
+	TargetID       uuid.UUID `json:"target_id"`
+	TargetRecordID string    `json:"target_record_id"`
 }
 
 func (q *Queries) AddSourcesStatToTarget(ctx context.Context, arg AddSourcesStatToTargetParams) (SourcesStatsOnTarget, error) {
@@ -112,21 +112,21 @@ WHERE
 `
 
 type GetAllSourcesStatsWithTargetInfoParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
 }
 
 type GetAllSourcesStatsWithTargetInfoRow struct {
-	ID             uuid.UUID
-	Date           time.Time
-	SourceID       uuid.UUID
-	FollowersCount sql.NullInt64
-	FollowingCount sql.NullInt64
-	PostsCount     sql.NullInt64
-	AverageLikes   sql.NullFloat64
-	AverageReposts sql.NullFloat64
-	AverageViews   sql.NullFloat64
-	TargetRecordID sql.NullString
+	ID             uuid.UUID       `json:"id"`
+	Date           time.Time       `json:"date"`
+	SourceID       uuid.UUID       `json:"source_id"`
+	FollowersCount sql.NullInt64   `json:"followers_count"`
+	FollowingCount sql.NullInt64   `json:"following_count"`
+	PostsCount     sql.NullInt64   `json:"posts_count"`
+	AverageLikes   sql.NullFloat64 `json:"average_likes"`
+	AverageReposts sql.NullFloat64 `json:"average_reposts"`
+	AverageViews   sql.NullFloat64 `json:"average_views"`
+	TargetRecordID sql.NullString  `json:"target_record_id"`
 }
 
 func (q *Queries) GetAllSourcesStatsWithTargetInfo(ctx context.Context, arg GetAllSourcesStatsWithTargetInfoParams) ([]GetAllSourcesStatsWithTargetInfoRow, error) {
@@ -175,22 +175,22 @@ WHERE
 `
 
 type GetSyncedSourcesStatsForUpdateParams struct {
-	TargetID uuid.UUID
-	SourceID uuid.UUID
-	Date     time.Time
+	TargetID uuid.UUID `json:"target_id"`
+	SourceID uuid.UUID `json:"source_id"`
+	Date     time.Time `json:"date"`
 }
 
 type GetSyncedSourcesStatsForUpdateRow struct {
-	ID             uuid.UUID
-	Date           time.Time
-	SourceID       uuid.UUID
-	FollowersCount sql.NullInt64
-	FollowingCount sql.NullInt64
-	PostsCount     sql.NullInt64
-	AverageLikes   sql.NullFloat64
-	AverageReposts sql.NullFloat64
-	AverageViews   sql.NullFloat64
-	TargetRecordID string
+	ID             uuid.UUID       `json:"id"`
+	Date           time.Time       `json:"date"`
+	SourceID       uuid.UUID       `json:"source_id"`
+	FollowersCount sql.NullInt64   `json:"followers_count"`
+	FollowingCount sql.NullInt64   `json:"following_count"`
+	PostsCount     sql.NullInt64   `json:"posts_count"`
+	AverageLikes   sql.NullFloat64 `json:"average_likes"`
+	AverageReposts sql.NullFloat64 `json:"average_reposts"`
+	AverageViews   sql.NullFloat64 `json:"average_views"`
+	TargetRecordID string          `json:"target_record_id"`
 }
 
 func (q *Queries) GetSyncedSourcesStatsForUpdate(ctx context.Context, arg GetSyncedSourcesStatsForUpdateParams) ([]GetSyncedSourcesStatsForUpdateRow, error) {
@@ -242,8 +242,8 @@ WHERE
 `
 
 type GetUnsyncedSourcesStatsForTargetParams struct {
-	SourceID uuid.UUID
-	TargetID uuid.UUID
+	SourceID uuid.UUID `json:"source_id"`
+	TargetID uuid.UUID `json:"target_id"`
 }
 
 func (q *Queries) GetUnsyncedSourcesStatsForTarget(ctx context.Context, arg GetUnsyncedSourcesStatsForTargetParams) ([]SourcesStat, error) {

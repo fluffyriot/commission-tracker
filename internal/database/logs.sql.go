@@ -28,11 +28,11 @@ RETURNING
 `
 
 type CreateLogParams struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	SourceID  uuid.NullUUID
-	TargetID  uuid.NullUUID
-	Message   string
+	ID        uuid.UUID     `json:"id"`
+	CreatedAt time.Time     `json:"created_at"`
+	SourceID  uuid.NullUUID `json:"source_id"`
+	TargetID  uuid.NullUUID `json:"target_id"`
+	Message   string        `json:"message"`
 }
 
 func (q *Queries) CreateLog(ctx context.Context, arg CreateLogParams) (Log, error) {
@@ -86,12 +86,12 @@ LIMIT 20
 `
 
 type GetRecentLogsRow struct {
-	ID             uuid.UUID
-	CreatedAt      time.Time
-	Message        string
-	SourceNetwork  sql.NullString
-	SourceUsername sql.NullString
-	TargetType     sql.NullString
+	ID             uuid.UUID      `json:"id"`
+	CreatedAt      time.Time      `json:"created_at"`
+	Message        string         `json:"message"`
+	SourceNetwork  sql.NullString `json:"source_network"`
+	SourceUsername sql.NullString `json:"source_username"`
+	TargetType     sql.NullString `json:"target_type"`
 }
 
 func (q *Queries) GetRecentLogs(ctx context.Context, userID uuid.UUID) ([]GetRecentLogsRow, error) {

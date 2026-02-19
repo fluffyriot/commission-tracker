@@ -42,15 +42,15 @@ RETURNING
 `
 
 type CreateSourceStatParams struct {
-	ID             uuid.UUID
-	Date           time.Time
-	SourceID       uuid.UUID
-	FollowersCount sql.NullInt64
-	FollowingCount sql.NullInt64
-	PostsCount     sql.NullInt64
-	AverageLikes   sql.NullFloat64
-	AverageReposts sql.NullFloat64
-	AverageViews   sql.NullFloat64
+	ID             uuid.UUID       `json:"id"`
+	Date           time.Time       `json:"date"`
+	SourceID       uuid.UUID       `json:"source_id"`
+	FollowersCount sql.NullInt64   `json:"followers_count"`
+	FollowingCount sql.NullInt64   `json:"following_count"`
+	PostsCount     sql.NullInt64   `json:"posts_count"`
+	AverageLikes   sql.NullFloat64 `json:"average_likes"`
+	AverageReposts sql.NullFloat64 `json:"average_reposts"`
+	AverageViews   sql.NullFloat64 `json:"average_views"`
 }
 
 func (q *Queries) CreateSourceStat(ctx context.Context, arg CreateSourceStatParams) (SourcesStat, error) {
@@ -90,8 +90,8 @@ LIMIT 1
 `
 
 type GetSourceStatsByDateParams struct {
-	SourceID uuid.UUID
-	Date     time.Time
+	SourceID uuid.UUID `json:"source_id"`
+	Date     time.Time `json:"date"`
 }
 
 func (q *Queries) GetSourceStatsByDate(ctx context.Context, arg GetSourceStatsByDateParams) (SourcesStat, error) {
@@ -129,10 +129,10 @@ WHERE
 `
 
 type GetSourceTotalsRow struct {
-	TotalPosts   int
-	TotalLikes   int
-	TotalReposts int
-	TotalViews   int
+	TotalPosts   int64 `json:"total_posts"`
+	TotalLikes   int64 `json:"total_likes"`
+	TotalReposts int64 `json:"total_reposts"`
+	TotalViews   int64 `json:"total_views"`
 }
 
 func (q *Queries) GetSourceTotals(ctx context.Context, sourceID uuid.UUID) (GetSourceTotalsRow, error) {
@@ -164,14 +164,14 @@ RETURNING
 `
 
 type UpdateSourceDayStatsParams struct {
-	FollowersCount sql.NullInt64
-	FollowingCount sql.NullInt64
-	PostsCount     sql.NullInt64
-	AverageLikes   sql.NullFloat64
-	AverageReposts sql.NullFloat64
-	AverageViews   sql.NullFloat64
-	SourceID       uuid.UUID
-	Date           time.Time
+	FollowersCount sql.NullInt64   `json:"followers_count"`
+	FollowingCount sql.NullInt64   `json:"following_count"`
+	PostsCount     sql.NullInt64   `json:"posts_count"`
+	AverageLikes   sql.NullFloat64 `json:"average_likes"`
+	AverageReposts sql.NullFloat64 `json:"average_reposts"`
+	AverageViews   sql.NullFloat64 `json:"average_views"`
+	SourceID       uuid.UUID       `json:"source_id"`
+	Date           time.Time       `json:"date"`
 }
 
 func (q *Queries) UpdateSourceDayStats(ctx context.Context, arg UpdateSourceDayStatsParams) (SourcesStat, error) {

@@ -23,8 +23,8 @@ WHERE
 `
 
 type ArchiveUnsyncedPostsParams struct {
-	SourceID     uuid.UUID
-	LastSyncedAt time.Time
+	SourceID     uuid.UUID `json:"source_id"`
+	LastSyncedAt time.Time `json:"last_synced_at"`
 }
 
 func (q *Queries) ArchiveUnsyncedPosts(ctx context.Context, arg ArchiveUnsyncedPostsParams) error {
@@ -76,15 +76,15 @@ RETURNING
 `
 
 type CreatePostParams struct {
-	ID                uuid.UUID
-	CreatedAt         time.Time
-	LastSyncedAt      time.Time
-	SourceID          uuid.UUID
-	IsArchived        bool
-	NetworkInternalID string
-	Content           sql.NullString
-	PostType          string
-	Author            string
+	ID                uuid.UUID      `json:"id"`
+	CreatedAt         time.Time      `json:"created_at"`
+	LastSyncedAt      time.Time      `json:"last_synced_at"`
+	SourceID          uuid.UUID      `json:"source_id"`
+	IsArchived        bool           `json:"is_archived"`
+	NetworkInternalID string         `json:"network_internal_id"`
+	Content           sql.NullString `json:"content"`
+	PostType          string         `json:"post_type"`
+	Author            string         `json:"author"`
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
@@ -122,8 +122,8 @@ WHERE
 `
 
 type DeletePostsByNetworkIdPrefixParams struct {
-	SourceID          uuid.UUID
-	NetworkInternalID string
+	SourceID          uuid.UUID `json:"source_id"`
+	NetworkInternalID string    `json:"network_internal_id"`
 }
 
 func (q *Queries) DeletePostsByNetworkIdPrefix(ctx context.Context, arg DeletePostsByNetworkIdPrefixParams) error {
@@ -164,21 +164,21 @@ WHERE
 `
 
 type GetAllPostsWithTheLatestInfoForUserRow struct {
-	ID                uuid.UUID
-	CreatedAt         time.Time
-	SourceID          uuid.UUID
-	IsArchived        bool
-	NetworkInternalID string
-	Content           sql.NullString
-	PostType          string
-	Author            string
-	Network           sql.NullString
-	CurrentUserName   sql.NullString
-	SourceUserName    sql.NullString
-	ReactionsSyncedAt sql.NullTime
-	Likes             sql.NullInt64
-	Reposts           sql.NullInt64
-	Views             sql.NullInt64
+	ID                uuid.UUID      `json:"id"`
+	CreatedAt         time.Time      `json:"created_at"`
+	SourceID          uuid.UUID      `json:"source_id"`
+	IsArchived        bool           `json:"is_archived"`
+	NetworkInternalID string         `json:"network_internal_id"`
+	Content           sql.NullString `json:"content"`
+	PostType          string         `json:"post_type"`
+	Author            string         `json:"author"`
+	Network           sql.NullString `json:"network"`
+	CurrentUserName   sql.NullString `json:"current_user_name"`
+	SourceUserName    sql.NullString `json:"source_user_name"`
+	ReactionsSyncedAt sql.NullTime   `json:"reactions_synced_at"`
+	Likes             sql.NullInt64  `json:"likes"`
+	Reposts           sql.NullInt64  `json:"reposts"`
+	Views             sql.NullInt64  `json:"views"`
 }
 
 func (q *Queries) GetAllPostsWithTheLatestInfoForUser(ctx context.Context, userID uuid.UUID) ([]GetAllPostsWithTheLatestInfoForUserRow, error) {
@@ -229,8 +229,8 @@ where
 `
 
 type GetPostBySourceAndNetworkIdParams struct {
-	NetworkInternalID string
-	SourceID          uuid.UUID
+	NetworkInternalID string    `json:"network_internal_id"`
+	SourceID          uuid.UUID `json:"source_id"`
 }
 
 func (q *Queries) GetPostBySourceAndNetworkId(ctx context.Context, arg GetPostBySourceAndNetworkIdParams) (Post, error) {
@@ -283,18 +283,18 @@ LIMIT 10000
 `
 
 type GetRecentPostsForUserRow struct {
-	CreatedAt         time.Time
-	NetworkInternalID string
-	Content           sql.NullString
-	PostType          string
-	Author            string
-	IsArchived        bool
-	SourceID          uuid.UUID
-	Network           sql.NullString
-	Likes             sql.NullInt64
-	Reposts           sql.NullInt64
-	Interactions      int
-	Views             sql.NullInt64
+	CreatedAt         time.Time      `json:"created_at"`
+	NetworkInternalID string         `json:"network_internal_id"`
+	Content           sql.NullString `json:"content"`
+	PostType          string         `json:"post_type"`
+	Author            string         `json:"author"`
+	IsArchived        bool           `json:"is_archived"`
+	SourceID          uuid.UUID      `json:"source_id"`
+	Network           sql.NullString `json:"network"`
+	Likes             sql.NullInt64  `json:"likes"`
+	Reposts           sql.NullInt64  `json:"reposts"`
+	Interactions      int64          `json:"interactions"`
+	Views             sql.NullInt64  `json:"views"`
 }
 
 func (q *Queries) GetRecentPostsForUser(ctx context.Context, userID uuid.UUID) ([]GetRecentPostsForUserRow, error) {
@@ -348,12 +348,12 @@ RETURNING
 `
 
 type UpdatePostParams struct {
-	ID           uuid.UUID
-	LastSyncedAt time.Time
-	IsArchived   bool
-	Content      sql.NullString
-	PostType     string
-	Author       string
+	ID           uuid.UUID      `json:"id"`
+	LastSyncedAt time.Time      `json:"last_synced_at"`
+	IsArchived   bool           `json:"is_archived"`
+	Content      sql.NullString `json:"content"`
+	PostType     string         `json:"post_type"`
+	Author       string         `json:"author"`
 }
 
 func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) (Post, error) {

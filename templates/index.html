@@ -66,13 +66,13 @@
   </div>
 </div>
 
-<div class="grid-dashboard">
+<div class="grid-dashboard-stats">
 
   <div class="stat-card {{if .worker_is_off}}has-errors{{end}}">
     <div class="stat-icon"><i data-lucide="activity" class="icon-md"></i></div>
     <div class="stat-value">{{.worker_status}}</div>
     <div class="stat-label">Syncer Status</div>
-    <a href="/settings/sync#syncer-config" class="stat-link">Manage Settings &rarr;</a>
+    <a href="/settings/sync?tab=syncer-control" class="stat-link">Manage Settings &rarr;</a>
   </div>
 
 
@@ -81,7 +81,7 @@
     <div class="stat-icon"><i data-lucide="clock" class="icon-md"></i></div>
     <div class="stat-value">{{.sync_period}}</div>
     <div class="stat-label">Sync Frequency</div>
-    <a href="/settings/sync#syncer-config" class="stat-link">Change Frequency &rarr;</a>
+    <a href="/settings/sync?tab=syncer-control" class="stat-link">Change Frequency &rarr;</a>
   </div>
   {{end}}
 
@@ -111,6 +111,7 @@
     <div class="stat-icon"><i data-lucide="file-text" class="icon-md"></i></div>
     <div class="stat-value formatted-metric">{{.total_posts}}</div>
     <div class="stat-label">Total Posts Tracked</div>
+    <a href="/posts" class="stat-link">View All Posts &rarr;</a>
   </div>
 
   <div class="stat-card">

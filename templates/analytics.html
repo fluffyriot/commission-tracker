@@ -1,0 +1,191 @@
+{{ template "header.html" . }}
+
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1>Analytics</h1>
+    </div>
+</div>
+
+<div class="tabs mb-6">
+    <button class="tab-btn active" data-tab="content">Content</button>
+    <button class="tab-btn" data-tab="engagement">Engagement</button>
+    <button class="tab-btn" data-tab="timing">Timing</button>
+    <button class="tab-btn" data-tab="wordcloud">Word Cloud</button>
+    <button class="tab-btn" data-tab="website">Website</button>
+</div>
+
+<div id="content-tab" class="tab-content active">
+    <div class="grid-dashboard">
+
+        <div class="card col-span-full">
+            <div class="card-header">Top Hashtags Performance</div>
+            <div class="chart-container overflow-hidden">
+                <canvas id="hashtagsChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card col-span-full">
+        <div class="card-header">Performance Deviation - Overperforming</div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="performanceDeviationPositiveTable">
+                <thead>
+                    <tr>
+                        <th class="p-2 border-b border-white/10">Date</th>
+                        <th class="p-2 border-b border-white/10">Network</th>
+                        <th class="p-2 border-b border-white/10">Content</th>
+                        <th class="p-2 border-b border-white/10">Engagement</th>
+                        <th class="p-2 border-b border-white/10">Deviation</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card col-span-full">
+        <div class="card-header">Performance Deviation - Underperforming</div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="performanceDeviationNegativeTable">
+                <thead>
+                    <tr>
+                        <th class="p-2 border-b border-white/10">Date</th>
+                        <th class="p-2 border-b border-white/10">Network</th>
+                        <th class="p-2 border-b border-white/10">Content</th>
+                        <th class="p-2 border-b border-white/10">Engagement</th>
+                        <th class="p-2 border-b border-white/10">Deviation</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card col-span-full">
+        <div class="card-header">Engagement Velocity (Viral Detection)</div>
+        <div class="chart-container mb-4">
+            <canvas id="velocityChart"></canvas>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="velocityTable">
+                <thead>
+                    <tr>
+                        <th class="p-2 border-b border-white/10">Date</th>
+                        <th class="p-2 border-b border-white/10">Content</th>
+                        <th class="p-2 border-b border-white/10">Likes</th>
+                        <th class="p-2 border-b border-white/10">Reposts</th>
+                        <th class="p-2 border-b border-white/10">Total</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+
+<div id="engagement-tab" class="tab-content hidden">
+    <div class="grid-dashboard">
+        <div class="card">
+            <div class="card-header">Content Type Performance</div>
+            <div class="chart-container">
+                <canvas id="postTypesChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Network Efficiency</div>
+            <div class="chart-container">
+                <canvas id="networkEfficiencyChart"></canvas>
+            </div>
+        </div>
+        <div class="card col-span-full">
+            <div class="card-header">Top Mentions Performance</div>
+            <div class="chart-container">
+                <canvas id="mentionsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card col-span-full">
+            <div class="card-header">Top Collaborations</div>
+            <div class="chart-container">
+                <canvas id="collaborationsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Engagement Rate (Normalized)</div>
+            <div class="chart-container">
+                <canvas id="engagementRateChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Follow Ratio Health</div>
+            <div class="chart-container">
+                <canvas id="followRatioChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="timing-tab" class="tab-content hidden">
+    <div class="card">
+        <div class="card-header">Best Time to Post (Avg Likes)</div>
+        <div class="relative w-full overflow-auto">
+            <div id="heatmap-container" class="min-w-[600px] h-[500px]"></div>
+        </div>
+        <div class="text-sm text-muted mt-2 text-center">Day of Week x Hour of Day (Darker = Higher Engagement)</div>
+    </div>
+
+    <div class="card col-span-full mt-6">
+        <div class="card-header">Posting Consistency (Last 365 Days)</div>
+        <div class="relative w-full overflow-auto">
+            <div id="calendar-heatmap-container" class="min-w-[800px] pb-4"></div>
+        </div>
+    </div>
+</div>
+
+<div id="wordcloud-tab" class="tab-content hidden">
+    <div class="grid-dashboard">
+        <div class="card col-span-full">
+            <div class="card-header">Word Cloud (Top Usage)</div>
+            <div class="chart-container h-600 overflow-hidden" id="word-cloud-container">
+                <canvas id="wordCloudCanvas"></canvas>
+            </div>
+        </div>
+        <div class="card col-span-full">
+            <div class="card-header">Word Cloud (Top Engagement)</div>
+            <div class="chart-container h-600 overflow-hidden" id="word-cloud-engagement-container">
+                <canvas id="wordCloudEngagementCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+<div id="website-tab" class="tab-content hidden">
+    <div class="grid-dashboard">
+        <div class="card col-span-full">
+            <div class="card-header">Site Stats Over Time</div>
+            <div class="chart-container">
+                <canvas id="siteStatsChart"></canvas>
+            </div>
+        </div>
+        <div class="card col-span-full">
+            <div class="card-header">Top Viewed Pages</div>
+            <div class="chart-container h-500">
+                <canvas id="topPagesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"
+    integrity="sha384-EuMVig/i0NsY8k6u37PJ4vzAbjRrxUknKzGF1JX32n8tasgHVvG817xx3+6WatZe"
+    crossorigin="anonymous"></script>
+<script src="/static/js/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="/static/js/analytics.js"></script>
+
+{{ template "footer.html" . }}

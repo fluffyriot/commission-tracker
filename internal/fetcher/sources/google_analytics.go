@@ -114,7 +114,7 @@ func fetchAndSaveSiteStats(ctx context.Context, svc *analyticsdata.Service, db *
 		_, err = db.CreateAnalyticsSiteStat(ctx, database.CreateAnalyticsSiteStatParams{
 			ID:                 uuid.New(),
 			Date:               parsedDate,
-			Visitors:           visitorsInt,
+			Visitors:           int64(visitorsInt),
 			AvgSessionDuration: durationFloat,
 			SourceID:           sourceID,
 		})
@@ -191,7 +191,7 @@ func fetchAndSavePageStats(ctx context.Context, svc *analyticsdata.Service, db *
 			ID:       uuid.New(),
 			Date:     key.Date,
 			UrlPath:  key.Path,
-			Views:    views,
+			Views:    int64(views),
 			SourceID: sourceID,
 		})
 		if err != nil {

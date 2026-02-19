@@ -21,10 +21,10 @@ RETURNING id, created_at, updated_at, network, user_name, user_id, is_active, sy
 `
 
 type ChangeSourceStatusByIdParams struct {
-	ID           uuid.UUID
-	IsActive     bool
-	SyncStatus   string
-	StatusReason sql.NullString
+	ID           uuid.UUID      `json:"id"`
+	IsActive     bool           `json:"is_active"`
+	SyncStatus   string         `json:"sync_status"`
+	StatusReason sql.NullString `json:"status_reason"`
 }
 
 func (q *Queries) ChangeSourceStatusById(ctx context.Context, arg ChangeSourceStatusByIdParams) (Source, error) {
@@ -68,16 +68,16 @@ RETURNING id, created_at, updated_at, network, user_name, user_id, is_active, sy
 `
 
 type CreateSourceParams struct {
-	ID           uuid.UUID
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	Network      string
-	UserName     string
-	UserID       uuid.UUID
-	IsActive     bool
-	SyncStatus   string
-	StatusReason sql.NullString
-	LastSynced   sql.NullTime
+	ID           uuid.UUID      `json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	Network      string         `json:"network"`
+	UserName     string         `json:"user_name"`
+	UserID       uuid.UUID      `json:"user_id"`
+	IsActive     bool           `json:"is_active"`
+	SyncStatus   string         `json:"sync_status"`
+	StatusReason sql.NullString `json:"status_reason"`
+	LastSynced   sql.NullTime   `json:"last_synced"`
 }
 
 func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Source, error) {
@@ -149,8 +149,8 @@ LIMIT 1
 `
 
 type GetUserActiveSourceByNameParams struct {
-	UserID  uuid.UUID
-	Network string
+	UserID  uuid.UUID `json:"user_id"`
+	Network string    `json:"network"`
 }
 
 func (q *Queries) GetUserActiveSourceByName(ctx context.Context, arg GetUserActiveSourceByNameParams) (Source, error) {
@@ -265,10 +265,10 @@ RETURNING id, created_at, updated_at, network, user_name, user_id, is_active, sy
 `
 
 type UpdateSourceSyncStatusByIdParams struct {
-	ID           uuid.UUID
-	SyncStatus   string
-	StatusReason sql.NullString
-	LastSynced   sql.NullTime
+	ID           uuid.UUID      `json:"id"`
+	SyncStatus   string         `json:"sync_status"`
+	StatusReason sql.NullString `json:"status_reason"`
+	LastSynced   sql.NullTime   `json:"last_synced"`
 }
 
 func (q *Queries) UpdateSourceSyncStatusById(ctx context.Context, arg UpdateSourceSyncStatusByIdParams) (Source, error) {

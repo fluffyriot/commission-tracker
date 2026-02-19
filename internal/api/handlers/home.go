@@ -101,25 +101,19 @@ func (h *Handler) RootHandler(c *gin.Context) {
 
 	g.Go(func() error {
 		var err error
-		var count int
-		count, err = h.DB.GetTotalSiteStats(ctx, user.ID)
-		siteStats = int64(count)
+		siteStats, err = h.DB.GetTotalSiteStats(ctx, user.ID)
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		var count int
-		count, err = h.DB.GetTotalPageViews(ctx, user.ID)
-		pageViews = int64(count)
+		pageViews, err = h.DB.GetTotalPageViews(ctx, user.ID)
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		var count int
-		count, err = h.DB.GetAverageWebsiteSession(ctx, user.ID)
-		siteAvSession = int64(count)
+		siteAvSession, err = h.DB.GetAverageWebsiteSession(ctx, user.ID)
 		return err
 	})
 

@@ -28,6 +28,8 @@
 | BadPups.com | ❌ | ✅ | ❌ | ✅ | ✅ |
 | Murrtube.net | ❌ | ✅ | ❌ | ✅ | ✅ |
 | FurTrack.com | ❌ | ✅ | ❌ | ✅ | ✅ |
+| e621.net | ✅ | ❌ | ❌ | ❌ | ✅ |
+| FurAffinity.net | ❌ | ✅ | ❌ | ✅ | ✅ |
 
 ### Website Stats - Fetch
 | Website | Native API | Website Visitors | Page Views |

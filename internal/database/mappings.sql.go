@@ -27,12 +27,12 @@ RETURNING id, created_at, table_mapping_id, source_column_name, target_column_na
 `
 
 type CreateMappingForColumnParams struct {
-	ID               uuid.UUID
-	CreatedAt        time.Time
-	TableMappingID   uuid.UUID
-	SourceColumnName string
-	TargetColumnName string
-	TargetColumnCode sql.NullString
+	ID               uuid.UUID      `json:"id"`
+	CreatedAt        time.Time      `json:"created_at"`
+	TableMappingID   uuid.UUID      `json:"table_mapping_id"`
+	SourceColumnName string         `json:"source_column_name"`
+	TargetColumnName string         `json:"target_column_name"`
+	TargetColumnCode sql.NullString `json:"target_column_code"`
 }
 
 func (q *Queries) CreateMappingForColumn(ctx context.Context, arg CreateMappingForColumnParams) (ColumnMapping, error) {
@@ -70,12 +70,12 @@ RETURNING id, created_at, source_table_name, target_table_name, target_table_cod
 `
 
 type CreateMappingForTableParams struct {
-	ID              uuid.UUID
-	CreatedAt       time.Time
-	SourceTableName string
-	TargetTableName string
-	TargetTableCode sql.NullString
-	TargetID        uuid.UUID
+	ID              uuid.UUID      `json:"id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	SourceTableName string         `json:"source_table_name"`
+	TargetTableName string         `json:"target_table_name"`
+	TargetTableCode sql.NullString `json:"target_table_code"`
+	TargetID        uuid.UUID      `json:"target_id"`
 }
 
 func (q *Queries) CreateMappingForTable(ctx context.Context, arg CreateMappingForTableParams) (TableMapping, error) {
@@ -141,8 +141,8 @@ where cm.table_mapping_id = $1 and cm.target_column_name = $2
 `
 
 type GetColumnMappingsByTableAndNameParams struct {
-	TableMappingID   uuid.UUID
-	TargetColumnName string
+	TableMappingID   uuid.UUID `json:"table_mapping_id"`
+	TargetColumnName string    `json:"target_column_name"`
 }
 
 func (q *Queries) GetColumnMappingsByTableAndName(ctx context.Context, arg GetColumnMappingsByTableAndNameParams) (ColumnMapping, error) {
@@ -165,8 +165,8 @@ WHERE target_id = $1 AND target_table_code = $2
 `
 
 type GetTableMappingsByTargetAndCodeParams struct {
-	TargetID        uuid.UUID
-	TargetTableCode sql.NullString
+	TargetID        uuid.UUID      `json:"target_id"`
+	TargetTableCode sql.NullString `json:"target_table_code"`
 }
 
 func (q *Queries) GetTableMappingsByTargetAndCode(ctx context.Context, arg GetTableMappingsByTargetAndCodeParams) (TableMapping, error) {
@@ -189,8 +189,8 @@ where target_id = $1 and target_table_name = $2
 `
 
 type GetTableMappingsByTargetAndNameParams struct {
-	TargetID        uuid.UUID
-	TargetTableName string
+	TargetID        uuid.UUID `json:"target_id"`
+	TargetTableName string    `json:"target_table_name"`
 }
 
 func (q *Queries) GetTableMappingsByTargetAndName(ctx context.Context, arg GetTableMappingsByTargetAndNameParams) (TableMapping, error) {

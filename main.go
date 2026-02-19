@@ -238,6 +238,23 @@ func main() {
 	authorized.GET("/analytics/summary", h.AnalyticsDashboardSummaryHandler)
 	authorized.GET("/analytics/top-sources", h.AnalyticsTopSourcesHandler)
 
+	authorized.GET("/analytics", h.AnalyticsHandler)
+	authorized.GET("/analytics/data/wordcloud", h.AnalyticsWordCloudHandler)
+	authorized.GET("/analytics/data/hashtags", h.AnalyticsHashtagsHandler)
+	authorized.GET("/analytics/data/mentions", h.AnalyticsMentionsHandler)
+	authorized.GET("/analytics/data/time", h.AnalyticsTimeHandler)
+	authorized.GET("/analytics/data/types", h.AnalyticsPostTypesHandler)
+	authorized.GET("/analytics/data/networks", h.AnalyticsNetworkEfficiencyHandler)
+	authorized.GET("/analytics/data/pages", h.AnalyticsTopPagesHandler)
+	authorized.GET("/analytics/data/site", h.AnalyticsSiteStatsHandler)
+	authorized.GET("/analytics/data/consistency", h.AnalyticsPostingConsistencyHandler)
+	authorized.GET("/analytics/data/engagement-rate", h.AnalyticsEngagementRateHandler)
+	authorized.GET("/analytics/data/follow-ratio", h.AnalyticsFollowRatioHandler)
+	authorized.GET("/analytics/data/performance-deviation", h.AnalyticsPerformanceDeviationHandler)
+	authorized.GET("/analytics/data/velocity", h.AnalyticsVelocityHandler)
+	authorized.GET("/analytics/data/collaborations", h.AnalyticsCollaborationsHandler)
+	authorized.GET("/analytics/data/wordcloud/engagement", h.AnalyticsWordCloudEngagementHandler)
+
 	authorized.GET("/posts", h.PostsHandler)
 
 	authorized.GET("/api/sources", h.HandleGetSourcesAPI)

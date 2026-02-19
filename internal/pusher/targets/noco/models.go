@@ -23,17 +23,17 @@ type NocoRecordFields struct {
 	PostType           string    `json:"post_type,omitempty"`
 	Author             string    `json:"author,omitempty"`
 	Content            string    `json:"content,omitempty"`
-	Likes              int       `json:"likes,omitempty"`
-	Views              int       `json:"views,omitempty"`
-	Reposts            int       `json:"reposts,omitempty"`
+	Likes              int64     `json:"likes,omitempty"`
+	Views              int64     `json:"views,omitempty"`
+	Reposts            int64     `json:"reposts,omitempty"`
 	URL                string    `json:"URL,omitempty"`
 	Date               time.Time `json:"date,omitempty"`
-	Visitors           int       `json:"visitors,omitempty"`
+	Visitors           int64     `json:"visitors,omitempty"`
 	AvgSessionDuration float64   `json:"avg_session_duration,omitempty"`
 	PagePath           string    `json:"page_path,omitempty"`
-	FollowersCount     int       `json:"followers_count,omitempty"`
-	FollowingCount     int       `json:"following_count,omitempty"`
-	PostsCount         int       `json:"posts_count,omitempty"`
+	FollowersCount     int64     `json:"followers_count,omitempty"`
+	FollowingCount     int64     `json:"following_count,omitempty"`
+	PostsCount         int64     `json:"posts_count,omitempty"`
 	AverageLikes       float64   `json:"average_likes,omitempty"`
 	AverageReposts     float64   `json:"average_reposts,omitempty"`
 	AverageViews       float64   `json:"average_views,omitempty"`
