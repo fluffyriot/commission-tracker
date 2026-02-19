@@ -77,12 +77,9 @@ func FetchFurAffinityPosts(dbQueries *database.Queries, c *common.Client, uid uu
 		return err
 	}
 
-	userSource, err := dbQueries.GetUserActiveSourceByName(
+	userSource, err := dbQueries.GetSourceById(
 		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "FurAffinity",
-		},
+		sourceId,
 	)
 	if err != nil {
 		return err

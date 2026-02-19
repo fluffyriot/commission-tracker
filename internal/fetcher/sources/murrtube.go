@@ -19,14 +19,11 @@ import (
 	"github.com/google/uuid"
 )
 
-func getMurrtubeString(dbQueries *database.Queries, uid uuid.UUID) (string, string, error) {
+func getMurrtubeString(dbQueries *database.Queries, sourceId uuid.UUID) (string, string, error) {
 
-	username, err := dbQueries.GetUserActiveSourceByName(
+	username, err := dbQueries.GetSourceById(
 		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "Murrtube",
-		},
+		sourceId,
 	)
 	if err != nil {
 		return "", "", err
@@ -49,7 +46,7 @@ func FetchMurrtubePosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cl
 
 	processedLinks := make(map[string]struct{})
 
-	profileURL, username, err := getMurrtubeString(dbQueries, uid)
+	profileURL, username, err := getMurrtubeString(dbQueries, sourceId)
 	if err != nil {
 		return err
 	}
