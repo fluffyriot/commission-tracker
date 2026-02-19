@@ -1,13 +1,10 @@
 -- name: GetHashtagAnalytics :many
-SELECT substring(
-        word
-        from 2
-    ) as tag,
+SELECT lower(matches [1]) as tag,
     count(*) as usage_count,
     COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
     COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM (
-        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+        SELECT regexp_matches(content, '#([[:alnum:]_]+)', 'g') as matches,
             posts.id as post_id
         FROM posts
             JOIN sources s ON posts.source_id = s.id
@@ -22,8 +19,6 @@ FROM (
         ORDER BY post_id,
             synced_at DESC
     ) prh ON t.post_id = prh.post_id
-WHERE word LIKE '#%'
-    AND length(word) > 1
 GROUP BY tag
 ORDER BY avg_likes DESC
 LIMIT 20;
