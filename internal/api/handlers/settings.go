@@ -13,7 +13,8 @@ import (
 
 func (h *Handler) UserSetupViewHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "user-setup.html", h.CommonData(c, gin.H{
-		"title": "Welcome - Setup Admin User",
+		"title":        "Welcome - Setup New User",
+		"is_auth_page": true,
 	}))
 }
 
