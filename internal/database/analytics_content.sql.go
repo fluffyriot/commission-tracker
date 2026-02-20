@@ -145,7 +145,7 @@ func (q *Queries) GetHashtagAnalytics(ctx context.Context, userID uuid.UUID) ([]
 	return items, nil
 }
 
-const getPerformanceDeviationData = `-- name: GetPerformanceDeviationData :many
+const getPerformanceDeviationNegative = `-- name: GetPerformanceDeviationNegative :many
 WITH SourceAverages AS (
     SELECT p.source_id,
         AVG(
@@ -192,23 +192,25 @@ FROM posts p
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND p.post_type NOT IN ('tag', 'repost', 'quote')
-ORDER BY ABS(
-        (
-            COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
-        ) - (
+    AND (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) < (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+ORDER BY (
+        (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
             sa.avg_engagement * LEAST(
                 1.0,
-                EXTRACT(
-                    EPOCH
-                    FROM (NOW() - p.created_at)
-                ) / 86400.0
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
             )
         )
-    ) DESC
-LIMIT 100
+    ) ASC
+LIMIT 7
 `
 
-type GetPerformanceDeviationDataRow struct {
+type GetPerformanceDeviationNegativeRow struct {
 	ID                 uuid.UUID `json:"id"`
 	NetworkInternalID  string    `json:"network_internal_id"`
 	Content            string    `json:"content"`
@@ -220,15 +222,125 @@ type GetPerformanceDeviationDataRow struct {
 	ExpectedEngagement float64   `json:"expected_engagement"`
 }
 
-func (q *Queries) GetPerformanceDeviationData(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationDataRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationData, userID)
+func (q *Queries) GetPerformanceDeviationNegative(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationNegativeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationNegative, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPerformanceDeviationDataRow
+	var items []GetPerformanceDeviationNegativeRow
 	for rows.Next() {
-		var i GetPerformanceDeviationDataRow
+		var i GetPerformanceDeviationNegativeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Likes,
+			&i.Reposts,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationPositive = `-- name: GetPerformanceDeviationPositive :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(
+            COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
+        ) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                likes,
+                reposts
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.likes, 0)::BIGINT as likes,
+    COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) > (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+ORDER BY (
+        (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) DESC
+LIMIT 7
+`
+
+type GetPerformanceDeviationPositiveRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Likes              int64     `json:"likes"`
+	Reposts            int64     `json:"reposts"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationPositive(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationPositiveRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationPositive, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationPositiveRow
+	for rows.Next() {
+		var i GetPerformanceDeviationPositiveRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.NetworkInternalID,

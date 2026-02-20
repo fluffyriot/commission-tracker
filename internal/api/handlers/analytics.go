@@ -4,7 +4,6 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"sort"
 
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/helpers"
@@ -317,57 +316,75 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetPerformanceDeviationData(c.Request.Context(), user.ID)
+	positiveData, err := h.DB.GetPerformanceDeviationPositive(c.Request.Context(), user.ID)
 	if err != nil {
-		log.Printf("Error getting performance deviation data: %v", err)
+		log.Printf("Error getting performance deviation positive data: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	negativeData, err := h.DB.GetPerformanceDeviationNegative(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting performance deviation negative data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	type DeviationItem struct {
-		database.GetPerformanceDeviationDataRow
-		URL       string  `json:"url"`
-		Deviation float64 `json:"deviation"`
+		ID                 interface{} `json:"id"`
+		NetworkInternalID  string      `json:"network_internal_id"`
+		Content            string      `json:"content"`
+		CreatedAt          interface{} `json:"created_at"`
+		Author             string      `json:"author"`
+		Network            string      `json:"network"`
+		Likes              int64       `json:"likes"`
+		Reposts            int64       `json:"reposts"`
+		ExpectedEngagement float64     `json:"expected_engagement"`
+		URL                string      `json:"url"`
+		Deviation          float64     `json:"deviation"`
 	}
 
 	var positive []DeviationItem
-	var negative []DeviationItem
-
-	for _, item := range data {
-		actual := float64(item.Likes + item.Reposts)
-		deviation := actual - item.ExpectedEngagement
-
+	for _, item := range positiveData {
 		url := ""
 		if item.Network != "" && item.Author != "" {
 			url, _ = helpers.ConvPostToURL(item.Network, item.Author, item.NetworkInternalID)
 		}
-
-		di := DeviationItem{
-			GetPerformanceDeviationDataRow: item,
-			URL:                            url,
-			Deviation:                      deviation,
-		}
-
-		if deviation >= 0 {
-			positive = append(positive, di)
-		} else {
-			negative = append(negative, di)
-		}
+		positive = append(positive, DeviationItem{
+			ID:                 item.ID,
+			NetworkInternalID:  item.NetworkInternalID,
+			Content:            item.Content,
+			CreatedAt:          item.CreatedAt,
+			Author:             item.Author,
+			Network:            item.Network,
+			Likes:              item.Likes,
+			Reposts:            item.Reposts,
+			ExpectedEngagement: item.ExpectedEngagement,
+			URL:                url,
+			Deviation:          float64(item.Likes+item.Reposts) - item.ExpectedEngagement,
+		})
 	}
 
-	sort.Slice(positive, func(i, j int) bool {
-		return positive[i].Deviation > positive[j].Deviation
-	})
-	sort.Slice(negative, func(i, j int) bool {
-		return negative[i].Deviation < negative[j].Deviation
-	})
-
-    if len(positive) > 7 {
-        positive = positive[:7]
-    }
-    if len(negative) > 7 {
-        negative = negative[:7]
-    }
+	var negative []DeviationItem
+	for _, item := range negativeData {
+		url := ""
+		if item.Network != "" && item.Author != "" {
+			url, _ = helpers.ConvPostToURL(item.Network, item.Author, item.NetworkInternalID)
+		}
+		negative = append(negative, DeviationItem{
+			ID:                 item.ID,
+			NetworkInternalID:  item.NetworkInternalID,
+			Content:            item.Content,
+			CreatedAt:          item.CreatedAt,
+			Author:             item.Author,
+			Network:            item.Network,
+			Likes:              item.Likes,
+			Reposts:            item.Reposts,
+			ExpectedEngagement: item.ExpectedEngagement,
+			URL:                url,
+			Deviation:          float64(item.Likes+item.Reposts) - item.ExpectedEngagement,
+		})
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"positive": positive,
