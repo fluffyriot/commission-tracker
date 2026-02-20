@@ -59,7 +59,10 @@
 <script>
     window.rpsyncAppVersion = "{{.app_version}}";
     window.rpsyncUserLastSeenVersion = "{{.user_last_seen_version}}";
+</script>
 
+{{ if not .is_auth_page }}
+<script>
     document.addEventListener('DOMContentLoaded', () => {
         if (window.rpsyncAppVersion && window.rpsyncAppVersion !== "unknown" &&
             window.rpsyncUserLastSeenVersion && window.rpsyncAppVersion !== window.rpsyncUserLastSeenVersion) {
@@ -67,6 +70,7 @@
         }
     });
 </script>
+{{ end }}
 
 <style>
     .spin {
