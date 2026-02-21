@@ -155,6 +155,8 @@ func CreateOrUpdatePost(
 	author string,
 	content string,
 ) (uuid.UUID, error) {
+	content = html.UnescapeString(content)
+
 	post, err := dbQueries.GetPostBySourceAndNetworkId(ctx, database.GetPostBySourceAndNetworkIdParams{
 		NetworkInternalID: networkInternalID,
 		SourceID:          sourceID,

@@ -21,13 +21,48 @@ import (
 )
 
 type VideoObjectLD struct {
-	Type                 string `json:"@type"`
-	Name                 string `json:"name"`
-	Description          string `json:"description"`
-	UploadDate           string `json:"uploadDate"`
+	Type                 string   `json:"@type"`
+	Name                 string   `json:"name"`
+	Description          string   `json:"description"`
+	UploadDate           string   `json:"uploadDate"`
+	Genre                []string `json:"genre"`
+	Keywords             string   `json:"keywords"`
 	InteractionStatistic struct {
 		UserInteractionCount int `json:"userInteractionCount"`
 	} `json:"interactionStatistic"`
+}
+
+func buildHashtags(genres []string, keywords string) string {
+	seen := make(map[string]struct{})
+	var tags []string
+
+	normalize := func(s string) string {
+		s = strings.ToLower(strings.TrimSpace(s))
+		s = strings.ReplaceAll(s, " ", "-")
+		return s
+	}
+
+	add := func(s string) {
+		tag := normalize(s)
+		if tag == "" {
+			return
+		}
+		if _, exists := seen[tag]; !exists {
+			seen[tag] = struct{}{}
+			tags = append(tags, "#"+tag)
+		}
+	}
+
+	for _, g := range genres {
+		add(g)
+	}
+	if keywords != "" {
+		for _, k := range strings.Split(keywords, ",") {
+			add(k)
+		}
+	}
+
+	return strings.Join(tags, " ")
 }
 
 func getBadpupsString(dbQueries *database.Queries, sourceId uuid.UUID) (string, string, error) {
@@ -182,6 +217,12 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cli
 			uploadTime = time.Now()
 		}
 
+		hashtags := buildHashtags(videoLD.Genre, videoLD.Keywords)
+		content := fmt.Sprintf("%s\n\n%s", title, description)
+		if hashtags != "" {
+			content += "\n\n" + hashtags
+		}
+
 		postID, err := common.CreateOrUpdatePost(
 			context.Background(),
 			dbQueries,
@@ -191,7 +232,7 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cli
 			uploadTime,
 			"video",
 			username,
-			fmt.Sprintf("%s\n\n%s", title, description),
+			content,
 		)
 		if err != nil {
 			return
