@@ -7,8 +7,10 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const getWordCloudData = `-- name: GetWordCloudData :many
@@ -118,6 +120,142 @@ func (q *Queries) GetWordCloudData(ctx context.Context, userID uuid.UUID) ([]Get
 	var items []GetWordCloudDataRow
 	for rows.Next() {
 		var i GetWordCloudDataRow
+		if err := rows.Scan(&i.Word, &i.UsageCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWordCloudDataFiltered = `-- name: GetWordCloudDataFiltered :many
+WITH word_stats AS (
+    SELECT regexp_replace(
+            lower(regexp_split_to_table(p.content, '\s+')),
+            '[^a-z0-9]',
+            '',
+            'g'
+        ) as cleaned_word,
+        regexp_split_to_table(p.content, '\s+') as raw_word
+    FROM posts p
+        JOIN sources s ON p.source_id = s.id
+    WHERE s.user_id = $1
+        AND p.content IS NOT NULL
+        AND ($2::date IS NULL OR p.created_at >= $2::date)
+        AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+        AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+)
+SELECT cleaned_word as word,
+    COUNT(*) as usage_count
+FROM word_stats
+WHERE length(cleaned_word) > 3
+    AND raw_word NOT LIKE '#%'
+    AND raw_word NOT LIKE '@%'
+    AND raw_word NOT LIKE 'http%'
+    AND raw_word NOT ILIKE '%http%'
+    AND raw_word NOT ILIKE '%www.%'
+    AND raw_word NOT ILIKE '%.net%'
+    AND raw_word NOT ILIKE '%.org%'
+    AND raw_word NOT ILIKE '%.co.uk%'
+    AND raw_word NOT ILIKE '%.com%'
+    AND raw_word NOT ILIKE '%.me/%'
+    AND cleaned_word NOT ILIKE '%iotpho%'
+    AND cleaned_word NOT IN (
+        'that',
+        'have',
+        'with',
+        'this',
+        'from',
+        'they',
+        'will',
+        'would',
+        'there',
+        'their',
+        'about',
+        'which',
+        'when',
+        'make',
+        'like',
+        'time',
+        'just',
+        'know',
+        'take',
+        'what',
+        'people',
+        'into',
+        'year',
+        'your',
+        'good',
+        'some',
+        'could',
+        'them',
+        'other',
+        'cant',
+        'than',
+        'then',
+        'look',
+        'only',
+        'come',
+        'over',
+        'think',
+        'also',
+        'back',
+        'after',
+        'work',
+        'first',
+        'well',
+        'even',
+        'want',
+        'because',
+        'these',
+        'give',
+        'most',
+        'were',
+        'been',
+        'here',
+        'many',
+        'dont',
+        'does',
+        'more',
+        'less'
+    )
+GROUP BY cleaned_word
+ORDER BY usage_count DESC
+LIMIT 50
+`
+
+type GetWordCloudDataFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetWordCloudDataFilteredRow struct {
+	Word       string `json:"word"`
+	UsageCount int64  `json:"usage_count"`
+}
+
+func (q *Queries) GetWordCloudDataFiltered(ctx context.Context, arg GetWordCloudDataFilteredParams) ([]GetWordCloudDataFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWordCloudDataFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWordCloudDataFilteredRow
+	for rows.Next() {
+		var i GetWordCloudDataFilteredRow
 		if err := rows.Scan(&i.Word, &i.UsageCount); err != nil {
 			return nil, err
 		}
@@ -258,6 +396,166 @@ func (q *Queries) GetWordCloudEngagementData(ctx context.Context, userID uuid.UU
 	var items []GetWordCloudEngagementDataRow
 	for rows.Next() {
 		var i GetWordCloudEngagementDataRow
+		if err := rows.Scan(
+			&i.Word,
+			&i.TotalEngagement,
+			&i.AvgEngagement,
+			&i.UsageCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWordCloudEngagementDataFiltered = `-- name: GetWordCloudEngagementDataFiltered :many
+WITH post_engagement AS (
+    SELECT p.id,
+        p.content,
+        COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0) as engagement
+    FROM posts p
+        JOIN sources s ON p.source_id = s.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                likes,
+                reposts
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    WHERE s.user_id = $1
+        AND p.content IS NOT NULL
+        AND ($2::date IS NULL OR p.created_at >= $2::date)
+        AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+        AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+),
+word_stats AS (
+    SELECT regexp_replace(
+            lower(regexp_split_to_table(pe.content, '\s+')),
+            '[^a-z0-9]',
+            '',
+            'g'
+        ) as cleaned_word,
+        regexp_split_to_table(pe.content, '\s+') as raw_word,
+        pe.engagement
+    FROM post_engagement pe
+)
+SELECT cleaned_word as word,
+    SUM(engagement)::BIGINT as total_engagement,
+    (CAST(SUM(engagement) AS FLOAT) / COUNT(*))::FLOAT as avg_engagement,
+    COUNT(*) as usage_count
+FROM word_stats
+WHERE length(cleaned_word) > 3
+    AND raw_word NOT LIKE '#%'
+    AND raw_word NOT LIKE '@%'
+    AND raw_word NOT LIKE 'http%'
+    AND raw_word NOT ILIKE '%http%'
+    AND raw_word NOT ILIKE '%www.%'
+    AND raw_word NOT ILIKE '%.net%'
+    AND raw_word NOT ILIKE '%.org%'
+    AND raw_word NOT ILIKE '%.co.uk%'
+    AND raw_word NOT ILIKE '%.com%'
+    AND raw_word NOT ILIKE '%.me/%'
+    AND cleaned_word NOT ILIKE '%iotpho%'
+    AND cleaned_word NOT IN (
+        'that',
+        'have',
+        'with',
+        'this',
+        'from',
+        'they',
+        'will',
+        'would',
+        'there',
+        'their',
+        'about',
+        'which',
+        'when',
+        'make',
+        'like',
+        'time',
+        'just',
+        'know',
+        'take',
+        'what',
+        'people',
+        'into',
+        'year',
+        'your',
+        'good',
+        'some',
+        'could',
+        'them',
+        'other',
+        'cant',
+        'than',
+        'then',
+        'look',
+        'only',
+        'come',
+        'over',
+        'think',
+        'also',
+        'back',
+        'after',
+        'work',
+        'first',
+        'well',
+        'even',
+        'want',
+        'because',
+        'these',
+        'give',
+        'most',
+        'were',
+        'been',
+        'here',
+        'many',
+        'dont',
+        'does',
+        'more',
+        'less'
+    )
+GROUP BY cleaned_word
+ORDER BY avg_engagement DESC
+LIMIT 50
+`
+
+type GetWordCloudEngagementDataFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetWordCloudEngagementDataFilteredRow struct {
+	Word            string  `json:"word"`
+	TotalEngagement int64   `json:"total_engagement"`
+	AvgEngagement   float64 `json:"avg_engagement"`
+	UsageCount      int64   `json:"usage_count"`
+}
+
+func (q *Queries) GetWordCloudEngagementDataFiltered(ctx context.Context, arg GetWordCloudEngagementDataFilteredParams) ([]GetWordCloudEngagementDataFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWordCloudEngagementDataFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWordCloudEngagementDataFilteredRow
+	for rows.Next() {
+		var i GetWordCloudEngagementDataFilteredRow
 		if err := rows.Scan(
 			&i.Word,
 			&i.TotalEngagement,

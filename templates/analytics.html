@@ -4,6 +4,58 @@
     <div>
         <h1>Analytics</h1>
     </div>
+    <div class="flex gap-2 items-end">
+        <div class="dropdown" id="analyticsDateDropdown">
+            <button class="btn btn-secondary btn-icon" id="analyticsDateBtn" type="button">
+                <i data-lucide="calendar"></i> <span id="analyticsDateLabel">Dates</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown date-filter-dropdown p-3" id="analyticsDateMenu">
+                <div class="mb-4">
+                    <label class="form-label-bold mb-2">Suggested</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="today">Today</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="yesterday">Yesterday</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="thisWeek">This Week</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="thisMonth">This Month</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="thisYear">This Year</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="last7">Last 7 Days</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="last30">Last 30 Days</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="last365">Last 365 Days</button>
+                    </div>
+                </div>
+                <div class="mb-2 border-t pt-2">
+                    <label class="form-label-bold mb-2">Custom</label>
+                </div>
+                <div class="form-group mb-sm">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" id="analyticsStartDate" class="form-input dropdown-input" />
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label">End Date</label>
+                    <input type="date" id="analyticsEndDate" class="form-input dropdown-input" />
+                </div>
+                <div class="flex justify-between">
+                    <button class="btn btn-sm btn-ghost" id="analyticsClearDates">Clear</button>
+                    <button class="btn btn-sm btn-primary" id="analyticsApplyDates">Apply</button>
+                </div>
+            </div>
+        </div>
+        <div class="dropdown" id="analyticsPostTypesDropdown">
+            <button class="btn btn-secondary btn-icon" id="analyticsPostTypesBtn" type="button">
+                <i data-lucide="layers"></i> <span id="analyticsPostTypesLabel">Post Types</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown p-3" id="analyticsPostTypesMenu" style="min-width: 180px">
+                <div class="flex justify-between mb-2">
+                    <button class="btn btn-sm btn-ghost" id="analyticsPostTypesSelectAll">All</button>
+                    <button class="btn btn-sm btn-ghost" id="analyticsPostTypesClear">None</button>
+                </div>
+                <div id="analyticsPostTypesOptions"></div>
+                <div class="flex justify-end mt-3">
+                    <button class="btn btn-sm btn-primary" id="analyticsApplyPostTypes">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="tabs mb-6">

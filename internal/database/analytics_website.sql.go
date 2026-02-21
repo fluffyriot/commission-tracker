@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -70,6 +71,59 @@ func (q *Queries) GetSiteStatsOverTime(ctx context.Context, userID uuid.UUID) ([
 	return items, nil
 }
 
+const getSiteStatsOverTimeFiltered = `-- name: GetSiteStatsOverTimeFiltered :many
+SELECT date_str, total_visitors, avg_session_duration
+FROM (
+        SELECT TO_CHAR(DATE_TRUNC('week', date), 'IYYY-"W"IW') as date_str,
+            COALESCE(SUM(visitors), 0)::BIGINT as total_visitors,
+            COALESCE(AVG(avg_session_duration), 0)::FLOAT as avg_session_duration
+        FROM analytics_site_stats ass
+            JOIN sources s ON ass.source_id = s.id
+        WHERE s.user_id = $1
+            AND ($2::date IS NULL OR ass.date >= $2::date)
+            AND ($3::date IS NULL OR ass.date <= $3::date)
+        GROUP BY DATE_TRUNC('week', date)
+        ORDER BY DATE_TRUNC('week', date) DESC
+        LIMIT 52
+    ) recent_weeks
+ORDER BY date_str ASC
+`
+
+type GetSiteStatsOverTimeFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+}
+
+type GetSiteStatsOverTimeFilteredRow struct {
+	DateStr            string  `json:"date_str"`
+	TotalVisitors      int64   `json:"total_visitors"`
+	AvgSessionDuration float64 `json:"avg_session_duration"`
+}
+
+func (q *Queries) GetSiteStatsOverTimeFiltered(ctx context.Context, arg GetSiteStatsOverTimeFilteredParams) ([]GetSiteStatsOverTimeFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSiteStatsOverTimeFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSiteStatsOverTimeFilteredRow
+	for rows.Next() {
+		var i GetSiteStatsOverTimeFilteredRow
+		if err := rows.Scan(&i.DateStr, &i.TotalVisitors, &i.AvgSessionDuration); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTopPagesByViews = `-- name: GetTopPagesByViews :many
 SELECT url_path,
     COALESCE(SUM(views), 0)::BIGINT as total_views
@@ -95,6 +149,53 @@ func (q *Queries) GetTopPagesByViews(ctx context.Context, userID uuid.UUID) ([]G
 	var items []GetTopPagesByViewsRow
 	for rows.Next() {
 		var i GetTopPagesByViewsRow
+		if err := rows.Scan(&i.UrlPath, &i.TotalViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTopPagesByViewsFiltered = `-- name: GetTopPagesByViewsFiltered :many
+SELECT url_path,
+    COALESCE(SUM(views), 0)::BIGINT as total_views
+FROM analytics_page_stats aps
+    JOIN sources s ON aps.source_id = s.id
+WHERE s.user_id = $1
+    AND ($2::date IS NULL OR aps.date >= $2::date)
+    AND ($3::date IS NULL OR aps.date <= $3::date)
+GROUP BY url_path
+ORDER BY total_views DESC
+LIMIT 50
+`
+
+type GetTopPagesByViewsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+}
+
+type GetTopPagesByViewsFilteredRow struct {
+	UrlPath    string `json:"url_path"`
+	TotalViews int64  `json:"total_views"`
+}
+
+func (q *Queries) GetTopPagesByViewsFiltered(ctx context.Context, arg GetTopPagesByViewsFilteredParams) ([]GetTopPagesByViewsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTopPagesByViewsFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTopPagesByViewsFilteredRow
+	for rows.Next() {
+		var i GetTopPagesByViewsFilteredRow
 		if err := rows.Scan(&i.UrlPath, &i.TotalViews); err != nil {
 			return nil, err
 		}

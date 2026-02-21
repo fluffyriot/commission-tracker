@@ -7,9 +7,11 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const getCollaborationsData = `-- name: GetCollaborationsData :many
@@ -53,6 +55,69 @@ func (q *Queries) GetCollaborationsData(ctx context.Context, userID uuid.UUID) (
 	var items []GetCollaborationsDataRow
 	for rows.Next() {
 		var i GetCollaborationsDataRow
+		if err := rows.Scan(&i.Collaborator, &i.CollaborationCount, &i.AvgLikes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCollaborationsDataFiltered = `-- name: GetCollaborationsDataFiltered :many
+SELECT collaborator,
+    COUNT(*) as collaboration_count,
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
+FROM (
+        SELECT p.author as collaborator,
+            COALESCE(prh.likes, 0) as likes
+        FROM posts p
+            JOIN sources s ON p.source_id = s.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (post_id) post_id,
+                    likes
+                FROM posts_reactions_history
+                ORDER BY post_id,
+                    synced_at DESC
+            ) prh ON p.id = prh.post_id
+        WHERE s.user_id = $1
+            AND p.post_type IN ('repost', 'tag')
+            AND p.author IS NOT NULL
+            AND p.author != ''
+            AND ($2::date IS NULL OR p.created_at >= $2::date)
+            AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    ) combined_collaborations
+GROUP BY collaborator
+ORDER BY avg_likes DESC
+LIMIT 50
+`
+
+type GetCollaborationsDataFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+}
+
+type GetCollaborationsDataFilteredRow struct {
+	Collaborator       string `json:"collaborator"`
+	CollaborationCount int64  `json:"collaboration_count"`
+	AvgLikes           int64  `json:"avg_likes"`
+}
+
+func (q *Queries) GetCollaborationsDataFiltered(ctx context.Context, arg GetCollaborationsDataFilteredParams) ([]GetCollaborationsDataFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCollaborationsDataFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCollaborationsDataFilteredRow
+	for rows.Next() {
+		var i GetCollaborationsDataFilteredRow
 		if err := rows.Scan(&i.Collaborator, &i.CollaborationCount, &i.AvgLikes); err != nil {
 			return nil, err
 		}
@@ -116,6 +181,92 @@ func (q *Queries) GetEngagementRateData(ctx context.Context, userID uuid.UUID) (
 	var items []GetEngagementRateDataRow
 	for rows.Next() {
 		var i GetEngagementRateDataRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.CreatedAt,
+			&i.Network,
+			&i.Likes,
+			&i.Reposts,
+			&i.FollowersCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEngagementRateDataFiltered = `-- name: GetEngagementRateDataFiltered :many
+SELECT p.id,
+    p.network_internal_id,
+    p.created_at,
+    s.network,
+    COALESCE(prh.likes, 0)::BIGINT as likes,
+    COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(ss.followers_count, 0)::BIGINT as followers_count
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+    LEFT JOIN LATERAL (
+        SELECT followers_count
+        FROM sources_stats
+        WHERE source_id = s.id
+            AND date <= p.created_at
+        ORDER BY date DESC
+        LIMIT 1
+    ) ss ON true
+WHERE s.user_id = $1
+    AND ss.followers_count > 0
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+`
+
+type GetEngagementRateDataFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetEngagementRateDataFilteredRow struct {
+	ID                uuid.UUID `json:"id"`
+	NetworkInternalID string    `json:"network_internal_id"`
+	CreatedAt         time.Time `json:"created_at"`
+	Network           string    `json:"network"`
+	Likes             int64     `json:"likes"`
+	Reposts           int64     `json:"reposts"`
+	FollowersCount    int64     `json:"followers_count"`
+}
+
+func (q *Queries) GetEngagementRateDataFiltered(ctx context.Context, arg GetEngagementRateDataFilteredParams) ([]GetEngagementRateDataFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEngagementRateDataFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEngagementRateDataFilteredRow
+	for rows.Next() {
+		var i GetEngagementRateDataFilteredRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.NetworkInternalID,
@@ -239,6 +390,68 @@ func (q *Queries) GetGlobalPostTypeAnalytics(ctx context.Context, userID uuid.UU
 	return items, nil
 }
 
+const getGlobalPostTypeAnalyticsFiltered = `-- name: GetGlobalPostTypeAnalyticsFiltered :many
+SELECT post_type,
+    count(*) as post_count,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+GROUP BY post_type
+ORDER BY avg_likes DESC
+`
+
+type GetGlobalPostTypeAnalyticsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetGlobalPostTypeAnalyticsFilteredRow struct {
+	PostType  string `json:"post_type"`
+	PostCount int64  `json:"post_count"`
+	AvgLikes  int64  `json:"avg_likes"`
+}
+
+func (q *Queries) GetGlobalPostTypeAnalyticsFiltered(ctx context.Context, arg GetGlobalPostTypeAnalyticsFilteredParams) ([]GetGlobalPostTypeAnalyticsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGlobalPostTypeAnalyticsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGlobalPostTypeAnalyticsFilteredRow
+	for rows.Next() {
+		var i GetGlobalPostTypeAnalyticsFilteredRow
+		if err := rows.Scan(&i.PostType, &i.PostCount, &i.AvgLikes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getMentionsAnalytics = `-- name: GetMentionsAnalytics :many
 SELECT regexp_replace(
         substring(
@@ -312,6 +525,94 @@ func (q *Queries) GetMentionsAnalytics(ctx context.Context, userID uuid.UUID) ([
 	return items, nil
 }
 
+const getMentionsAnalyticsFiltered = `-- name: GetMentionsAnalyticsFiltered :many
+SELECT regexp_replace(
+        substring(
+            word
+            from 2
+        ),
+        '[^a-z0-9_.]',
+        '',
+        'g'
+    ) as mention,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+FROM (
+        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+            AND ($2::date IS NULL OR posts.created_at >= $2::date)
+            AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
+            AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+WHERE word LIKE '@%'
+GROUP BY mention
+HAVING length(
+        regexp_replace(
+            substring(
+                word
+                from 2
+            ),
+            '[^a-z0-9_.]',
+            '',
+            'g'
+        )
+    ) > 1
+ORDER BY avg_likes DESC
+LIMIT 20
+`
+
+type GetMentionsAnalyticsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetMentionsAnalyticsFilteredRow struct {
+	Mention    string `json:"mention"`
+	UsageCount int64  `json:"usage_count"`
+	AvgLikes   int64  `json:"avg_likes"`
+}
+
+func (q *Queries) GetMentionsAnalyticsFiltered(ctx context.Context, arg GetMentionsAnalyticsFilteredParams) ([]GetMentionsAnalyticsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMentionsAnalyticsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMentionsAnalyticsFilteredRow
+	for rows.Next() {
+		var i GetMentionsAnalyticsFilteredRow
+		if err := rows.Scan(&i.Mention, &i.UsageCount, &i.AvgLikes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNetworkEfficiency = `-- name: GetNetworkEfficiency :many
 SELECT s.network,
     count(*) as post_count,
@@ -348,6 +649,76 @@ func (q *Queries) GetNetworkEfficiency(ctx context.Context, userID uuid.UUID) ([
 	var items []GetNetworkEfficiencyRow
 	for rows.Next() {
 		var i GetNetworkEfficiencyRow
+		if err := rows.Scan(
+			&i.Network,
+			&i.PostCount,
+			&i.AvgLikes,
+			&i.AvgReposts,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getNetworkEfficiencyFiltered = `-- name: GetNetworkEfficiencyFiltered :many
+SELECT s.network,
+    count(*) as post_count,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+GROUP BY s.network
+ORDER BY avg_likes DESC
+`
+
+type GetNetworkEfficiencyFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetNetworkEfficiencyFilteredRow struct {
+	Network    string `json:"network"`
+	PostCount  int64  `json:"post_count"`
+	AvgLikes   int64  `json:"avg_likes"`
+	AvgReposts int64  `json:"avg_reposts"`
+}
+
+func (q *Queries) GetNetworkEfficiencyFiltered(ctx context.Context, arg GetNetworkEfficiencyFilteredParams) ([]GetNetworkEfficiencyFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getNetworkEfficiencyFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetNetworkEfficiencyFilteredRow
+	for rows.Next() {
+		var i GetNetworkEfficiencyFilteredRow
 		if err := rows.Scan(
 			&i.Network,
 			&i.PostCount,

@@ -14,6 +14,32 @@ document.addEventListener("DOMContentLoaded", function () {
     Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 
     const loadedTabs = new Set();
+    const chartInstances = {};
+    const filterState = { startDate: '', endDate: '', postTypes: null }; // postTypes null = no filter
+
+    function buildFilterParams() {
+        const params = new URLSearchParams();
+        if (filterState.startDate) params.set('start_date', filterState.startDate);
+        if (filterState.endDate) params.set('end_date', filterState.endDate);
+        if (filterState.postTypes !== null && filterState.postTypes.length > 0) {
+            params.set('post_types', filterState.postTypes.join(','));
+        }
+        return params;
+    }
+
+    function getFilteredUrl(base) {
+        const params = buildFilterParams();
+        const qs = params.toString();
+        return qs ? `${base}?${qs}` : base;
+    }
+
+    function applyGlobalFilters() {
+        Object.values(chartInstances).forEach(c => c.destroy());
+        Object.keys(chartInstances).forEach(k => delete chartInstances[k]);
+        loadedTabs.clear();
+        const activeTabBtn = document.querySelector('.tab-btn.active');
+        if (activeTabBtn) loadTab(activeTabBtn.dataset.tab);
+    }
 
     function loadTab(tabName) {
         if (loadedTabs.has(tabName) && tabName !== 'wordcloud') return;
@@ -85,8 +111,12 @@ document.addEventListener("DOMContentLoaded", function () {
     setActiveTab(activeTab);
 
     function createChart(ctxId, type, data, options = {}) {
+        if (chartInstances[ctxId]) {
+            chartInstances[ctxId].destroy();
+            delete chartInstances[ctxId];
+        }
         const ctx = document.getElementById(ctxId).getContext('2d');
-        return new Chart(ctx, {
+        const chart = new Chart(ctx, {
             type: type,
             data: data,
             options: {
@@ -95,17 +125,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 ...options
             }
         });
+        chartInstances[ctxId] = chart;
+        return chart;
     }
 
     function loadWordCloud() {
-        fetch('/analytics/data/wordcloud')
+        fetch(getFilteredUrl('/analytics/data/wordcloud'))
             .then(res => res.json())
             .then(data => {
                 renderWordCloud(data, 'wordCloudCanvas', 'word-cloud-container', 'usage_count');
             })
             .catch(err => console.error(err));
 
-        fetch('/analytics/data/wordcloud/engagement')
+        fetch(getFilteredUrl('/analytics/data/wordcloud/engagement'))
             .then(res => res.json())
             .then(data => {
                 renderWordCloud(data, 'wordCloudEngagementCanvas', 'word-cloud-engagement-container', 'avg_engagement');
@@ -198,7 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadHashtags() {
-        fetch('/analytics/data/hashtags')
+        fetch(getFilteredUrl('/analytics/data/hashtags'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -233,7 +265,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadMentions() {
-        fetch('/analytics/data/mentions')
+        fetch(getFilteredUrl('/analytics/data/mentions'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -272,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadPostTypes() {
-        fetch('/analytics/data/types')
+        fetch(getFilteredUrl('/analytics/data/types'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -305,7 +337,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadNetworkEfficiency() {
-        fetch('/analytics/data/networks')
+        fetch(getFilteredUrl('/analytics/data/networks'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -345,7 +377,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadTiming() {
-        fetch('/analytics/data/time')
+        fetch(getFilteredUrl('/analytics/data/time'))
             .then(res => res.json())
             .then(data => {
                 if (!data) return;
@@ -449,7 +481,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadPostingConsistency() {
-        fetch('/analytics/data/consistency')
+        fetch(getFilteredUrl('/analytics/data/consistency'))
             .then(res => res.json())
             .then(data => {
                 renderCalendarHeatmap(data || []);
@@ -561,8 +593,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function loadWebsiteStats() {
         Promise.all([
-            fetch('/analytics/data/site').then(r => r.json()),
-            fetch('/analytics/data/pages').then(r => r.json())
+            fetch(getFilteredUrl('/analytics/data/site')).then(r => r.json()),
+            fetch(getFilteredUrl('/analytics/data/pages')).then(r => r.json())
         ]).then(([siteData, pagesData]) => {
             if (siteData) {
                 createChart('siteStatsChart', 'line', {
@@ -621,7 +653,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     function loadEngagementRate() {
-        fetch('/analytics/data/engagement-rate')
+        fetch(getFilteredUrl('/analytics/data/engagement-rate'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -728,7 +760,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadCollaborations() {
-        fetch('/analytics/data/collaborations')
+        fetch(getFilteredUrl('/analytics/data/collaborations'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -767,7 +799,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadPerformanceDeviation() {
-        fetch('/analytics/data/performance-deviation')
+        fetch(getFilteredUrl('/analytics/data/performance-deviation'))
             .then(res => res.json())
             .then(data => {
                 if (!data) return;
@@ -839,7 +871,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadEngagementVelocity() {
-        fetch('/analytics/data/velocity')
+        fetch(getFilteredUrl('/analytics/data/velocity'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -965,4 +997,148 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             });
     }
+
+    // ── Filter UI ──────────────────────────────────────────────────────────
+
+    const ALL_POST_TYPES = ['post', 'image', 'video', 'thread', 'album', 'quote', 'repost', 'tag'];
+
+    function formatDateLabel(d) {
+        if (!d) return '';
+        const [y, m, day] = d.split('-');
+        return `${day}/${m}/${y}`;
+    }
+
+    function updateDateBtnLabel() {
+        const label = document.getElementById('analyticsDateLabel');
+        if (!label) return;
+        const { startDate, endDate } = filterState;
+        if (startDate && endDate) label.textContent = `${formatDateLabel(startDate)} – ${formatDateLabel(endDate)}`;
+        else if (startDate) label.textContent = `From ${formatDateLabel(startDate)}`;
+        else if (endDate) label.textContent = `To ${formatDateLabel(endDate)}`;
+        else label.textContent = 'Dates';
+        const btn = document.getElementById('analyticsDateBtn');
+        if (btn) btn.classList.toggle('btn-active', !!(startDate || endDate));
+    }
+
+    function updatePostTypesBtnLabel() {
+        const label = document.getElementById('analyticsPostTypesLabel');
+        if (!label) return;
+        const { postTypes } = filterState;
+        if (postTypes === null || postTypes.length === ALL_POST_TYPES.length) label.textContent = 'Post Types';
+        else if (postTypes.length === 0) label.textContent = 'Post Types (none)';
+        else label.textContent = `Types: ${postTypes.join(', ')}`;
+        const btn = document.getElementById('analyticsPostTypesBtn');
+        if (btn) btn.classList.toggle('btn-active', postTypes !== null && postTypes.length !== ALL_POST_TYPES.length);
+    }
+
+    function getDateRange(range) {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const today = fmt(now);
+        switch (range) {
+            case 'today': return { start: today, end: today };
+            case 'yesterday': {
+                const y = new Date(now); y.setDate(y.getDate() - 1);
+                const yd = fmt(y); return { start: yd, end: yd };
+            }
+            case 'thisWeek': {
+                const d = new Date(now); d.setDate(d.getDate() - d.getDay());
+                return { start: fmt(d), end: today };
+            }
+            case 'thisMonth': return { start: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`, end: today };
+            case 'thisYear': return { start: `${now.getFullYear()}-01-01`, end: today };
+            case 'last7': { const d = new Date(now); d.setDate(d.getDate() - 6); return { start: fmt(d), end: today }; }
+            case 'last30': { const d = new Date(now); d.setDate(d.getDate() - 29); return { start: fmt(d), end: today }; }
+            case 'last365': { const d = new Date(now); d.setDate(d.getDate() - 364); return { start: fmt(d), end: today }; }
+            default: return { start: '', end: '' };
+        }
+    }
+
+    // Populate post type checkboxes
+    const ptContainer = document.getElementById('analyticsPostTypesOptions');
+    if (ptContainer) {
+        ALL_POST_TYPES.forEach(pt => {
+            const label = document.createElement('label');
+            label.className = 'flex items-center gap-2 py-1 cursor-pointer';
+            label.innerHTML = `<input type="checkbox" class="analytics-pt-check" value="${pt}" checked> ${pt}`;
+            ptContainer.appendChild(label);
+        });
+    }
+
+    // Date dropdown toggle
+    const dateBtn = document.getElementById('analyticsDateBtn');
+    const dateMenu = document.getElementById('analyticsDateMenu');
+    const ptBtn = document.getElementById('analyticsPostTypesBtn');
+    const ptMenu = document.getElementById('analyticsPostTypesMenu');
+
+    function closeAllFilterDropdowns() {
+        dateMenu && dateMenu.classList.remove('show');
+        ptMenu && ptMenu.classList.remove('show');
+    }
+
+    dateBtn && dateBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        ptMenu && ptMenu.classList.remove('show');
+        dateMenu && dateMenu.classList.toggle('show');
+    });
+
+    ptBtn && ptBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        dateMenu && dateMenu.classList.remove('show');
+        ptMenu && ptMenu.classList.toggle('show');
+    });
+
+    dateMenu && dateMenu.addEventListener('click', e => e.stopPropagation());
+    ptMenu && ptMenu.addEventListener('click', e => e.stopPropagation());
+
+    document.addEventListener('click', closeAllFilterDropdowns);
+
+    // Date suggestions
+    document.querySelectorAll('.analytics-date-suggestion').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const { start, end } = getDateRange(btn.dataset.range);
+            document.getElementById('analyticsStartDate').value = start;
+            document.getElementById('analyticsEndDate').value = end;
+        });
+    });
+
+    // Apply dates
+    document.getElementById('analyticsApplyDates') && document.getElementById('analyticsApplyDates').addEventListener('click', () => {
+        filterState.startDate = document.getElementById('analyticsStartDate').value;
+        filterState.endDate = document.getElementById('analyticsEndDate').value;
+        closeAllFilterDropdowns();
+        updateDateBtnLabel();
+        applyGlobalFilters();
+    });
+
+    // Clear dates
+    document.getElementById('analyticsClearDates') && document.getElementById('analyticsClearDates').addEventListener('click', () => {
+        document.getElementById('analyticsStartDate').value = '';
+        document.getElementById('analyticsEndDate').value = '';
+        filterState.startDate = '';
+        filterState.endDate = '';
+        closeAllFilterDropdowns();
+        updateDateBtnLabel();
+        applyGlobalFilters();
+    });
+
+    // Post types select all / none
+    document.getElementById('analyticsPostTypesSelectAll') && document.getElementById('analyticsPostTypesSelectAll').addEventListener('click', () => {
+        document.querySelectorAll('.analytics-pt-check').forEach(cb => cb.checked = true);
+    });
+
+    document.getElementById('analyticsPostTypesClear') && document.getElementById('analyticsPostTypesClear').addEventListener('click', () => {
+        document.querySelectorAll('.analytics-pt-check').forEach(cb => cb.checked = false);
+    });
+
+    // Apply post types
+    document.getElementById('analyticsApplyPostTypes') && document.getElementById('analyticsApplyPostTypes').addEventListener('click', () => {
+        const checked = [...document.querySelectorAll('.analytics-pt-check:checked')].map(cb => cb.value);
+        // null = no filter (all selected), otherwise set the list
+        filterState.postTypes = (checked.length === ALL_POST_TYPES.length) ? null : checked;
+        closeAllFilterDropdowns();
+        updatePostTypesBtnLabel();
+        applyGlobalFilters();
+    });
 });
