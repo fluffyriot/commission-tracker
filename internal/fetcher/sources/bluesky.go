@@ -99,13 +99,13 @@ func fetchBlueskyProfile(username string, c *common.Client) (*bskyProfile, error
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to get profile: %v %v", resp.StatusCode, resp.Status)
-	}
-
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to get profile: %v %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 	}
 
 	var profile bskyProfile
@@ -148,14 +148,14 @@ func FetchBlueskyPosts(dbQueries *database.Queries, c *common.Client, uid uuid.U
 			return err
 		}
 
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("Failed to get a successfull response. %v: %v", resp.StatusCode, resp.Status)
-		}
-
 		data, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			return err
+		}
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("Failed to get a successfull response. %v: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 
 		var feed bskyFeed
