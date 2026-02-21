@@ -167,6 +167,10 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 		}
 
 		if resp.StatusCode != 200 {
+			if strings.Contains(string(data), "converted to a business account") {
+				log.Printf("Instagram: ignoring pre-business-account conversion error for source %s (Instagram API limitation)", sourceId)
+				break
+			}
 			return fmt.Errorf("Failed to get a successfull response. Code: %v. Status: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 
