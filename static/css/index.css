@@ -1758,9 +1758,6 @@ tr.shown .details-control:before {
   left: auto;
   padding: 1rem;
   box-sizing: border-box;
-}
-
-#dateFilterDropdown .filter-dropdown {
   max-height: none;
   overflow-y: visible;
 }

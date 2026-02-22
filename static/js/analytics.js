@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
                 createChart('postTypesChart', 'doughnut', {
-                    labels: data.map(d => d.post_type),
+                    labels: data.map(d => ' ' + d.post_type),
                     datasets: [{
                         data: data.map(d => d.avg_likes),
                         backgroundColor: colors.highContrast
@@ -1002,33 +1002,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const ALL_POST_TYPES = ['post', 'image', 'video', 'thread', 'album', 'quote', 'repost', 'tag'];
 
-    function formatDateLabel(d) {
-        if (!d) return '';
-        const [y, m, day] = d.split('-');
-        return `${day}/${m}/${y}`;
-    }
-
-    function updateDateBtnLabel() {
-        const label = document.getElementById('analyticsDateLabel');
-        if (!label) return;
-        const { startDate, endDate } = filterState;
-        if (startDate && endDate) label.textContent = `${formatDateLabel(startDate)} – ${formatDateLabel(endDate)}`;
-        else if (startDate) label.textContent = `From ${formatDateLabel(startDate)}`;
-        else if (endDate) label.textContent = `To ${formatDateLabel(endDate)}`;
-        else label.textContent = 'Dates';
+    function updateDateBtnState() {
         const btn = document.getElementById('analyticsDateBtn');
-        if (btn) btn.classList.toggle('btn-active', !!(startDate || endDate));
+        if (!btn) return;
+        const active = !!(filterState.startDate || filterState.endDate);
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
     }
 
-    function updatePostTypesBtnLabel() {
-        const label = document.getElementById('analyticsPostTypesLabel');
-        if (!label) return;
-        const { postTypes } = filterState;
-        if (postTypes === null || postTypes.length === ALL_POST_TYPES.length) label.textContent = 'Post Types';
-        else if (postTypes.length === 0) label.textContent = 'Post Types (none)';
-        else label.textContent = `Types: ${postTypes.join(', ')}`;
+    function updatePostTypesBtnState() {
         const btn = document.getElementById('analyticsPostTypesBtn');
-        if (btn) btn.classList.toggle('btn-active', postTypes !== null && postTypes.length !== ALL_POST_TYPES.length);
+        if (!btn) return;
+        const active = filterState.postTypes !== null && filterState.postTypes.length !== ALL_POST_TYPES.length;
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
     }
 
     function getDateRange(range) {
@@ -1108,7 +1095,7 @@ document.addEventListener("DOMContentLoaded", function () {
         filterState.startDate = document.getElementById('analyticsStartDate').value;
         filterState.endDate = document.getElementById('analyticsEndDate').value;
         closeAllFilterDropdowns();
-        updateDateBtnLabel();
+        updateDateBtnState();
         applyGlobalFilters();
     });
 
@@ -1119,7 +1106,7 @@ document.addEventListener("DOMContentLoaded", function () {
         filterState.startDate = '';
         filterState.endDate = '';
         closeAllFilterDropdowns();
-        updateDateBtnLabel();
+        updateDateBtnState();
         applyGlobalFilters();
     });
 
@@ -1138,7 +1125,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // null = no filter (all selected), otherwise set the list
         filterState.postTypes = (checked.length === ALL_POST_TYPES.length) ? null : checked;
         closeAllFilterDropdowns();
-        updatePostTypesBtnLabel();
+        updatePostTypesBtnState();
         applyGlobalFilters();
     });
 });
