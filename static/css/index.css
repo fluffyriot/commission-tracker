@@ -1549,6 +1549,10 @@ table.dataTable tbody tr:hover {
   height: 0 !important;
 }
 
+.dt-scroll-body tfoot {
+  display: none !important;
+}
+
 .dt-scroll-body thead th,
 .dt-scroll-body thead td {
   padding-top: 0 !important;
