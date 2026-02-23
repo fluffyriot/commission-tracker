@@ -110,12 +110,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setActiveTab(activeTab);
 
+    function showEmptyState(containerEl) {
+        containerEl.querySelectorAll('canvas').forEach(c => { c.style.display = 'none'; });
+        if (containerEl.querySelector('.chart-empty-state')) return;
+        const div = document.createElement('div');
+        div.className = 'chart-empty-state';
+        const icon = document.createElement('i');
+        icon.dataset.lucide = 'bar-chart-2';
+        div.appendChild(icon);
+        const span = document.createElement('span');
+        span.textContent = 'Not enough data';
+        div.appendChild(span);
+        containerEl.appendChild(div);
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function hideEmptyState(containerEl) {
+        containerEl.querySelectorAll('canvas').forEach(c => { c.style.display = ''; });
+        containerEl.querySelectorAll('.chart-empty-state').forEach(el => el.remove());
+    }
+
+    function emptyChartState(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        showEmptyState(canvas.closest('.chart-container') || canvas.parentElement);
+    }
+
     function createChart(ctxId, type, data, options = {}) {
         if (chartInstances[ctxId]) {
             chartInstances[ctxId].destroy();
             delete chartInstances[ctxId];
         }
-        const ctx = document.getElementById(ctxId).getContext('2d');
+        const canvasEl = document.getElementById(ctxId);
+        hideEmptyState(canvasEl.closest('.chart-container') || canvasEl.parentElement);
+        const ctx = canvasEl.getContext('2d');
         const chart = new Chart(ctx, {
             type: type,
             data: data,
@@ -146,9 +174,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function renderWordCloud(data, canvasId, containerId, valueKey) {
-        if (!data || !Array.isArray(data) || data.length === 0) return;
-        const canvas = document.getElementById(canvasId);
         const container = document.getElementById(containerId);
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            if (container) showEmptyState(container);
+            return;
+        }
+        const canvas = document.getElementById(canvasId);
 
         if (!container || container.clientWidth === 0) return;
 
@@ -233,7 +264,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(getFilteredUrl('/analytics/data/hashtags'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('hashtagsChart'); return; }
                 createChart('hashtagsChart', 'bar', {
                     labels: data.map(d => d.tag),
                     datasets: [{
@@ -268,7 +299,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(getFilteredUrl('/analytics/data/mentions'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('mentionsChart'); return; }
                 createChart('mentionsChart', 'bar', {
                     labels: data.map(d => d.mention),
                     datasets: [{
@@ -307,7 +338,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(getFilteredUrl('/analytics/data/types'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('postTypesChart'); return; }
                 createChart('postTypesChart', 'doughnut', {
                     labels: data.map(d => ' ' + d.post_type),
                     datasets: [{
@@ -340,7 +371,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(getFilteredUrl('/analytics/data/networks'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('networkEfficiencyChart'); return; }
                 createChart('networkEfficiencyChart', 'bar', {
                     labels: data.map(d => d.network),
                     datasets: [{
@@ -412,6 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderHeatmap(data) {
         const container = document.getElementById('heatmap-container');
         container.replaceChildren();
+        if (!data || data.length === 0) { showEmptyState(container); return; }
 
         const mainContainer = document.createElement('div');
         mainContainer.className = 'calendar-heatmap-container';
@@ -499,6 +531,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderCalendarHeatmap(data) {
         const container = document.getElementById('calendar-heatmap-container');
         container.replaceChildren();
+        if (!data || data.length === 0) { showEmptyState(container); return; }
 
         const weeklyData = Array.from({ length: 53 }, () => Array(7).fill(0));
 
@@ -596,7 +629,9 @@ document.addEventListener("DOMContentLoaded", function () {
             fetch(getFilteredUrl('/analytics/data/site')).then(r => r.json()),
             fetch(getFilteredUrl('/analytics/data/pages')).then(r => r.json())
         ]).then(([siteData, pagesData]) => {
-            if (siteData) {
+            if (!siteData || !Array.isArray(siteData) || siteData.length === 0) {
+                emptyChartState('siteStatsChart');
+            } else {
                 createChart('siteStatsChart', 'line', {
                     labels: siteData.map(d => d.date_str),
                     datasets: [{
@@ -628,7 +663,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
             }
-            if (pagesData) {
+            if (!pagesData || !Array.isArray(pagesData) || pagesData.length === 0) {
+                emptyChartState('topPagesChart');
+            } else {
                 createChart('topPagesChart', 'bar', {
                     labels: pagesData.slice(0, 15).map(d => d.url_path),
                     datasets: [{
@@ -677,6 +714,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     };
                 }).filter(d => d !== null);
 
+                if (aggregatedData.length === 0) { emptyChartState('engagementRateChart'); return; }
                 createChart('engagementRateChart', 'bubble', {
                     datasets: [{
                         label: 'Avg Engagement Rate',
@@ -718,7 +756,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/follow-ratio')
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('followRatioChart'); return; }
 
                 const labels = data.map(d => d.network);
                 const ratios = data.map(d => d.following_count > 0 ? d.followers_count / d.following_count : 0);
@@ -763,7 +801,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(getFilteredUrl('/analytics/data/collaborations'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('collaborationsChart'); return; }
                 createChart('collaborationsChart', 'bar', {
                     labels: data.map(d => d.collaborator),
                     datasets: [{
@@ -808,7 +846,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     const tbody = document.querySelector(`#${tableId} tbody`);
                     tbody.replaceChildren();
 
-                    if (!items) return;
+                    if (!items || items.length === 0) {
+                        const tr = document.createElement('tr');
+                        const td = document.createElement('td');
+                        td.colSpan = 5;
+                        td.className = 'p-6 text-center text-muted opacity-50';
+                        td.textContent = 'Not enough data';
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                        return;
+                    }
 
                     items.forEach(d => {
                         const row = document.createElement('tr');
@@ -874,7 +921,21 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(getFilteredUrl('/analytics/data/velocity'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    emptyChartState('velocityChart');
+                    const tbody = document.querySelector('#velocityTable tbody');
+                    if (tbody) {
+                        tbody.replaceChildren();
+                        const tr = document.createElement('tr');
+                        const td = document.createElement('td');
+                        td.colSpan = 5;
+                        td.className = 'p-6 text-center text-muted opacity-50';
+                        td.textContent = 'Not enough data';
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                    }
+                    return;
+                }
                 const posts = {};
                 const postDetails = {};
 
