@@ -343,6 +343,22 @@ Run these commands inside the container or via `docker exec`:
 
 ---
 
+## Legal Disclaimer
+
+### Trademark Notice
+All platform names, logos, and brands referenced in this project — including but not limited to Instagram, Meta, TikTok, YouTube, Google, Discord, Bluesky, Mastodon, Telegram, FurAffinity, e621, Murrtube, FurTrack, BadPups, and NocoDB — are trademarks or registered trademarks of their respective owners. RPSync is **not affiliated with, endorsed by, sponsored by, or in any way officially connected to** any of these platforms or their parent companies.
+
+### Terms of Service
+Certain features of this software (including web scraping) **may violate the Terms of Service of some platforms**. By using RPSync, you acknowledge that:
+- You are solely responsible for ensuring your use of this software complies with each platform's Terms of Service, API usage policies, and any applicable laws in your jurisdiction.
+- The developers of RPSync are not liable for account suspensions, bans, legal action, or any other consequences resulting from your use of this software.
+- For platforms that use authenticated session scraping (e.g. TikTok), this tool only accesses data using credentials and cookies that you yourself provide — it does not bypass authentication on your behalf or enable access to data you are not already authorised to view.
+
+### No Warranty
+This software is provided **"as is"**, without warranty of any kind, express or implied. **Use at your own risk.** The developers make no guarantees regarding the reliability, legality, or fitness of this software for any particular purpose. See the [AGPL-3.0 License](./LICENSE) for full warranty disclaimer terms.
+
+---
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a PR on GitHub.
