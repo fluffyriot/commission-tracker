@@ -74,7 +74,7 @@ func LoadConfig() (*AppConfig, error) {
 
 	cfg.DomainName = os.Getenv("DOMAIN_NAME")
 
-	cfg.InstagramAPIVersion = "v24.0"
+	cfg.InstagramAPIVersion = "v25.0"
 
 	cfg.OauthEncryptionKey = os.Getenv("OAUTH_ENCRYPTION_KEY")
 

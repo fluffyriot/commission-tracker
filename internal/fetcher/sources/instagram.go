@@ -63,14 +63,19 @@ type instagramProfile struct {
 	FollowersCount int `json:"followers_count"`
 }
 
-func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, string, string, string, error) {
+func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte, noInsights bool) (string, string, string, string, error) {
 
 	token, pid, _, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", "", "", "", err
 	}
 
-	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
+	var apiString string
+	if noInsights {
+		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username&access_token=%v&limit=25", version, pid, token)
+	} else {
+		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
+	}
 
 	if next != "" {
 		apiString = next
@@ -142,10 +147,11 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 	var next string
 	var token, pid, ver string
 	var url string
+	var noInsights bool
 
 	for page := 0; page < maxPages; page++ {
 
-		url, token, pid, ver, err = getInstagramApiString(dbQueries, sourceId, next, version, encryptionKey)
+		url, token, pid, ver, err = getInstagramApiString(dbQueries, sourceId, next, version, encryptionKey, noInsights)
 		if err != nil {
 			return err
 		}
@@ -168,6 +174,13 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 
 		if resp.StatusCode != 200 {
 			if strings.Contains(string(data), "converted to a business account") {
+				if !noInsights {
+					log.Printf("Instagram: retrying without insights for source %s (pre-business-account content)", sourceId)
+					noInsights = true
+					next = ""
+					page = -1
+					continue
+				}
 				log.Printf("Instagram: ignoring pre-business-account conversion error for source %s (Instagram API limitation)", sourceId)
 				break
 			}
@@ -202,19 +215,23 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 				post_type = "image"
 			}
 
-			views := 0
-			if len(item.Insights.Data) != 0 {
-				insight := item.Insights.Data[0]
-				if len(insight.Values) != 0 {
-					views = insight.Values[0].Value
+			var viewsVal sql.NullInt64
+			if !noInsights {
+				views := 0
+				if len(item.Insights.Data) != 0 {
+					insight := item.Insights.Data[0]
+					if len(insight.Values) != 0 {
+						views = insight.Values[0].Value
+					}
 				}
+				viewsVal = sql.NullInt64{Int64: int64(views), Valid: true}
 			}
 
 			err = common.ProcessScrapedPost(
 				context.Background(), dbQueries, sourceId, item.Shortcode, "Instagram", timeParse, post_type, item.Username, item.Caption,
 				sql.NullInt64{Int64: int64(item.LikeCount), Valid: true},
 				sql.NullInt64{Valid: false},
-				sql.NullInt64{Int64: int64(views), Valid: true},
+				viewsVal,
 			)
 			if err != nil {
 				return err
