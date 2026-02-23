@@ -116,7 +116,7 @@
             </a>
             {{else}}-{{end}}
           </td>
-          <td>{{if .Post.Content.Valid}}{{truncate .Post.Content.String 50}}{{else}}-{{end}}</td>
+          <td data-search="{{if .Post.Content.Valid}}{{.Post.Content.String}}{{else}}-{{end}}">{{if .Post.Content.Valid}}{{truncate .Post.Content.String 50}}{{else}}-{{end}}</td>
         </tr>
         {{end}}
       </tbody>
