@@ -114,6 +114,23 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, e
 	return i, err
 }
 
+const deletePostsByContentPrefix = `-- name: DeletePostsByContentPrefix :exec
+DELETE FROM posts
+WHERE
+    source_id = $1
+    AND content ILIKE $2
+`
+
+type DeletePostsByContentPrefixParams struct {
+	SourceID uuid.UUID      `json:"source_id"`
+	Content  sql.NullString `json:"content"`
+}
+
+func (q *Queries) DeletePostsByContentPrefix(ctx context.Context, arg DeletePostsByContentPrefixParams) error {
+	_, err := q.db.ExecContext(ctx, deletePostsByContentPrefix, arg.SourceID, arg.Content)
+	return err
+}
+
 const deletePostsByNetworkIdPrefix = `-- name: DeletePostsByNetworkIdPrefix :exec
 DELETE FROM posts
 WHERE
@@ -207,6 +224,40 @@ func (q *Queries) GetAllPostsWithTheLatestInfoForUser(ctx context.Context, userI
 			&i.Reposts,
 			&i.Views,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getNetworkIdsAndContentBySource = `-- name: GetNetworkIdsAndContentBySource :many
+SELECT network_internal_id, content
+FROM posts
+WHERE source_id = $1
+`
+
+type GetNetworkIdsAndContentBySourceRow struct {
+	NetworkInternalID string         `json:"network_internal_id"`
+	Content           sql.NullString `json:"content"`
+}
+
+func (q *Queries) GetNetworkIdsAndContentBySource(ctx context.Context, sourceID uuid.UUID) ([]GetNetworkIdsAndContentBySourceRow, error) {
+	rows, err := q.db.QueryContext(ctx, getNetworkIdsAndContentBySource, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetNetworkIdsAndContentBySourceRow
+	for rows.Next() {
+		var i GetNetworkIdsAndContentBySourceRow
+		if err := rows.Scan(&i.NetworkInternalID, &i.Content); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

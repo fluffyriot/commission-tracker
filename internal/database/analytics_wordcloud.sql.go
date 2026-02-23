@@ -33,6 +33,7 @@ FROM word_stats
 WHERE length(cleaned_word) > 3
     AND raw_word NOT LIKE '#%'
     AND raw_word NOT LIKE '@%'
+    AND raw_word NOT LIKE 'r/%'
     AND raw_word NOT LIKE 'http%'
     AND raw_word NOT ILIKE '%http%'
     AND raw_word NOT ILIKE '%www.%'
@@ -157,6 +158,7 @@ FROM word_stats
 WHERE length(cleaned_word) > 3
     AND raw_word NOT LIKE '#%'
     AND raw_word NOT LIKE '@%'
+    AND raw_word NOT LIKE 'r/%'
     AND raw_word NOT LIKE 'http%'
     AND raw_word NOT ILIKE '%http%'
     AND raw_word NOT ILIKE '%www.%'
@@ -307,6 +309,7 @@ FROM word_stats
 WHERE length(cleaned_word) > 3
     AND raw_word NOT LIKE '#%'
     AND raw_word NOT LIKE '@%'
+    AND raw_word NOT LIKE 'r/%'
     AND raw_word NOT LIKE 'http%'
     AND raw_word NOT ILIKE '%http%'
     AND raw_word NOT ILIKE '%www.%'
@@ -455,6 +458,7 @@ FROM word_stats
 WHERE length(cleaned_word) > 3
     AND raw_word NOT LIKE '#%'
     AND raw_word NOT LIKE '@%'
+    AND raw_word NOT LIKE 'r/%'
     AND raw_word NOT LIKE 'http%'
     AND raw_word NOT ILIKE '%http%'
     AND raw_word NOT ILIKE '%www.%'

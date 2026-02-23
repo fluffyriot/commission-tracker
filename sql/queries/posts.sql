@@ -32,6 +32,11 @@ where
     network_internal_id = $1
     and source_id = $2;
 
+-- name: GetNetworkIdsAndContentBySource :many
+SELECT network_internal_id, content
+FROM posts
+WHERE source_id = $1;
+
 -- name: CheckCountOfPostsForUser :one
 SELECT COUNT(*)
 FROM posts p
@@ -106,6 +111,12 @@ DELETE FROM posts
 WHERE
     source_id = $1
     AND network_internal_id LIKE $2;
+
+-- name: DeletePostsByContentPrefix :exec
+DELETE FROM posts
+WHERE
+    source_id = $1
+    AND content ILIKE $2;
 
 -- name: UpdatePost :one
 UPDATE posts

@@ -269,6 +269,9 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 
 	case "e621":
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
+
+	case "Reddit":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, "public", params.Field1, nil, params.EncryptionKey)
 	}
 
 	if err != nil {

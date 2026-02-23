@@ -22,6 +22,7 @@ var AvailableSources = []SourceNetwork{
 	{Name: "YouTube", Color: "#ff0033"},
 	{Name: "TikTok", Color: "#fe2c55"},
 	{Name: "Mastodon", Color: "#563acc"},
+	{Name: "Reddit", Color: "#ff4500"},
 	{Name: "Telegram", Color: "#26a4e3"},
 	{Name: "Google Analytics", Color: "#e37400"},
 	{Name: "BadPups", Color: "#c1272d"},
@@ -66,6 +67,8 @@ func ConvNetworkToURL(network, username string) (string, error) {
 		return "https://www.furaffinity.net/user/" + username + "/", nil
 	case "e621":
 		return "https://e621.net/posts?tags=user:" + username, nil
+	case "Reddit":
+		return "https://reddit.com/user/" + username, nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}
@@ -102,6 +105,8 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 		return "https://www.furaffinity.net/view/" + networkId + "/", nil
 	case "e621":
 		return "https://e621.net/posts/" + networkId, nil
+	case "Reddit":
+		return "https://reddit.com/comments/" + networkId, nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}

@@ -50,7 +50,7 @@ func handleChannelChanges(
 		newSet[ch] = true
 	}
 
-	posts, err := dbQueries.GetAllPostsWithTheLatestInfoForUser(ctx, sourceID)
+	posts, err := dbQueries.GetNetworkIdsAndContentBySource(ctx, sourceID)
 	if err != nil {
 		log.Printf("Discord: Failed to get existing posts: %v", err)
 		return nil

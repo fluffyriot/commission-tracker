@@ -23,6 +23,7 @@
 | Youtube | ✅ | ❌ | ❌ | ✅ | ✅ |
 | Bluesky | ✅ | ❌ | ❌ | ✅ | ✅ |
 | Mastodon | ✅ | ❌ | ❌ | ✅ | ✅ |
+| Reddit | ❌ | ✅ | ❌ | ✅ | ✅ |
 | Telegram | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Discord | ✅ | ❌ | ❌ | ✅ | ✅ |
 | BadPups.com | ❌ | ✅ | ❌ | ✅ | ✅ |
@@ -346,7 +347,7 @@ Run these commands inside the container or via `docker exec`:
 ## Legal Disclaimer
 
 ### Trademark Notice
-All platform names, logos, and brands referenced in this project — including but not limited to Instagram, Meta, TikTok, YouTube, Google, Discord, Bluesky, Mastodon, Telegram, FurAffinity, e621, Murrtube, FurTrack, BadPups, and NocoDB — are trademarks or registered trademarks of their respective owners. RPSync is **not affiliated with, endorsed by, sponsored by, or in any way officially connected to** any of these platforms or their parent companies.
+All platform names, logos, and brands referenced in this project — including but not limited to Instagram, Meta, TikTok, Reddit, YouTube, Google, Discord, Bluesky, Mastodon, Telegram, FurAffinity, e621, Murrtube, FurTrack, BadPups, and NocoDB — are trademarks or registered trademarks of their respective owners. RPSync is **not affiliated with, endorsed by, sponsored by, or in any way officially connected to** any of these platforms or their parent companies.
 
 ### Terms of Service
 Certain features of this software (including web scraping) **may violate the Terms of Service of some platforms**. By using RPSync, you acknowledge that:

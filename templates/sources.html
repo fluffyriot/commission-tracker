@@ -188,6 +188,13 @@
                         </button>
                         {{end}}
 
+                        {{if eq .Network "Reddit"}}
+                        <button type="button" class="btn btn-secondary btn-icon"
+                            onclick="showRedditSubreddits('{{.ID}}')" title="View / Update Subreddits">
+                            <i data-lucide="hash"></i>
+                        </button>
+                        {{end}}
+
                         <div class="dropdown">
                             <button type="button" class="btn btn-secondary btn-icon" title="Actions"
                                 onclick="toggleDropdown('dd_actions_{{.ID}}')">
@@ -307,6 +314,12 @@
                     2: { label: "API Key", placeholder: "API key", required: true }
                 }
             },
+            "Reddit": {
+                userPlaceholder: "Reddit Username (no u/)",
+                fields: {
+                    1: { label: "Subreddits (optional, comma-separated)", placeholder: "golang, programming", desc: "Leave empty to sync posts from all subreddits. You can change this later.", required: false }
+                }
+            },
             "Mastodon": {
                 userPlaceholder: "username@instance.social",
                 fields: {}
@@ -360,95 +373,149 @@
         updateForm();
     });
 
-    async function showDiscordChannels(sourceId) {
+    const channelManagerConfigs = {
+        Discord: {
+            title: 'Edit Discord Channels',
+            inputId: 'channel-manager-input',
+            description: 'Enter channel IDs separated by commas:',
+            placeholder: '123456789, 987654321, 456789123',
+            note: 'Removed channels will have their posts permanently deleted on next sync.',
+            requireAtLeastOne: true,
+            successMessage: 'Channels updated successfully! Changes will take effect on next sync.',
+        },
+        Reddit: {
+            title: 'Edit Subreddits',
+            inputId: 'channel-manager-input',
+            description: 'Enter subreddit (no r/ - just the name) names separated by commas, or leave empty to sync all posts:',
+            placeholder: 'golang, programming, rust',
+            note: null,
+            requireAtLeastOne: false,
+            successMessage: 'Subreddits updated successfully! Changes will take effect on next sync.',
+        },
+    };
+
+    async function showChannelManager(sourceId, network) {
+        const cfg = channelManagerConfigs[network];
+        if (!cfg) return;
+
         try {
             const response = await fetch(`/sources/${sourceId}/channels`);
             const data = await response.json();
 
-            if (response.ok) {
-                const channelList = data.channels.join(', ');
-                const modal = document.createElement('div');
-                modal.className = 'modal-overlay';
-                modal.innerHTML = `
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>Edit Discord Channels</h3>
-                            <button onclick="this.closest('.modal-overlay').remove()" 
-                                class="modal-close-btn" title="Close">×</button>
-                        </div>
-                        <div class="modal-body">
-                            <p class="modal-text-muted">
-                                Enter channel IDs separated by commas:
-                            </p>
-                            <textarea id="channel-ids-input" class="form-input modal-textarea"
-                                placeholder="123456789, 987654321, 456789123">${channelList}</textarea>
-                            <div class="modal-info-box">
-                                <p>
-                                    <strong>Note:</strong> Removed channels will have their posts permanently deleted on next sync.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button onclick="this.closest('.modal-overlay').remove()" 
-                                class="btn btn-secondary">Cancel</button>
-                            <button onclick="saveDiscordChannels('${sourceId}')" 
-                                class="btn btn-primary">Save Changes</button>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(modal);
-
-                modal.onclick = (e) => {
-                    if (e.target === modal) modal.remove();
-                };
-
-                document.getElementById('channel-ids-input').focus();
-            } else {
-                alert(data.error || 'Failed to fetch channels');
+            if (!response.ok) {
+                alert(data.error || 'Failed to fetch configuration');
+                return;
             }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+
+            const content = document.createElement('div');
+            content.className = 'modal-content';
+
+            const header = document.createElement('div');
+            header.className = 'modal-header';
+            const titleEl = document.createElement('h3');
+            titleEl.textContent = cfg.title;
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'modal-close-btn';
+            closeBtn.title = 'Close';
+            closeBtn.textContent = '×';
+            closeBtn.onclick = () => modal.remove();
+            header.appendChild(titleEl);
+            header.appendChild(closeBtn);
+
+            const body = document.createElement('div');
+            body.className = 'modal-body';
+            const desc = document.createElement('p');
+            desc.className = 'modal-text-muted';
+            desc.textContent = cfg.description;
+            const textarea = document.createElement('textarea');
+            textarea.id = cfg.inputId;
+            textarea.className = 'form-input modal-textarea';
+            textarea.placeholder = cfg.placeholder;
+            textarea.value = data.channels.join(', ');
+            body.appendChild(desc);
+            body.appendChild(textarea);
+            if (cfg.note) {
+                const noteBox = document.createElement('div');
+                noteBox.className = 'modal-info-box';
+                const noteP = document.createElement('p');
+                const strong = document.createElement('strong');
+                strong.textContent = 'Note: ';
+                noteP.appendChild(strong);
+                noteP.appendChild(document.createTextNode(cfg.note));
+                noteBox.appendChild(noteP);
+                body.appendChild(noteBox);
+            }
+
+            const footer = document.createElement('div');
+            footer.className = 'modal-footer';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = () => modal.remove();
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn btn-primary';
+            saveBtn.textContent = 'Save Changes';
+            saveBtn.onclick = () => saveChannelManager(sourceId, network);
+            footer.appendChild(cancelBtn);
+            footer.appendChild(saveBtn);
+
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            modal.style.display = 'flex';
+
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            textarea.focus();
         } catch (error) {
-            console.error('Error fetching Discord channels:', error);
-            alert('Failed to fetch channels');
+            console.error('Error fetching channel configuration:', error);
+            alert('Failed to fetch configuration');
         }
     }
 
-    async function saveDiscordChannels(sourceId) {
-        const input = document.getElementById('channel-ids-input');
-        const channelIds = input.value
-            .split(',')
-            .map(id => id.trim())
-            .filter(id => id.length > 0);
+    async function saveChannelManager(sourceId, network) {
+        const cfg = channelManagerConfigs[network];
+        if (!cfg) return;
 
-        if (channelIds.length === 0) {
-            alert('Please enter at least one channel ID');
+        const input = document.getElementById(cfg.inputId);
+        const channels = input.value
+            .split(',')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        if (cfg.requireAtLeastOne && channels.length === 0) {
+            alert('Please enter at least one value');
             return;
         }
 
         try {
             const response = await fetch(`/sources/${sourceId}/channels`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ channels: channelIds })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channels }),
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                alert('Channels updated successfully! Changes will take effect on next sync.');
+                alert(cfg.successMessage);
                 document.querySelector('.modal-overlay').remove();
                 location.reload();
             } else {
-                alert(data.error || 'Failed to update channels');
+                alert(data.error || 'Failed to update');
             }
         } catch (error) {
-            console.error('Error updating Discord channels:', error);
-            alert('Failed to update channels');
+            console.error('Error saving channel configuration:', error);
+            alert('Failed to update');
         }
     }
 
+    function showDiscordChannels(sourceId) { showChannelManager(sourceId, 'Discord'); }
+    function showRedditSubreddits(sourceId) { showChannelManager(sourceId, 'Reddit'); }
 
 
 </script>
