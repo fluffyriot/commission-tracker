@@ -173,7 +173,7 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 		}
 
 		if resp.StatusCode != 200 {
-			if strings.Contains(string(data), "converted to a business account") {
+			if strings.Contains(string(data), "business account conversion") {
 				if !noInsights {
 					log.Printf("Instagram: retrying without insights for source %s (pre-business-account content)", sourceId)
 					noInsights = true

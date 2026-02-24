@@ -13,7 +13,13 @@ RUN go mod download
 
 COPY . .
 
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o rpsync .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 \
+    GOMAXPROCS=1 \
+    GOOS=${TARGETOS} \
+    GOARCH=${TARGETARCH} \
+    go build -trimpath -ldflags="-s -w" -o rpsync .
 
 # Stage 2: Runtime
 FROM debian:trixie
