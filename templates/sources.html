@@ -320,6 +320,13 @@
                     1: { label: "Subreddits (optional, comma-separated)", placeholder: "golang, programming", desc: "Leave empty to sync posts from all subreddits. You can change this later.", required: false }
                 }
             },
+            "Twitch": {
+                userPlaceholder: "Twitch Username",
+                fields: {
+                    1: { label: "Client ID", placeholder: "Client ID", required: true },
+                    2: { label: "Client Secret", placeholder: "Client Secret", required: true, type: "password" }
+                }
+            },
             "Mastodon": {
                 userPlaceholder: "username@instance.social",
                 fields: {}

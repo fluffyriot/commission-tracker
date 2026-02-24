@@ -113,6 +113,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *common.Client, 
 		case "Reddit":
 			return sources.FetchRedditPosts(dbQueries, encryptionKey, source.ID, c)
 
+		case "Twitch":
+			return sources.FetchTwitchPosts(dbQueries, encryptionKey, source.ID, c)
+
 		case "FurAffinity":
 			return sources.FetchFurAffinityPosts(dbQueries, c, source.UserID, source.ID)
 

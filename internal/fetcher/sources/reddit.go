@@ -218,7 +218,11 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 		}
 
 		if resp.StatusCode != 200 {
-			return fmt.Errorf("Reddit API returned status %d: %s", resp.StatusCode, string(body))
+			snippet := string(body)
+			if len(snippet) > 300 {
+				snippet = snippet[:300] + "..."
+			}
+			return fmt.Errorf("Reddit API returned status %d: %s", resp.StatusCode, snippet)
 		}
 
 		var listing redditListing

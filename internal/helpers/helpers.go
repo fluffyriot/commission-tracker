@@ -21,8 +21,9 @@ var AvailableSources = []SourceNetwork{
 	{Name: "Bluesky", Color: "#1185fe"},
 	{Name: "YouTube", Color: "#ff0033"},
 	{Name: "TikTok", Color: "#fe2c55"},
-	{Name: "Mastodon", Color: "#563acc"},
+	{Name: "Twitch", Color: "#9146ff"},
 	{Name: "Reddit", Color: "#ff4500"},
+	{Name: "Mastodon", Color: "#563acc"},
 	{Name: "Telegram", Color: "#26a4e3"},
 	{Name: "Google Analytics", Color: "#e37400"},
 	{Name: "BadPups", Color: "#c1272d"},
@@ -69,6 +70,8 @@ func ConvNetworkToURL(network, username string) (string, error) {
 		return "https://e621.net/posts?tags=user:" + username, nil
 	case "Reddit":
 		return "https://reddit.com/user/" + username, nil
+	case "Twitch":
+		return "https://twitch.tv/" + username, nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}
@@ -107,6 +110,19 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 		return "https://e621.net/posts/" + networkId, nil
 	case "Reddit":
 		return "https://reddit.com/comments/" + networkId, nil
+	case "Twitch":
+		// Video IDs are numeric; clip IDs are alphanumeric slugs
+		isNumeric := len(networkId) > 0
+		for _, ch := range networkId {
+			if ch < '0' || ch > '9' {
+				isNumeric = false
+				break
+			}
+		}
+		if isNumeric {
+			return "https://www.twitch.tv/videos/" + networkId, nil
+		}
+		return "https://www.twitch.tv/" + author + "/clip/" + networkId, nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}

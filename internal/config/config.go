@@ -233,6 +233,10 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		return "", "", fmt.Errorf("API Key and API Username are required for e621")
 	}
 
+	if params.Network == "Twitch" && (params.Field1 == "" || params.Field2 == "") {
+		return "", "", fmt.Errorf("Client ID and Client Secret are required for Twitch")
+	}
+
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
@@ -272,6 +276,9 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 
 	case "Reddit":
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, "public", params.Field1, nil, params.EncryptionKey)
+
+	case "Twitch":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
 	}
 
 	if err != nil {
