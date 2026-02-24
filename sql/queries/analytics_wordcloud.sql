@@ -44,6 +44,7 @@ WHERE length(cleaned_word) > 3
     AND raw_word NOT ILIKE '%.co.uk%'
     AND raw_word NOT ILIKE '%.com%'
     AND raw_word NOT ILIKE '%.me/%'
+    AND cleaned_word NOT ILIKE '%itchcli%'
     AND cleaned_word NOT ILIKE '%iotpho%'
     AND cleaned_word NOT IN (
         'that',
@@ -136,6 +137,7 @@ WHERE length(cleaned_word) > 3
     AND raw_word NOT ILIKE '%.co.uk%'
     AND raw_word NOT ILIKE '%.com%'
     AND raw_word NOT ILIKE '%.me/%'
+    AND cleaned_word NOT ILIKE '%itchcli%'
     AND cleaned_word NOT ILIKE '%iotpho%'
     AND cleaned_word NOT IN (
         'that',
@@ -248,6 +250,7 @@ WHERE length(cleaned_word) > 3
     AND raw_word NOT ILIKE '%.co.uk%'
     AND raw_word NOT ILIKE '%.com%'
     AND raw_word NOT ILIKE '%.me/%'
+    AND cleaned_word NOT ILIKE '%itchcli%'
     AND cleaned_word NOT ILIKE '%iotpho%'
     AND cleaned_word NOT IN (
         'that',
@@ -343,6 +346,7 @@ WHERE length(cleaned_word) > 3
     AND raw_word NOT ILIKE '%.co.uk%'
     AND raw_word NOT ILIKE '%.com%'
     AND raw_word NOT ILIKE '%.me/%'
+    AND cleaned_word NOT ILIKE '%itchcli%'
     AND cleaned_word NOT ILIKE '%iotpho%'
     AND cleaned_word NOT IN (
         'that',

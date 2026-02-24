@@ -297,19 +297,3 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cli
 	return nil
 
 }
-
-func extractBpNumber(text, pattern string) (int, error) {
-	re := regexp.MustCompile(pattern)
-	match := re.FindStringSubmatch(text)
-	if len(match) < 2 {
-		return 0, fmt.Errorf("nothing matched")
-	}
-
-	clean := strings.ReplaceAll(match[1], ",", "")
-	value, err := strconv.Atoi(clean)
-	if err != nil {
-		return 0, nil
-	}
-	return value, nil
-
-}

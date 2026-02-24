@@ -57,6 +57,7 @@ type twitchClip struct {
 	CreatedAt        string `json:"created_at"`
 	ViewCount        int    `json:"view_count"`
 	BroadcasterLogin string `json:"broadcaster_login"`
+	CreatorName      string `json:"creator_name"`
 }
 
 type twitchClipsResponse struct {
@@ -284,7 +285,7 @@ func FetchTwitchPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 				"Twitch",
 				postedAt,
 				postType,
-				v.UserLogin,
+				username,
 				content,
 			)
 			if err != nil {
@@ -376,8 +377,8 @@ func FetchTwitchPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 				"Twitch",
 				postedAt,
 				"video",
-				clip.BroadcasterLogin,
-				clip.Title,
+				username,
+				clip.Title+"\n\n(TwitchClip by @"+clip.CreatorName+")",
 			)
 			if err != nil {
 				log.Printf("Twitch: failed to save clip %s: %v", clip.ID, err)
