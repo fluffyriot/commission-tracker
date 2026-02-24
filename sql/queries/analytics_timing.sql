@@ -7,12 +7,14 @@ SELECT EXTRACT(
         HOUR
         FROM p.created_at
     )::INT as hour_of_day,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -40,12 +42,14 @@ SELECT EXTRACT(
         HOUR
         FROM p.created_at
     )::INT as hour_of_day,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC

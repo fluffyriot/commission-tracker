@@ -47,6 +47,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -62,7 +63,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -110,6 +112,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -125,7 +128,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -153,6 +157,7 @@ SELECT prh.post_id,
     prh.synced_at as history_synced_at,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     p.created_at as post_created_at,
     COALESCE(p.content, '')::TEXT as content,
     p.author,
@@ -225,6 +230,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -240,7 +246,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -291,6 +298,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -306,7 +314,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -337,6 +346,7 @@ SELECT prh.post_id,
     prh.synced_at as history_synced_at,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     p.created_at as post_created_at,
     COALESCE(p.content, '')::TEXT as content,
     p.author,

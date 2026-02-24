@@ -17,15 +17,18 @@ import (
 const getCollaborationsData = `-- name: GetCollaborationsData :many
 SELECT collaborator,
     COUNT(*) as collaboration_count,
-    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
 FROM (
         SELECT p.author as collaborator,
-            COALESCE(prh.likes, 0) as likes
+            COALESCE(prh.likes, 0) as likes,
+            COALESCE(prh.views, 0) as views
         FROM posts p
             JOIN sources s ON p.source_id = s.id
             LEFT JOIN (
                 SELECT DISTINCT ON (post_id) post_id,
-                    likes
+                    likes,
+                    views
                 FROM posts_reactions_history
                 ORDER BY post_id,
                     synced_at DESC
@@ -44,6 +47,7 @@ type GetCollaborationsDataRow struct {
 	Collaborator       string `json:"collaborator"`
 	CollaborationCount int64  `json:"collaboration_count"`
 	AvgLikes           int64  `json:"avg_likes"`
+	AvgViews           int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetCollaborationsData(ctx context.Context, userID uuid.UUID) ([]GetCollaborationsDataRow, error) {
@@ -55,7 +59,12 @@ func (q *Queries) GetCollaborationsData(ctx context.Context, userID uuid.UUID) (
 	var items []GetCollaborationsDataRow
 	for rows.Next() {
 		var i GetCollaborationsDataRow
-		if err := rows.Scan(&i.Collaborator, &i.CollaborationCount, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.Collaborator,
+			&i.CollaborationCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -72,15 +81,18 @@ func (q *Queries) GetCollaborationsData(ctx context.Context, userID uuid.UUID) (
 const getCollaborationsDataFiltered = `-- name: GetCollaborationsDataFiltered :many
 SELECT collaborator,
     COUNT(*) as collaboration_count,
-    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
 FROM (
         SELECT p.author as collaborator,
-            COALESCE(prh.likes, 0) as likes
+            COALESCE(prh.likes, 0) as likes,
+            COALESCE(prh.views, 0) as views
         FROM posts p
             JOIN sources s ON p.source_id = s.id
             LEFT JOIN (
                 SELECT DISTINCT ON (post_id) post_id,
-                    likes
+                    likes,
+                    views
                 FROM posts_reactions_history
                 ORDER BY post_id,
                     synced_at DESC
@@ -107,6 +119,7 @@ type GetCollaborationsDataFilteredRow struct {
 	Collaborator       string `json:"collaborator"`
 	CollaborationCount int64  `json:"collaboration_count"`
 	AvgLikes           int64  `json:"avg_likes"`
+	AvgViews           int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetCollaborationsDataFiltered(ctx context.Context, arg GetCollaborationsDataFilteredParams) ([]GetCollaborationsDataFilteredRow, error) {
@@ -118,7 +131,12 @@ func (q *Queries) GetCollaborationsDataFiltered(ctx context.Context, arg GetColl
 	var items []GetCollaborationsDataFilteredRow
 	for rows.Next() {
 		var i GetCollaborationsDataFilteredRow
-		if err := rows.Scan(&i.Collaborator, &i.CollaborationCount, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.Collaborator,
+			&i.CollaborationCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -139,13 +157,15 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     COALESCE(ss.followers_count, 0)::BIGINT as followers_count
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -169,6 +189,7 @@ type GetEngagementRateDataRow struct {
 	Network           string    `json:"network"`
 	Likes             int64     `json:"likes"`
 	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
 	FollowersCount    int64     `json:"followers_count"`
 }
 
@@ -188,6 +209,7 @@ func (q *Queries) GetEngagementRateData(ctx context.Context, userID uuid.UUID) (
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.FollowersCount,
 		); err != nil {
 			return nil, err
@@ -210,13 +232,15 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     COALESCE(ss.followers_count, 0)::BIGINT as followers_count
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -250,6 +274,7 @@ type GetEngagementRateDataFilteredRow struct {
 	Network           string    `json:"network"`
 	Likes             int64     `json:"likes"`
 	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
 	FollowersCount    int64     `json:"followers_count"`
 }
 
@@ -274,6 +299,7 @@ func (q *Queries) GetEngagementRateDataFiltered(ctx context.Context, arg GetEnga
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.FollowersCount,
 		); err != nil {
 			return nil, err
@@ -346,12 +372,14 @@ func (q *Queries) GetFollowRatioData(ctx context.Context, userID uuid.UUID) ([]G
 const getGlobalPostTypeAnalytics = `-- name: GetGlobalPostTypeAnalytics :many
 SELECT post_type,
     count(*) as post_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -365,6 +393,7 @@ type GetGlobalPostTypeAnalyticsRow struct {
 	PostType  string `json:"post_type"`
 	PostCount int64  `json:"post_count"`
 	AvgLikes  int64  `json:"avg_likes"`
+	AvgViews  int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetGlobalPostTypeAnalytics(ctx context.Context, userID uuid.UUID) ([]GetGlobalPostTypeAnalyticsRow, error) {
@@ -376,7 +405,12 @@ func (q *Queries) GetGlobalPostTypeAnalytics(ctx context.Context, userID uuid.UU
 	var items []GetGlobalPostTypeAnalyticsRow
 	for rows.Next() {
 		var i GetGlobalPostTypeAnalyticsRow
-		if err := rows.Scan(&i.PostType, &i.PostCount, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.PostType,
+			&i.PostCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -393,12 +427,14 @@ func (q *Queries) GetGlobalPostTypeAnalytics(ctx context.Context, userID uuid.UU
 const getGlobalPostTypeAnalyticsFiltered = `-- name: GetGlobalPostTypeAnalyticsFiltered :many
 SELECT post_type,
     count(*) as post_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -422,6 +458,7 @@ type GetGlobalPostTypeAnalyticsFilteredRow struct {
 	PostType  string `json:"post_type"`
 	PostCount int64  `json:"post_count"`
 	AvgLikes  int64  `json:"avg_likes"`
+	AvgViews  int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetGlobalPostTypeAnalyticsFiltered(ctx context.Context, arg GetGlobalPostTypeAnalyticsFilteredParams) ([]GetGlobalPostTypeAnalyticsFilteredRow, error) {
@@ -438,7 +475,12 @@ func (q *Queries) GetGlobalPostTypeAnalyticsFiltered(ctx context.Context, arg Ge
 	var items []GetGlobalPostTypeAnalyticsFilteredRow
 	for rows.Next() {
 		var i GetGlobalPostTypeAnalyticsFilteredRow
-		if err := rows.Scan(&i.PostType, &i.PostCount, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.PostType,
+			&i.PostCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -463,7 +505,8 @@ SELECT regexp_replace(
         'g'
     ) as mention,
     count(*) as usage_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM (
         SELECT regexp_split_to_table(lower(content), '\s+') as word,
             posts.id as post_id
@@ -474,7 +517,8 @@ FROM (
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -500,6 +544,7 @@ type GetMentionsAnalyticsRow struct {
 	Mention    string `json:"mention"`
 	UsageCount int64  `json:"usage_count"`
 	AvgLikes   int64  `json:"avg_likes"`
+	AvgViews   int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetMentionsAnalytics(ctx context.Context, userID uuid.UUID) ([]GetMentionsAnalyticsRow, error) {
@@ -511,7 +556,12 @@ func (q *Queries) GetMentionsAnalytics(ctx context.Context, userID uuid.UUID) ([
 	var items []GetMentionsAnalyticsRow
 	for rows.Next() {
 		var i GetMentionsAnalyticsRow
-		if err := rows.Scan(&i.Mention, &i.UsageCount, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.Mention,
+			&i.UsageCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -536,7 +586,8 @@ SELECT regexp_replace(
         'g'
     ) as mention,
     count(*) as usage_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM (
         SELECT regexp_split_to_table(lower(content), '\s+') as word,
             posts.id as post_id
@@ -550,7 +601,8 @@ FROM (
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -583,6 +635,7 @@ type GetMentionsAnalyticsFilteredRow struct {
 	Mention    string `json:"mention"`
 	UsageCount int64  `json:"usage_count"`
 	AvgLikes   int64  `json:"avg_likes"`
+	AvgViews   int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetMentionsAnalyticsFiltered(ctx context.Context, arg GetMentionsAnalyticsFilteredParams) ([]GetMentionsAnalyticsFilteredRow, error) {
@@ -599,7 +652,12 @@ func (q *Queries) GetMentionsAnalyticsFiltered(ctx context.Context, arg GetMenti
 	var items []GetMentionsAnalyticsFilteredRow
 	for rows.Next() {
 		var i GetMentionsAnalyticsFilteredRow
-		if err := rows.Scan(&i.Mention, &i.UsageCount, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.Mention,
+			&i.UsageCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -617,13 +675,15 @@ const getNetworkEfficiency = `-- name: GetNetworkEfficiency :many
 SELECT s.network,
     count(*) as post_count,
     COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts
+    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -638,6 +698,7 @@ type GetNetworkEfficiencyRow struct {
 	PostCount  int64  `json:"post_count"`
 	AvgLikes   int64  `json:"avg_likes"`
 	AvgReposts int64  `json:"avg_reposts"`
+	AvgViews   int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetNetworkEfficiency(ctx context.Context, userID uuid.UUID) ([]GetNetworkEfficiencyRow, error) {
@@ -654,6 +715,7 @@ func (q *Queries) GetNetworkEfficiency(ctx context.Context, userID uuid.UUID) ([
 			&i.PostCount,
 			&i.AvgLikes,
 			&i.AvgReposts,
+			&i.AvgViews,
 		); err != nil {
 			return nil, err
 		}
@@ -672,13 +734,15 @@ const getNetworkEfficiencyFiltered = `-- name: GetNetworkEfficiencyFiltered :man
 SELECT s.network,
     count(*) as post_count,
     COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts
+    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -703,6 +767,7 @@ type GetNetworkEfficiencyFilteredRow struct {
 	PostCount  int64  `json:"post_count"`
 	AvgLikes   int64  `json:"avg_likes"`
 	AvgReposts int64  `json:"avg_reposts"`
+	AvgViews   int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetNetworkEfficiencyFiltered(ctx context.Context, arg GetNetworkEfficiencyFilteredParams) ([]GetNetworkEfficiencyFilteredRow, error) {
@@ -724,6 +789,7 @@ func (q *Queries) GetNetworkEfficiencyFiltered(ctx context.Context, arg GetNetwo
 			&i.PostCount,
 			&i.AvgLikes,
 			&i.AvgReposts,
+			&i.AvgViews,
 		); err != nil {
 			return nil, err
 		}

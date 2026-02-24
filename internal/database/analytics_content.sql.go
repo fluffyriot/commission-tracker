@@ -19,6 +19,7 @@ SELECT prh.post_id,
     prh.synced_at as history_synced_at,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     p.created_at as post_created_at,
     COALESCE(p.content, '')::TEXT as content,
     p.author,
@@ -46,6 +47,7 @@ type GetEngagementVelocityDataRow struct {
 	HistorySyncedAt   time.Time `json:"history_synced_at"`
 	Likes             int64     `json:"likes"`
 	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
 	PostCreatedAt     time.Time `json:"post_created_at"`
 	Content           string    `json:"content"`
 	Author            string    `json:"author"`
@@ -67,6 +69,7 @@ func (q *Queries) GetEngagementVelocityData(ctx context.Context, userID uuid.UUI
 			&i.HistorySyncedAt,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.PostCreatedAt,
 			&i.Content,
 			&i.Author,
@@ -91,6 +94,7 @@ SELECT prh.post_id,
     prh.synced_at as history_synced_at,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     p.created_at as post_created_at,
     COALESCE(p.content, '')::TEXT as content,
     p.author,
@@ -128,6 +132,7 @@ type GetEngagementVelocityDataFilteredRow struct {
 	HistorySyncedAt   time.Time `json:"history_synced_at"`
 	Likes             int64     `json:"likes"`
 	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
 	PostCreatedAt     time.Time `json:"post_created_at"`
 	Content           string    `json:"content"`
 	Author            string    `json:"author"`
@@ -154,6 +159,7 @@ func (q *Queries) GetEngagementVelocityDataFiltered(ctx context.Context, arg Get
 			&i.HistorySyncedAt,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.PostCreatedAt,
 			&i.Content,
 			&i.Author,
@@ -335,6 +341,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -350,7 +357,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -384,6 +392,7 @@ type GetPerformanceDeviationNegativeRow struct {
 	Network            string    `json:"network"`
 	Likes              int64     `json:"likes"`
 	Reposts            int64     `json:"reposts"`
+	Views              int64     `json:"views"`
 	ExpectedEngagement float64   `json:"expected_engagement"`
 }
 
@@ -405,6 +414,7 @@ func (q *Queries) GetPerformanceDeviationNegative(ctx context.Context, userID uu
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.ExpectedEngagement,
 		); err != nil {
 			return nil, err
@@ -445,6 +455,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -460,7 +471,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -504,6 +516,7 @@ type GetPerformanceDeviationNegativeFilteredRow struct {
 	Network            string    `json:"network"`
 	Likes              int64     `json:"likes"`
 	Reposts            int64     `json:"reposts"`
+	Views              int64     `json:"views"`
 	ExpectedEngagement float64   `json:"expected_engagement"`
 }
 
@@ -530,6 +543,7 @@ func (q *Queries) GetPerformanceDeviationNegativeFiltered(ctx context.Context, a
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.ExpectedEngagement,
 		); err != nil {
 			return nil, err
@@ -570,6 +584,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -585,7 +600,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -619,6 +635,7 @@ type GetPerformanceDeviationPositiveRow struct {
 	Network            string    `json:"network"`
 	Likes              int64     `json:"likes"`
 	Reposts            int64     `json:"reposts"`
+	Views              int64     `json:"views"`
 	ExpectedEngagement float64   `json:"expected_engagement"`
 }
 
@@ -640,6 +657,7 @@ func (q *Queries) GetPerformanceDeviationPositive(ctx context.Context, userID uu
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.ExpectedEngagement,
 		); err != nil {
 			return nil, err
@@ -680,6 +698,7 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     (
         sa.avg_engagement * LEAST(
             1.0,
@@ -695,7 +714,8 @@ FROM posts p
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -739,6 +759,7 @@ type GetPerformanceDeviationPositiveFilteredRow struct {
 	Network            string    `json:"network"`
 	Likes              int64     `json:"likes"`
 	Reposts            int64     `json:"reposts"`
+	Views              int64     `json:"views"`
 	ExpectedEngagement float64   `json:"expected_engagement"`
 }
 
@@ -765,6 +786,7 @@ func (q *Queries) GetPerformanceDeviationPositiveFiltered(ctx context.Context, a
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
 			&i.ExpectedEngagement,
 		); err != nil {
 			return nil, err

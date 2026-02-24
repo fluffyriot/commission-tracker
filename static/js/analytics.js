@@ -15,7 +15,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const loadedTabs = new Set();
     const chartInstances = {};
-    const filterState = { startDate: '', endDate: '', postTypes: null }; // postTypes null = no filter
+    const filterState = { startDate: '', endDate: '', postTypes: null, mode: 'likes' };
+
+    function isViewsMode() { return filterState.mode === 'views'; }
+    function engagementLabel() { return isViewsMode() ? 'Avg Views' : 'Avg Likes'; }
 
     function buildFilterParams() {
         const params = new URLSearchParams();
@@ -265,23 +268,26 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('hashtagsChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('hashtagsChart', 'bar', {
-                    labels: data.map(d => d.tag),
+                    labels: sorted.map(d => d.tag),
                     datasets: [{
                         label: 'Usage Count',
-                        data: data.map(d => d.usage_count),
+                        data: sorted.map(d => d.usage_count),
                         backgroundColor: colors.primary,
                         yAxisID: 'y'
                     }, {
-                        label: 'Avg Likes',
-                        data: data.map(d => d.avg_likes),
+                        label: engLbl,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primaryLight,
                         yAxisID: 'y1'
                     }]
                 }, {
                     scales: {
                         y: { position: 'left', title: { display: true, text: 'Posts Count' } },
-                        y1: { position: 'right', title: { display: true, text: 'Avg Likes' }, grid: { drawOnChartArea: false } }
+                        y1: { position: 'right', title: { display: true, text: engLbl }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
                         legend: {
@@ -300,17 +306,20 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('mentionsChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('mentionsChart', 'bar', {
-                    labels: data.map(d => d.mention),
+                    labels: sorted.map(d => d.mention),
                     datasets: [{
-                        label: 'Avg Likes',
-                        data: data.map(d => d.avg_likes),
+                        label: engLbl,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primary,
                         yAxisID: 'y',
                         order: 2
                     }, {
                         label: 'Usage Count',
-                        data: data.map(d => d.usage_count),
+                        data: sorted.map(d => d.usage_count),
                         borderColor: colors.accent,
                         backgroundColor: colors.accent,
                         type: 'line',
@@ -319,7 +328,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }]
                 }, {
                     scales: {
-                        y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
+                        y: { position: 'left', title: { display: true, text: engLbl } },
                         y1: { position: 'right', title: { display: true, text: 'Usage Count' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
@@ -339,10 +348,12 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('postTypesChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel().toLowerCase();
                 createChart('postTypesChart', 'doughnut', {
                     labels: data.map(d => ' ' + d.post_type),
                     datasets: [{
-                        data: data.map(d => d.avg_likes),
+                        data: data.map(d => d[engKey]),
                         backgroundColor: colors.highContrast
                     }]
                 }, {
@@ -357,7 +368,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const label = context.label || '';
                                     const value = context.raw || 0;
                                     const count = data[context.dataIndex].post_count;
-                                    return ` ${label}: ${value} avg likes (${count} posts)`;
+                                    return ` ${label}: ${value} ${engLbl} (${count} posts)`;
                                 }
                             }
                         }
@@ -372,17 +383,20 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('networkEfficiencyChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('networkEfficiencyChart', 'bar', {
-                    labels: data.map(d => d.network),
+                    labels: sorted.map(d => d.network),
                     datasets: [{
-                        label: 'Avg Likes per Post',
-                        data: data.map(d => d.avg_likes),
+                        label: `${engLbl} per Post`,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primary,
                         yAxisID: 'y',
                         order: 2
                     }, {
                         label: 'Post Count',
-                        data: data.map(d => d.post_count),
+                        data: sorted.map(d => d.post_count),
                         borderColor: colors.accent,
                         backgroundColor: colors.accent,
                         type: 'line',
@@ -392,7 +406,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, {
                     indexAxis: 'x',
                     scales: {
-                        y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
+                        y: { position: 'left', title: { display: true, text: engLbl } },
                         y1: { position: 'right', title: { display: true, text: 'Post Count' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
@@ -412,7 +426,10 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data) return;
-                renderHeatmap(data);
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const header = document.getElementById('timingCardHeader');
+                if (header) header.textContent = `Best Time to Post (${engagementLabel()})`;
+                renderHeatmap(data, engKey);
             });
     }
 
@@ -440,7 +457,7 @@ document.addEventListener("DOMContentLoaded", function () {
         tip.style.display = 'none';
     }
 
-    function renderHeatmap(data) {
+    function renderHeatmap(data, engKey = 'avg_likes') {
         const container = document.getElementById('heatmap-container');
         container.replaceChildren();
         if (!data || data.length === 0) { showEmptyState(container); return; }
@@ -471,9 +488,10 @@ document.addEventListener("DOMContentLoaded", function () {
         gridBody.style.gap = '2px';
 
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const maxVal = Math.max(...data.map(d => d.avg_likes));
+        const maxVal = Math.max(...data.map(d => d[engKey]));
         const dataMap = {};
-        data.forEach(d => { dataMap[`${d.day_of_week}-${d.hour_of_day}`] = d.avg_likes; });
+        data.forEach(d => { dataMap[`${d.day_of_week}-${d.hour_of_day}`] = d[engKey]; });
+        const tooltipLabel = engKey === 'avg_views' ? 'Avg Views' : 'Avg Likes';
 
         for (let d = 0; d < 7; d++) {
             const row = document.createElement('div');
@@ -501,7 +519,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     cell.style.backgroundColor = `rgba(145, 103, 228, ${intensity * 0.9 + 0.1})`;
                 }
 
-                cell.addEventListener('mousemove', (e) => showTooltip(e, `${days[d]} ${h}:00 - Avg Likes: ${Math.round(val)}`));
+                cell.addEventListener('mousemove', (e) => showTooltip(e, `${days[d]} ${h}:00 - ${tooltipLabel}: ${Math.round(val)}`));
                 cell.addEventListener('mouseleave', hideTooltip);
 
                 row.appendChild(cell);
@@ -700,7 +718,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     const netData = data.filter(d => d.network === network);
                     if (netData.length === 0) return null;
 
-                    const totalEngagement = netData.reduce((sum, d) => sum + d.likes + d.reposts, 0);
+                    const totalEngagement = isViewsMode()
+                        ? netData.reduce((sum, d) => sum + d.views, 0)
+                        : netData.reduce((sum, d) => sum + d.likes + d.reposts, 0);
                     const maxFollowers = Math.max(...netData.map(d => d.followers_count));
 
                     if (maxFollowers === 0) return null;
@@ -802,17 +822,20 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('collaborationsChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('collaborationsChart', 'bar', {
-                    labels: data.map(d => d.collaborator),
+                    labels: sorted.map(d => d.collaborator),
                     datasets: [{
-                        label: 'Avg Likes',
-                        data: data.map(d => d.avg_likes),
+                        label: engLbl,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primary,
                         yAxisID: 'y',
                         order: 2
                     }, {
                         label: 'Collaboration Count',
-                        data: data.map(d => d.collaboration_count),
+                        data: sorted.map(d => d.collaboration_count),
                         type: 'line',
                         borderColor: colors.accent,
                         backgroundColor: colors.accent,
@@ -821,7 +844,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }]
                 }, {
                     scales: {
-                        y: { title: { display: true, text: 'Avg Likes' } },
+                        y: { title: { display: true, text: engLbl } },
                         y1: { position: 'right', title: { display: true, text: 'Count' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
@@ -862,9 +885,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         row.className = 'hover:bg-white/5 transition-colors';
 
                         const date = new Date(d.created_at).toLocaleDateString();
-                        const engagement = d.likes + d.reposts;
+                        const engagement = isViewsMode() ? d.views : d.likes + d.reposts;
                         const baseline = d.expected_engagement;
-                        const deviation = d.deviation;
+                        const deviation = isViewsMode() ? d.views - d.expected_engagement : d.deviation;
 
                         const dateCell = document.createElement('td');
                         dateCell.className = 'p-2 border-b border-white/10 text-sm text-gray-400';
@@ -939,6 +962,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 const posts = {};
                 const postDetails = {};
 
+                const viewsMode = isViewsMode();
+
                 data.forEach(d => {
                     if (!posts[d.post_id]) {
                         posts[d.post_id] = {
@@ -951,23 +976,41 @@ document.addEventListener("DOMContentLoaded", function () {
                             content: d.content,
                             likes: d.likes,
                             reposts: d.reposts,
+                            views: d.views,
                             url: d.url
                         };
                     }
 
                     if (d.likes > postDetails[d.post_id].likes) postDetails[d.post_id].likes = d.likes;
                     if (d.reposts > postDetails[d.post_id].reposts) postDetails[d.post_id].reposts = d.reposts;
+                    if (d.views > postDetails[d.post_id].views) postDetails[d.post_id].views = d.views;
 
                     posts[d.post_id].history.push({
                         t: new Date(d.history_synced_at),
-                        engagement: d.likes + d.reposts
+                        engagement: viewsMode ? d.views : d.likes + d.reposts
                     });
                 });
 
                 const tbody = document.querySelector('#velocityTable tbody');
                 tbody.replaceChildren();
 
-                const sortedDetails = Object.values(postDetails).sort((a, b) => (b.likes + b.reposts) - (a.likes + a.reposts)).slice(0, 7);
+                const velocityThead = document.querySelector('#velocityTable thead tr');
+                if (velocityThead) {
+                    const ths = velocityThead.querySelectorAll('th');
+                    if (viewsMode) {
+                        if (ths[2]) ths[2].textContent = 'Views';
+                        if (ths[3]) ths[3].textContent = '';
+                        if (ths[4]) ths[4].textContent = 'Total';
+                    } else {
+                        if (ths[2]) ths[2].textContent = 'Likes';
+                        if (ths[3]) ths[3].textContent = 'Reposts';
+                        if (ths[4]) ths[4].textContent = 'Total';
+                    }
+                }
+
+                const sortedDetails = viewsMode
+                    ? Object.values(postDetails).sort((a, b) => b.views - a.views).slice(0, 7)
+                    : Object.values(postDetails).sort((a, b) => (b.likes + b.reposts) - (a.likes + a.reposts)).slice(0, 7);
 
                 sortedDetails.forEach(p => {
                     const row = document.createElement('tr');
@@ -995,17 +1038,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const likesCell = document.createElement('td');
                     likesCell.className = 'p-2 border-b border-white/10 text-sm';
-                    likesCell.textContent = p.likes;
+                    likesCell.textContent = viewsMode ? p.views : p.likes;
                     row.appendChild(likesCell);
 
                     const repostsCell = document.createElement('td');
                     repostsCell.className = 'p-2 border-b border-white/10 text-sm';
-                    repostsCell.textContent = p.reposts;
+                    repostsCell.textContent = viewsMode ? '' : p.reposts;
                     row.appendChild(repostsCell);
 
                     const totalCell = document.createElement('td');
                     totalCell.className = 'p-2 border-b border-white/10 text-sm font-bold';
-                    totalCell.textContent = p.likes + p.reposts;
+                    totalCell.textContent = viewsMode ? p.views : p.likes + p.reposts;
                     row.appendChild(totalCell);
 
                     tbody.appendChild(row);
@@ -1038,7 +1081,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, {
                     scales: {
                         x: { type: 'linear', title: { display: true, text: 'Hours since posted' } },
-                        y: { title: { display: true, text: 'Total Engagement' } }
+                        y: { title: { display: true, text: viewsMode ? 'Total Views' : 'Total Engagement' } }
                     },
                     plugins: {
                         legend: {
@@ -1058,10 +1101,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             });
     }
-
-    // ── Filter UI ──────────────────────────────────────────────────────────
-
-    const ALL_POST_TYPES = ['post', 'image', 'video', 'thread', 'album', 'quote', 'repost', 'tag'];
+    const ALL_POST_TYPES = ['post', 'image', 'video', 'broadcast', 'thread', 'album', 'quote', 'repost', 'tag'];
 
     function updateDateBtnState() {
         const btn = document.getElementById('analyticsDateBtn');
@@ -1103,7 +1143,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Populate post type checkboxes
     const ptContainer = document.getElementById('analyticsPostTypesOptions');
     if (ptContainer) {
         ALL_POST_TYPES.forEach(pt => {
@@ -1114,35 +1153,46 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Date dropdown toggle
     const dateBtn = document.getElementById('analyticsDateBtn');
     const dateMenu = document.getElementById('analyticsDateMenu');
     const ptBtn = document.getElementById('analyticsPostTypesBtn');
     const ptMenu = document.getElementById('analyticsPostTypesMenu');
+    const modeBtn = document.getElementById('analyticsModeBtn');
+    const modeMenu = document.getElementById('analyticsModeMenu');
 
     function closeAllFilterDropdowns() {
         dateMenu && dateMenu.classList.remove('show');
         ptMenu && ptMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.remove('show');
     }
 
     dateBtn && dateBtn.addEventListener('click', e => {
         e.stopPropagation();
         ptMenu && ptMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.remove('show');
         dateMenu && dateMenu.classList.toggle('show');
     });
 
     ptBtn && ptBtn.addEventListener('click', e => {
         e.stopPropagation();
         dateMenu && dateMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.remove('show');
         ptMenu && ptMenu.classList.toggle('show');
+    });
+
+    modeBtn && modeBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        dateMenu && dateMenu.classList.remove('show');
+        ptMenu && ptMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.toggle('show');
     });
 
     dateMenu && dateMenu.addEventListener('click', e => e.stopPropagation());
     ptMenu && ptMenu.addEventListener('click', e => e.stopPropagation());
+    modeMenu && modeMenu.addEventListener('click', e => e.stopPropagation());
 
     document.addEventListener('click', closeAllFilterDropdowns);
 
-    // Date suggestions
     document.querySelectorAll('.analytics-date-suggestion').forEach(btn => {
         btn.addEventListener('click', () => {
             const { start, end } = getDateRange(btn.dataset.range);
@@ -1151,7 +1201,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Apply dates
     document.getElementById('analyticsApplyDates') && document.getElementById('analyticsApplyDates').addEventListener('click', () => {
         filterState.startDate = document.getElementById('analyticsStartDate').value;
         filterState.endDate = document.getElementById('analyticsEndDate').value;
@@ -1160,7 +1209,6 @@ document.addEventListener("DOMContentLoaded", function () {
         applyGlobalFilters();
     });
 
-    // Clear dates
     document.getElementById('analyticsClearDates') && document.getElementById('analyticsClearDates').addEventListener('click', () => {
         document.getElementById('analyticsStartDate').value = '';
         document.getElementById('analyticsEndDate').value = '';
@@ -1171,7 +1219,6 @@ document.addEventListener("DOMContentLoaded", function () {
         applyGlobalFilters();
     });
 
-    // Post types select all / none
     document.getElementById('analyticsPostTypesSelectAll') && document.getElementById('analyticsPostTypesSelectAll').addEventListener('click', () => {
         document.querySelectorAll('.analytics-pt-check').forEach(cb => cb.checked = true);
     });
@@ -1180,13 +1227,30 @@ document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll('.analytics-pt-check').forEach(cb => cb.checked = false);
     });
 
-    // Apply post types
     document.getElementById('analyticsApplyPostTypes') && document.getElementById('analyticsApplyPostTypes').addEventListener('click', () => {
         const checked = [...document.querySelectorAll('.analytics-pt-check:checked')].map(cb => cb.value);
-        // null = no filter (all selected), otherwise set the list
         filterState.postTypes = (checked.length === ALL_POST_TYPES.length) ? null : checked;
         closeAllFilterDropdowns();
         updatePostTypesBtnState();
         applyGlobalFilters();
+    });
+
+    function updateModeBtnState() {
+        if (!modeBtn) return;
+        const views = isViewsMode();
+        modeBtn.classList.toggle('btn-primary', views);
+        modeBtn.classList.toggle('btn-secondary', !views);
+        const label = document.getElementById('analyticsModeLabel');
+        if (label) label.textContent = `Mode: ${views ? 'Views' : 'Likes'}`;
+    }
+
+    document.getElementById('analyticsApplyMode') && document.getElementById('analyticsApplyMode').addEventListener('click', () => {
+        const selected = document.querySelector('.analytics-mode-radio:checked');
+        if (selected && selected.value !== filterState.mode) {
+            filterState.mode = selected.value;
+            updateModeBtnState();
+            applyGlobalFilters();
+        }
+        closeAllFilterDropdowns();
     });
 });

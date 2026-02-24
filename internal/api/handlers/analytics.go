@@ -497,6 +497,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 				Network:            r.Network,
 				Likes:              r.Likes,
 				Reposts:            r.Reposts,
+				Views:              r.Views,
 				ExpectedEngagement: r.ExpectedEngagement,
 			})
 		}
@@ -521,6 +522,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 				Network:            r.Network,
 				Likes:              r.Likes,
 				Reposts:            r.Reposts,
+				Views:              r.Views,
 				ExpectedEngagement: r.ExpectedEngagement,
 			})
 		}
@@ -548,6 +550,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 		Network            string      `json:"network"`
 		Likes              int64       `json:"likes"`
 		Reposts            int64       `json:"reposts"`
+		Views              int64       `json:"views"`
 		ExpectedEngagement float64     `json:"expected_engagement"`
 		URL                string      `json:"url"`
 		Deviation          float64     `json:"deviation"`
@@ -568,6 +571,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 			Network:            item.Network,
 			Likes:              item.Likes,
 			Reposts:            item.Reposts,
+			Views:              item.Views,
 			ExpectedEngagement: item.ExpectedEngagement,
 			URL:                url,
 			Deviation:          float64(item.Likes+item.Reposts) - item.ExpectedEngagement,
@@ -589,6 +593,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 			Network:            item.Network,
 			Likes:              item.Likes,
 			Reposts:            item.Reposts,
+			Views:              item.Views,
 			ExpectedEngagement: item.ExpectedEngagement,
 			URL:                url,
 			Deviation:          float64(item.Likes+item.Reposts) - item.ExpectedEngagement,
@@ -611,16 +616,17 @@ func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
 	f := parseAnalyticsFilters(c, user.ID)
 
 	type VelocityItem struct {
-		PostID          interface{} `json:"post_id"`
-		HistorySyncedAt interface{} `json:"history_synced_at"`
-		Likes           int64       `json:"likes"`
-		Reposts         int64       `json:"reposts"`
-		PostCreatedAt   interface{} `json:"post_created_at"`
-		Content         string      `json:"content"`
-		Author          string      `json:"author"`
-		NetworkInternalID string    `json:"network_internal_id"`
-		Network         string      `json:"network"`
-		URL             string      `json:"url"`
+		PostID            interface{} `json:"post_id"`
+		HistorySyncedAt   interface{} `json:"history_synced_at"`
+		Likes             int64       `json:"likes"`
+		Reposts           int64       `json:"reposts"`
+		Views             int64       `json:"views"`
+		PostCreatedAt     interface{} `json:"post_created_at"`
+		Content           string      `json:"content"`
+		Author            string      `json:"author"`
+		NetworkInternalID string      `json:"network_internal_id"`
+		Network           string      `json:"network"`
+		URL               string      `json:"url"`
 	}
 
 	var items []VelocityItem
@@ -643,7 +649,7 @@ func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
 			if d.Network != "" && d.Author != "" {
 				url, _ = helpers.ConvPostToURL(d.Network, d.Author, d.NetworkInternalID)
 			}
-			items[i] = VelocityItem{d.PostID, d.HistorySyncedAt, d.Likes, d.Reposts, d.PostCreatedAt, d.Content, d.Author, d.NetworkInternalID, d.Network, url}
+			items[i] = VelocityItem{d.PostID, d.HistorySyncedAt, d.Likes, d.Reposts, d.Views, d.PostCreatedAt, d.Content, d.Author, d.NetworkInternalID, d.Network, url}
 		}
 	} else {
 		data, err := h.DB.GetEngagementVelocityData(c.Request.Context(), user.ID)
@@ -658,7 +664,7 @@ func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
 			if d.Network != "" && d.Author != "" {
 				url, _ = helpers.ConvPostToURL(d.Network, d.Author, d.NetworkInternalID)
 			}
-			items[i] = VelocityItem{d.PostID, d.HistorySyncedAt, d.Likes, d.Reposts, d.PostCreatedAt, d.Content, d.Author, d.NetworkInternalID, d.Network, url}
+			items[i] = VelocityItem{d.PostID, d.HistorySyncedAt, d.Likes, d.Reposts, d.Views, d.PostCreatedAt, d.Content, d.Author, d.NetworkInternalID, d.Network, url}
 		}
 	}
 

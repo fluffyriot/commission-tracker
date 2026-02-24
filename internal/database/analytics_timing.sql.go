@@ -115,12 +115,14 @@ SELECT EXTRACT(
         HOUR
         FROM p.created_at
     )::INT as hour_of_day,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -136,6 +138,7 @@ type GetTimePerformanceRow struct {
 	DayOfWeek int32 `json:"day_of_week"`
 	HourOfDay int32 `json:"hour_of_day"`
 	AvgLikes  int64 `json:"avg_likes"`
+	AvgViews  int64 `json:"avg_views"`
 }
 
 func (q *Queries) GetTimePerformance(ctx context.Context, userID uuid.UUID) ([]GetTimePerformanceRow, error) {
@@ -147,7 +150,12 @@ func (q *Queries) GetTimePerformance(ctx context.Context, userID uuid.UUID) ([]G
 	var items []GetTimePerformanceRow
 	for rows.Next() {
 		var i GetTimePerformanceRow
-		if err := rows.Scan(&i.DayOfWeek, &i.HourOfDay, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.DayOfWeek,
+			&i.HourOfDay,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -170,12 +178,14 @@ SELECT EXTRACT(
         HOUR
         FROM p.created_at
     )::INT as hour_of_day,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -201,6 +211,7 @@ type GetTimePerformanceFilteredRow struct {
 	DayOfWeek int32 `json:"day_of_week"`
 	HourOfDay int32 `json:"hour_of_day"`
 	AvgLikes  int64 `json:"avg_likes"`
+	AvgViews  int64 `json:"avg_views"`
 }
 
 func (q *Queries) GetTimePerformanceFiltered(ctx context.Context, arg GetTimePerformanceFilteredParams) ([]GetTimePerformanceFilteredRow, error) {
@@ -217,7 +228,12 @@ func (q *Queries) GetTimePerformanceFiltered(ctx context.Context, arg GetTimePer
 	var items []GetTimePerformanceFilteredRow
 	for rows.Next() {
 		var i GetTimePerformanceFilteredRow
-		if err := rows.Scan(&i.DayOfWeek, &i.HourOfDay, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.DayOfWeek,
+			&i.HourOfDay,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

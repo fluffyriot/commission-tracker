@@ -1,12 +1,14 @@
 -- name: GetGlobalPostTypeAnalytics :many
 SELECT post_type,
     count(*) as post_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -18,13 +20,15 @@ ORDER BY avg_likes DESC;
 SELECT s.network,
     count(*) as post_count,
     COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts
+    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -43,7 +47,8 @@ SELECT regexp_replace(
         'g'
     ) as mention,
     count(*) as usage_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM (
         SELECT regexp_split_to_table(lower(content), '\s+') as word,
             posts.id as post_id
@@ -54,7 +59,8 @@ FROM (
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -77,15 +83,18 @@ LIMIT 20;
 -- name: GetCollaborationsData :many
 SELECT collaborator,
     COUNT(*) as collaboration_count,
-    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
 FROM (
         SELECT p.author as collaborator,
-            COALESCE(prh.likes, 0) as likes
+            COALESCE(prh.likes, 0) as likes,
+            COALESCE(prh.views, 0) as views
         FROM posts p
             JOIN sources s ON p.source_id = s.id
             LEFT JOIN (
                 SELECT DISTINCT ON (post_id) post_id,
-                    likes
+                    likes,
+                    views
                 FROM posts_reactions_history
                 ORDER BY post_id,
                     synced_at DESC
@@ -105,13 +114,15 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     COALESCE(ss.followers_count, 0)::BIGINT as followers_count
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -146,12 +157,14 @@ WHERE s.user_id = $1
 -- name: GetGlobalPostTypeAnalyticsFiltered :many
 SELECT post_type,
     count(*) as post_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -166,13 +179,15 @@ ORDER BY avg_likes DESC;
 SELECT s.network,
     count(*) as post_count,
     COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts
+    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -194,7 +209,8 @@ SELECT regexp_replace(
         'g'
     ) as mention,
     count(*) as usage_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM (
         SELECT regexp_split_to_table(lower(content), '\s+') as word,
             posts.id as post_id
@@ -208,7 +224,8 @@ FROM (
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -231,15 +248,18 @@ LIMIT 20;
 -- name: GetCollaborationsDataFiltered :many
 SELECT collaborator,
     COUNT(*) as collaboration_count,
-    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
 FROM (
         SELECT p.author as collaborator,
-            COALESCE(prh.likes, 0) as likes
+            COALESCE(prh.likes, 0) as likes,
+            COALESCE(prh.views, 0) as views
         FROM posts p
             JOIN sources s ON p.source_id = s.id
             LEFT JOIN (
                 SELECT DISTINCT ON (post_id) post_id,
-                    likes
+                    likes,
+                    views
                 FROM posts_reactions_history
                 ORDER BY post_id,
                     synced_at DESC
@@ -261,13 +281,15 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     COALESCE(ss.followers_count, 0)::BIGINT as followers_count
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
