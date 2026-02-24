@@ -3,6 +3,7 @@ package sources
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -21,6 +22,17 @@ import (
 	"github.com/fluffyriot/rpsync/internal/fetcher/common"
 	"github.com/google/uuid"
 )
+
+var redditHTTPClient = &http.Client{
+	Timeout: 30 * time.Second,
+	Transport: &http.Transport{
+		TLSNextProto:    make(map[string]func(string, *tls.Conn) http.RoundTripper),
+		DisableKeepAlives: true,
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
+	},
+}
 
 type redditListing struct {
 	Data struct {
@@ -62,7 +74,7 @@ func getRedditDetails(ctx context.Context, dbQueries *database.Queries, encrypti
 	return username, subreddits, nil
 }
 
-func fetchRedditFollowers(username, userAgent string, c *common.Client) int {
+func fetchRedditFollowers(username, userAgent string) int {
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.reddit.com/user/%s/", username), nil)
 	if err != nil {
 		log.Printf("Reddit: failed to build followers request: %v", err)
@@ -70,8 +82,10 @@ func fetchRedditFollowers(username, userAgent string, c *common.Client) int {
 	}
 
 	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := redditHTTPClient.Do(req)
 	if err != nil {
 		log.Printf("Reddit: failed to fetch profile page: %v", err)
 		return 0
@@ -159,7 +173,7 @@ func handleSubredditChanges(ctx context.Context, dbQueries *database.Queries, so
 	}
 }
 
-func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceId uuid.UUID, c *common.Client) error {
+func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceId uuid.UUID, _ *common.Client) error {
 	ctx := context.Background()
 
 	username, subreddits, err := getRedditDetails(ctx, dbQueries, encryptionKey, sourceId)
@@ -169,7 +183,7 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 
 	handleSubredditChanges(ctx, dbQueries, sourceId, subreddits)
 
-	userAgent := fmt.Sprintf("RPSync/%s (by riotphotos)", config.AppVersion)
+	userAgent := fmt.Sprintf("rpsync.net:%s (for /u/%s)", config.AppVersion, username)
 
 	exclusionMap, err := common.LoadExclusionMap(dbQueries, sourceId)
 	if err != nil {
@@ -186,7 +200,7 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 	const maxPages = 500
 
 	for page := 0; page < maxPages; page++ {
-		time.Sleep(2 * time.Second)
+		time.Sleep(3 * time.Second)
 
 		apiURL := fmt.Sprintf("https://www.reddit.com/user/%s/submitted.json?limit=100&raw_json=1", username)
 		if after != "" {
@@ -199,8 +213,10 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 		}
 
 		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set("Accept", "application/json, */*;q=0.9")
+		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 
-		resp, err := c.HTTPClient.Do(req)
+		resp, err := redditHTTPClient.Do(req)
 		if err != nil {
 			return err
 		}
@@ -212,9 +228,27 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 		}
 
 		if resp.StatusCode == 429 {
-			log.Printf("Reddit: rate limited, waiting 30s")
-			time.Sleep(30 * time.Second)
+			wait := 60 * time.Second
+			if ra := resp.Header.Get("Retry-After"); ra != "" {
+				if secs, err := strconv.ParseFloat(ra, 64); err == nil && secs > 0 {
+					wait = time.Duration(secs+5) * time.Second
+				}
+			}
+			log.Printf("Reddit: rate limited, waiting %s", wait)
+			time.Sleep(wait)
 			continue
+		}
+
+		if remaining := resp.Header.Get("X-Ratelimit-Remaining"); remaining != "" {
+			if r, err := strconv.ParseFloat(remaining, 64); err == nil && r < 5 {
+				reset := resp.Header.Get("X-Ratelimit-Reset")
+				wait := 10 * time.Second
+				if secs, err := strconv.ParseFloat(reset, 64); err == nil && secs > 0 {
+					wait = time.Duration(secs+1) * time.Second
+				}
+				log.Printf("Reddit: rate limit budget low (%.0f remaining), waiting %s", r, wait)
+				time.Sleep(wait)
+			}
 		}
 
 		if resp.StatusCode != 200 {
@@ -310,7 +344,7 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 	if err != nil {
 		log.Printf("Reddit: Failed to calculate average stats: %v", err)
 	} else {
-		followers := fetchRedditFollowers(username, userAgent, c)
+		followers := fetchRedditFollowers(username, userAgent)
 		if followers > 0 {
 			avgStats.FollowersCount = &followers
 		}
