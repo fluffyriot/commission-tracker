@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
-	github.com/bwmarrin/discordgo v0.28.1
+	github.com/bwmarrin/discordgo v0.29.0
 	github.com/chromedp/cdproto v0.0.0-20250724212937-08a3db8b4327
 	github.com/chromedp/chromedp v0.14.2
 	github.com/gen2brain/webp v0.5.5
