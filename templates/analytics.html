@@ -5,27 +5,9 @@
         <h1>Analytics</h1>
     </div>
     <div class="flex gap-2 items-end">
-        <div class="dropdown" id="analyticsModeDropdown">
-            <button class="btn btn-secondary btn-icon" id="analyticsModeBtn" type="button">
-                <i data-lucide="gauge"></i> <span id="analyticsModeLabel">Mode: Likes</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
-            </button>
-            <div class="filter-dropdown p-3" id="analyticsModeMenu" style="min-width: 150px">
-                <div id="analyticsModeOptions">
-                    <label class="flex items-center gap-2 py-1 cursor-pointer">
-                        <input type="radio" name="analyticsMode" class="analytics-mode-radio" value="likes" checked> Likes
-                    </label>
-                    <label class="flex items-center gap-2 py-1 cursor-pointer">
-                        <input type="radio" name="analyticsMode" class="analytics-mode-radio" value="views"> Views
-                    </label>
-                </div>
-                <div class="flex justify-end mt-2">
-                    <button class="btn btn-sm btn-primary" id="analyticsApplyMode">Apply</button>
-                </div>
-            </div>
-        </div>
         <div class="dropdown" id="analyticsDateDropdown">
             <button class="btn btn-secondary btn-icon" id="analyticsDateBtn" type="button">
-                <i data-lucide="calendar"></i> <span id="analyticsDateLabel">Dates</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+                <i data-lucide="calendar"></i> <span class="filter-btn-label" id="analyticsDateLabel">Dates</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
             </button>
             <div class="filter-dropdown date-filter-dropdown p-3" id="analyticsDateMenu">
                 <div class="mb-4">
@@ -60,7 +42,7 @@
         </div>
         <div class="dropdown" id="analyticsPostTypesDropdown">
             <button class="btn btn-secondary btn-icon" id="analyticsPostTypesBtn" type="button">
-                <i data-lucide="layers"></i> <span id="analyticsPostTypesLabel">Post Types</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+                <i data-lucide="layers"></i> <span class="filter-btn-label" id="analyticsPostTypesLabel">Post Types</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
             </button>
             <div class="filter-dropdown p-3" id="analyticsPostTypesMenu" style="min-width: 180px">
                 <div class="flex justify-between mb-2">
@@ -70,6 +52,24 @@
                 <div id="analyticsPostTypesOptions"></div>
                 <div class="flex justify-end mt-2">
                     <button class="btn btn-sm btn-primary" id="analyticsApplyPostTypes">Apply</button>
+                </div>
+            </div>
+        </div>
+        <div class="dropdown" id="analyticsModeDropdown">
+            <button class="btn btn-secondary btn-icon" id="analyticsModeBtn" type="button">
+                <i data-lucide="gauge"></i> <span class="filter-btn-label" id="analyticsModeLabel">Mode: Likes</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown p-3" id="analyticsModeMenu" style="min-width: 150px">
+                <div id="analyticsModeOptions">
+                    <label class="flex items-center gap-2 py-1 cursor-pointer">
+                        <input type="radio" name="analyticsMode" class="analytics-mode-radio" value="likes" checked> Likes
+                    </label>
+                    <label class="flex items-center gap-2 py-1 cursor-pointer">
+                        <input type="radio" name="analyticsMode" class="analytics-mode-radio" value="views"> Views
+                    </label>
+                </div>
+                <div class="flex justify-end mt-2">
+                    <button class="btn btn-sm btn-primary" id="analyticsApplyMode">Apply</button>
                 </div>
             </div>
         </div>

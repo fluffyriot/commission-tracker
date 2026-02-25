@@ -523,6 +523,12 @@ a:hover {
   border-radius: var(--radius-sm);
 }
 
+@media (max-width: 768px) {
+  .filter-btn-label {
+    display: none;
+  }
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

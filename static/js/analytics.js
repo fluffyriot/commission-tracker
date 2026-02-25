@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (filterState.postTypes !== null && filterState.postTypes.length > 0) {
             params.set('post_types', filterState.postTypes.join(','));
         }
+        if (filterState.mode === 'views') params.set('mode', 'views');
         return params;
     }
 

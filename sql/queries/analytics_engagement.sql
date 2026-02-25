@@ -47,8 +47,7 @@ SELECT regexp_replace(
         'g'
     ) as mention,
     count(*) as usage_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
 FROM (
         SELECT regexp_split_to_table(lower(content), '\s+') as word,
             posts.id as post_id
@@ -59,8 +58,7 @@ FROM (
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes,
-            views
+            likes
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -80,21 +78,60 @@ HAVING length(
     ) > 1
 ORDER BY avg_likes DESC
 LIMIT 20;
+-- name: GetMentionsAnalyticsViews :many
+SELECT regexp_replace(
+        substring(
+            word
+            from 2
+        ),
+        '[^a-z0-9_.]',
+        '',
+        'g'
+    ) as mention,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM (
+        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+WHERE word LIKE '@%'
+GROUP BY mention
+HAVING length(
+        regexp_replace(
+            substring(
+                word
+                from 2
+            ),
+            '[^a-z0-9_.]',
+            '',
+            'g'
+        )
+    ) > 1
+ORDER BY avg_views DESC
+LIMIT 20;
 -- name: GetCollaborationsData :many
 SELECT collaborator,
     COUNT(*) as collaboration_count,
-    COALESCE(AVG(likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(views), 0)::BIGINT as avg_views
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
 FROM (
         SELECT p.author as collaborator,
-            COALESCE(prh.likes, 0) as likes,
-            COALESCE(prh.views, 0) as views
+            COALESCE(prh.likes, 0) as likes
         FROM posts p
             JOIN sources s ON p.source_id = s.id
             LEFT JOIN (
                 SELECT DISTINCT ON (post_id) post_id,
-                    likes,
-                    views
+                    likes
                 FROM posts_reactions_history
                 ORDER BY post_id,
                     synced_at DESC
@@ -106,6 +143,30 @@ FROM (
     ) combined_collaborations
 GROUP BY collaborator
 ORDER BY avg_likes DESC
+LIMIT 50;
+-- name: GetCollaborationsDataViews :many
+SELECT collaborator,
+    COUNT(*) as collaboration_count,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
+FROM (
+        SELECT p.author as collaborator,
+            COALESCE(prh.views, 0) as views
+        FROM posts p
+            JOIN sources s ON p.source_id = s.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (post_id) post_id,
+                    views
+                FROM posts_reactions_history
+                ORDER BY post_id,
+                    synced_at DESC
+            ) prh ON p.id = prh.post_id
+        WHERE s.user_id = $1
+            AND p.post_type IN ('repost', 'tag')
+            AND p.author IS NOT NULL
+            AND p.author != ''
+    ) combined_collaborations
+GROUP BY collaborator
+ORDER BY avg_views DESC
 LIMIT 50;
 -- name: GetEngagementRateData :many
 SELECT p.id,
@@ -209,8 +270,7 @@ SELECT regexp_replace(
         'g'
     ) as mention,
     count(*) as usage_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
 FROM (
         SELECT regexp_split_to_table(lower(content), '\s+') as word,
             posts.id as post_id
@@ -224,8 +284,7 @@ FROM (
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes,
-            views
+            likes
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -245,21 +304,63 @@ HAVING length(
     ) > 1
 ORDER BY avg_likes DESC
 LIMIT 20;
+-- name: GetMentionsAnalyticsViewsFiltered :many
+SELECT regexp_replace(
+        substring(
+            word
+            from 2
+        ),
+        '[^a-z0-9_.]',
+        '',
+        'g'
+    ) as mention,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM (
+        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = @user_id
+            AND content IS NOT NULL
+            AND (sqlc.narg('start_date')::date IS NULL OR posts.created_at >= sqlc.narg('start_date')::date)
+            AND (sqlc.narg('end_date')::date IS NULL OR posts.created_at < sqlc.narg('end_date')::date + INTERVAL '1 day')
+            AND (array_length(@post_types::text[], 1) IS NULL OR posts.post_type = ANY(@post_types::text[]))
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+WHERE word LIKE '@%'
+GROUP BY mention
+HAVING length(
+        regexp_replace(
+            substring(
+                word
+                from 2
+            ),
+            '[^a-z0-9_.]',
+            '',
+            'g'
+        )
+    ) > 1
+ORDER BY avg_views DESC
+LIMIT 20;
 -- name: GetCollaborationsDataFiltered :many
 SELECT collaborator,
     COUNT(*) as collaboration_count,
-    COALESCE(AVG(likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(views), 0)::BIGINT as avg_views
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
 FROM (
         SELECT p.author as collaborator,
-            COALESCE(prh.likes, 0) as likes,
-            COALESCE(prh.views, 0) as views
+            COALESCE(prh.likes, 0) as likes
         FROM posts p
             JOIN sources s ON p.source_id = s.id
             LEFT JOIN (
                 SELECT DISTINCT ON (post_id) post_id,
-                    likes,
-                    views
+                    likes
                 FROM posts_reactions_history
                 ORDER BY post_id,
                     synced_at DESC
@@ -273,6 +374,32 @@ FROM (
     ) combined_collaborations
 GROUP BY collaborator
 ORDER BY avg_likes DESC
+LIMIT 50;
+-- name: GetCollaborationsDataViewsFiltered :many
+SELECT collaborator,
+    COUNT(*) as collaboration_count,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
+FROM (
+        SELECT p.author as collaborator,
+            COALESCE(prh.views, 0) as views
+        FROM posts p
+            JOIN sources s ON p.source_id = s.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (post_id) post_id,
+                    views
+                FROM posts_reactions_history
+                ORDER BY post_id,
+                    synced_at DESC
+            ) prh ON p.id = prh.post_id
+        WHERE s.user_id = @user_id
+            AND p.post_type IN ('repost', 'tag')
+            AND p.author IS NOT NULL
+            AND p.author != ''
+            AND (sqlc.narg('start_date')::date IS NULL OR p.created_at >= sqlc.narg('start_date')::date)
+            AND (sqlc.narg('end_date')::date IS NULL OR p.created_at < sqlc.narg('end_date')::date + INTERVAL '1 day')
+    ) combined_collaborations
+GROUP BY collaborator
+ORDER BY avg_views DESC
 LIMIT 50;
 -- name: GetEngagementRateDataFiltered :many
 SELECT p.id,

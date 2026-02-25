@@ -201,17 +201,31 @@ func (h *Handler) AnalyticsHashtagsHandler(c *gin.Context) {
 	}
 
 	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
 	var data interface{}
 	var err error
 	if f.HasFilter {
-		data, err = h.DB.GetHashtagAnalyticsFiltered(c.Request.Context(), database.GetHashtagAnalyticsFilteredParams{
-			UserID:    f.UserID,
-			StartDate: f.StartDate,
-			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
-		})
+		if viewsMode {
+			data, err = h.DB.GetHashtagAnalyticsViewsFiltered(c.Request.Context(), database.GetHashtagAnalyticsViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		} else {
+			data, err = h.DB.GetHashtagAnalyticsFiltered(c.Request.Context(), database.GetHashtagAnalyticsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		}
 	} else {
-		data, err = h.DB.GetHashtagAnalytics(c.Request.Context(), user.ID)
+		if viewsMode {
+			data, err = h.DB.GetHashtagAnalyticsViews(c.Request.Context(), user.ID)
+		} else {
+			data, err = h.DB.GetHashtagAnalytics(c.Request.Context(), user.ID)
+		}
 	}
 	if err != nil {
 		log.Printf("Error getting hashtags data: %v", err)
@@ -229,17 +243,31 @@ func (h *Handler) AnalyticsMentionsHandler(c *gin.Context) {
 	}
 
 	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
 	var data interface{}
 	var err error
 	if f.HasFilter {
-		data, err = h.DB.GetMentionsAnalyticsFiltered(c.Request.Context(), database.GetMentionsAnalyticsFilteredParams{
-			UserID:    f.UserID,
-			StartDate: f.StartDate,
-			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
-		})
+		if viewsMode {
+			data, err = h.DB.GetMentionsAnalyticsViewsFiltered(c.Request.Context(), database.GetMentionsAnalyticsViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		} else {
+			data, err = h.DB.GetMentionsAnalyticsFiltered(c.Request.Context(), database.GetMentionsAnalyticsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		}
 	} else {
-		data, err = h.DB.GetMentionsAnalytics(c.Request.Context(), user.ID)
+		if viewsMode {
+			data, err = h.DB.GetMentionsAnalyticsViews(c.Request.Context(), user.ID)
+		} else {
+			data, err = h.DB.GetMentionsAnalytics(c.Request.Context(), user.ID)
+		}
 	}
 	if err != nil {
 		log.Printf("Error getting mentions data: %v", err)
@@ -470,76 +498,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 	}
 
 	f := parseAnalyticsFilters(c, user.ID)
-
-	var positiveData []database.GetPerformanceDeviationPositiveRow
-	var negativeData []database.GetPerformanceDeviationNegativeRow
-	var err error
-
-	if f.HasFilter {
-		rawPos, e := h.DB.GetPerformanceDeviationPositiveFiltered(c.Request.Context(), database.GetPerformanceDeviationPositiveFilteredParams{
-			UserID:    f.UserID,
-			StartDate: f.StartDate,
-			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
-		})
-		if e != nil {
-			log.Printf("Error getting performance deviation positive data: %v", e)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
-			return
-		}
-		for _, r := range rawPos {
-			positiveData = append(positiveData, database.GetPerformanceDeviationPositiveRow{
-				ID:                 r.ID,
-				NetworkInternalID:  r.NetworkInternalID,
-				Content:            r.Content,
-				CreatedAt:          r.CreatedAt,
-				Author:             r.Author,
-				Network:            r.Network,
-				Likes:              r.Likes,
-				Reposts:            r.Reposts,
-				Views:              r.Views,
-				ExpectedEngagement: r.ExpectedEngagement,
-			})
-		}
-		rawNeg, e := h.DB.GetPerformanceDeviationNegativeFiltered(c.Request.Context(), database.GetPerformanceDeviationNegativeFilteredParams{
-			UserID:    f.UserID,
-			StartDate: f.StartDate,
-			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
-		})
-		if e != nil {
-			log.Printf("Error getting performance deviation negative data: %v", e)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
-			return
-		}
-		for _, r := range rawNeg {
-			negativeData = append(negativeData, database.GetPerformanceDeviationNegativeRow{
-				ID:                 r.ID,
-				NetworkInternalID:  r.NetworkInternalID,
-				Content:            r.Content,
-				CreatedAt:          r.CreatedAt,
-				Author:             r.Author,
-				Network:            r.Network,
-				Likes:              r.Likes,
-				Reposts:            r.Reposts,
-				Views:              r.Views,
-				ExpectedEngagement: r.ExpectedEngagement,
-			})
-		}
-	} else {
-		positiveData, err = h.DB.GetPerformanceDeviationPositive(c.Request.Context(), user.ID)
-		if err != nil {
-			log.Printf("Error getting performance deviation positive data: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		negativeData, err = h.DB.GetPerformanceDeviationNegative(c.Request.Context(), user.ID)
-		if err != nil {
-			log.Printf("Error getting performance deviation negative data: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-	}
+	viewsMode := c.Query("mode") == "views"
 
 	type DeviationItem struct {
 		ID                 interface{} `json:"id"`
@@ -556,48 +515,154 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 		Deviation          float64     `json:"deviation"`
 	}
 
-	var positive []DeviationItem
-	for _, item := range positiveData {
-		url := ""
-		if item.Network != "" && item.Author != "" {
-			url, _ = helpers.ConvPostToURL(item.Network, item.Author, item.NetworkInternalID)
+	buildURL := func(network, author, networkInternalID string) string {
+		if network == "" || author == "" {
+			return ""
 		}
-		positive = append(positive, DeviationItem{
-			ID:                 item.ID,
-			NetworkInternalID:  item.NetworkInternalID,
-			Content:            item.Content,
-			CreatedAt:          item.CreatedAt,
-			Author:             item.Author,
-			Network:            item.Network,
-			Likes:              item.Likes,
-			Reposts:            item.Reposts,
-			Views:              item.Views,
-			ExpectedEngagement: item.ExpectedEngagement,
-			URL:                url,
-			Deviation:          float64(item.Likes+item.Reposts) - item.ExpectedEngagement,
-		})
+		u, _ := helpers.ConvPostToURL(network, author, networkInternalID)
+		return u
 	}
 
-	var negative []DeviationItem
-	for _, item := range negativeData {
-		url := ""
-		if item.Network != "" && item.Author != "" {
-			url, _ = helpers.ConvPostToURL(item.Network, item.Author, item.NetworkInternalID)
+	var positive, negative []DeviationItem
+
+	if viewsMode {
+		if f.HasFilter {
+			params := database.GetPerformanceDeviationPositiveViewsFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			}
+			rows, e := h.DB.GetPerformanceDeviationPositiveViewsFiltered(c.Request.Context(), params)
+			if e != nil {
+				log.Printf("Error getting performance deviation positive views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rows {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
+			paramN := database.GetPerformanceDeviationNegativeViewsFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			}
+			rowsN, e := h.DB.GetPerformanceDeviationNegativeViewsFiltered(c.Request.Context(), paramN)
+			if e != nil {
+				log.Printf("Error getting performance deviation negative views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rowsN {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
+		} else {
+			rows, e := h.DB.GetPerformanceDeviationPositiveViews(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation positive views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rows {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
+			rowsN, e := h.DB.GetPerformanceDeviationNegativeViews(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation negative views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rowsN {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
 		}
-		negative = append(negative, DeviationItem{
-			ID:                 item.ID,
-			NetworkInternalID:  item.NetworkInternalID,
-			Content:            item.Content,
-			CreatedAt:          item.CreatedAt,
-			Author:             item.Author,
-			Network:            item.Network,
-			Likes:              item.Likes,
-			Reposts:            item.Reposts,
-			Views:              item.Views,
-			ExpectedEngagement: item.ExpectedEngagement,
-			URL:                url,
-			Deviation:          float64(item.Likes+item.Reposts) - item.ExpectedEngagement,
-		})
+	} else {
+		if f.HasFilter {
+			rawPos, e := h.DB.GetPerformanceDeviationPositiveFiltered(c.Request.Context(), database.GetPerformanceDeviationPositiveFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			})
+			if e != nil {
+				log.Printf("Error getting performance deviation positive data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rawPos {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
+			rawNeg, e := h.DB.GetPerformanceDeviationNegativeFiltered(c.Request.Context(), database.GetPerformanceDeviationNegativeFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			})
+			if e != nil {
+				log.Printf("Error getting performance deviation negative data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rawNeg {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
+		} else {
+			rows, e := h.DB.GetPerformanceDeviationPositive(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation positive data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rows {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
+			rowsN, e := h.DB.GetPerformanceDeviationNegative(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation negative data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rowsN {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -679,16 +744,29 @@ func (h *Handler) AnalyticsCollaborationsHandler(c *gin.Context) {
 	}
 
 	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
 	var data interface{}
 	var err error
 	if f.HasFilter {
-		data, err = h.DB.GetCollaborationsDataFiltered(c.Request.Context(), database.GetCollaborationsDataFilteredParams{
-			UserID:    f.UserID,
-			StartDate: f.StartDate,
-			EndDate:   f.EndDate,
-		})
+		if viewsMode {
+			data, err = h.DB.GetCollaborationsDataViewsFiltered(c.Request.Context(), database.GetCollaborationsDataViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+			})
+		} else {
+			data, err = h.DB.GetCollaborationsDataFiltered(c.Request.Context(), database.GetCollaborationsDataFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+			})
+		}
 	} else {
-		data, err = h.DB.GetCollaborationsData(c.Request.Context(), user.ID)
+		if viewsMode {
+			data, err = h.DB.GetCollaborationsDataViews(c.Request.Context(), user.ID)
+		} else {
+			data, err = h.DB.GetCollaborationsData(c.Request.Context(), user.ID)
+		}
 	}
 	if err != nil {
 		log.Printf("Error getting collaborations data: %v", err)
