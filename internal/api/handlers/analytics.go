@@ -784,25 +784,47 @@ func (h *Handler) AnalyticsWordCloudEngagementHandler(c *gin.Context) {
 	}
 
 	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
 	var data interface{}
 	var err error
 	if f.HasFilter {
-		filteredData, e := h.DB.GetWordCloudEngagementDataFiltered(c.Request.Context(), database.GetWordCloudEngagementDataFilteredParams{
-			UserID:    f.UserID,
-			StartDate: f.StartDate,
-			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
-		})
-		if filteredData == nil {
-			filteredData = []database.GetWordCloudEngagementDataFilteredRow{}
+		if viewsMode {
+			d, e := h.DB.GetWordCloudEngagementDataViewsFiltered(c.Request.Context(), database.GetWordCloudEngagementDataViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataViewsFilteredRow{}
+			}
+			data, err = d, e
+		} else {
+			d, e := h.DB.GetWordCloudEngagementDataFiltered(c.Request.Context(), database.GetWordCloudEngagementDataFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataFilteredRow{}
+			}
+			data, err = d, e
 		}
-		data, err = filteredData, e
 	} else {
-		rawData, e := h.DB.GetWordCloudEngagementData(c.Request.Context(), user.ID)
-		if rawData == nil {
-			rawData = []database.GetWordCloudEngagementDataRow{}
+		if viewsMode {
+			d, e := h.DB.GetWordCloudEngagementDataViews(c.Request.Context(), user.ID)
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataViewsRow{}
+			}
+			data, err = d, e
+		} else {
+			d, e := h.DB.GetWordCloudEngagementData(c.Request.Context(), user.ID)
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataRow{}
+			}
+			data, err = d, e
 		}
-		data, err = rawData, e
 	}
 	if err != nil {
 		log.Printf("Error getting word cloud engagement data: %v", err)
