@@ -16,21 +16,22 @@
 ## Supported Platforms
 
 ### Social Media - Fetch
-| Platform | Native API | Public Web Scraping | Logged In Web Scraping | Profile Stats | Posts Stats |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| Instagram | ✅ | ❌ | ❌ | ✅ | ✅ |
-| TikTok | ❌ | ❌ | ✅ | ✅ | ✅ |
-| Youtube | ✅ | ❌ | ❌ | ✅ | ✅ |
-| Bluesky | ✅ | ❌ | ❌ | ✅ | ✅ |
-| Mastodon | ✅ | ❌ | ❌ | ✅ | ✅ |
-| Reddit | ❌ | ✅ | ❌ | ✅ | ✅ |
-| Telegram | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Discord | ✅ | ❌ | ❌ | ✅ | ✅ |
-| BadPups.com | ❌ | ✅ | ❌ | ✅ | ✅ |
-| Murrtube.net | ❌ | ✅ | ❌ | ✅ | ✅ |
-| FurTrack.com | ❌ | ✅ | ❌ | ✅ | ✅ |
-| e621.net | ✅ | ❌ | ❌ | ❌ | ✅ |
-| FurAffinity.net | ❌ | ✅ | ❌ | ✅ | ✅ |
+| Platform | Native API | Public Web Scraping | Logged In Web Scraping | Profile Stats | Posts Stats | Comments |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Instagram | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Meta App Setup |
+| TikTok | ❌ | ❌ | ✅ | ✅ | ✅ | Requires "Login with QR" |
+| Youtube | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Google API Access |
+| Bluesky | ✅ | ❌ | ❌ | ✅ | ✅ | |
+| Mastodon | ✅ | ❌ | ❌ | ✅ | ✅ | |
+| Reddit | ❌ | ⚠️ | ❌ | ✅ | ✅ | Might unreliable on large accounts |
+| Twitch | ✅ | ❌ | ❌ | ✅ | ⚠️ | |
+| Telegram | ✅ | ✅ | ❌ | ✅ | ✅ | Requires Telegram App & Bot setup |
+| Discord | ✅ | ❌ | ❌ | ✅ | ✅ | Reuqires Discord Bot setup |
+| BadPups.com | ❌ | ✅ | ❌ | ✅ | ✅ | |
+| Murrtube.net | ❌ | ✅ | ❌ | ✅ | ✅ | |
+| FurTrack.com | ❌ | ✅ | ❌ | ✅ | ✅ | Requires albums to be created |
+| e621.net | ✅ | ❌ | ❌ | ❌ | ✅ | |
+| FurAffinity.net | ❌ | ✅ | ❌ | ✅ | ✅ | |
 
 ### Website Stats - Fetch
 | Website | Native API | Website Visitors | Page Views |
