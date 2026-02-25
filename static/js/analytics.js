@@ -275,15 +275,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 createChart('hashtagsChart', 'bar', {
                     labels: sorted.map(d => d.tag),
                     datasets: [{
-                        label: 'Usage Count',
-                        data: sorted.map(d => d.usage_count),
-                        backgroundColor: colors.primary,
-                        yAxisID: 'y'
-                    }, {
                         label: engLbl,
                         data: sorted.map(d => d[engKey]),
-                        backgroundColor: colors.primaryLight,
-                        yAxisID: 'y1'
+                        backgroundColor: colors.primary,
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Usage Count',
+                        data: sorted.map(d => d.usage_count),
+                        borderColor: colors.accent,
+                        backgroundColor: colors.accent,
+                        type: 'line',
+                        yAxisID: 'y1',
+                        order: 1
                     }]
                 }, {
                     scales: {
