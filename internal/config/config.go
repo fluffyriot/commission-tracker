@@ -237,6 +237,22 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		return "", "", fmt.Errorf("Client ID and Client Secret are required for Twitch")
 	}
 
+	if params.Network == "DeviantArt" && (params.Field1 == "" || params.Field2 == "") {
+		return "", "", fmt.Errorf("Client ID and Client Secret are required for DeviantArt")
+	}
+
+	if params.Network == "Weasyl" && params.Field1 == "" {
+		return "", "", fmt.Errorf("API Key is required for Weasyl")
+	}
+
+	if params.Network == "Google Search Console" && (params.FieldLong == "" || params.Field1 == "") {
+		return "", "", fmt.Errorf("Site URL and Service Account Key are required for Google Search Console")
+	}
+
+	if params.Network == "Threads" && params.Field1 == "" {
+		return "", "", fmt.Errorf("Access Token is required for Threads")
+	}
+
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
@@ -279,6 +295,20 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 
 	case "Twitch":
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
+
+	case "DeviantArt":
+		// token=clientSecret, profileId=clientId
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
+
+	case "Weasyl":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)
+
+	case "Google Search Console":
+		// token=serviceAccountJSON, profileId=siteUrl
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, params.Field1, nil, params.EncryptionKey)
+
+	case "Threads":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)
 	}
 
 	if err != nil {

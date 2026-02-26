@@ -18,6 +18,7 @@ type TargetNetwork struct {
 
 var AvailableSources = []SourceNetwork{
 	{Name: "Instagram", Color: "#ff0076"},
+	{Name: "Threads", Color: "#000000"},
 	{Name: "Bluesky", Color: "#1185fe"},
 	{Name: "YouTube", Color: "#ff0033"},
 	{Name: "TikTok", Color: "#fe2c55"},
@@ -26,10 +27,13 @@ var AvailableSources = []SourceNetwork{
 	{Name: "Mastodon", Color: "#563acc"},
 	{Name: "Telegram", Color: "#26a4e3"},
 	{Name: "Google Analytics", Color: "#e37400"},
+	{Name: "Google Search Console", Color: "#4285F4"},
 	{Name: "BadPups", Color: "#c1272d"},
 	{Name: "Murrtube", Color: "#344aa8"},
 	{Name: "Discord", Color: "#5662f6"},
+	{Name: "DeviantArt", Color: "#05CC47"},
 	{Name: "e621", Color: "#01549b"},
+	{Name: "Weasyl", Color: "#990000"},
 	{Name: "FurTrack", Color: "#2d0e4c"},
 	{Name: "FurAffinity", Color: "#f9af3B"},
 }
@@ -72,6 +76,14 @@ func ConvNetworkToURL(network, username string) (string, error) {
 		return "https://reddit.com/user/" + username, nil
 	case "Twitch":
 		return "https://twitch.tv/" + username, nil
+	case "Threads":
+		return "https://www.threads.net/@" + username, nil
+	case "DeviantArt":
+		return "https://www.deviantart.com/" + username, nil
+	case "Weasyl":
+		return "https://www.weasyl.com/~" + username, nil
+	case "Google Search Console":
+		return "https://search.google.com/search-console/", nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}
@@ -123,6 +135,12 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 			return "https://www.twitch.tv/videos/" + networkId, nil
 		}
 		return "https://www.twitch.tv/" + author + "/clip/" + networkId, nil
+	case "Threads":
+		return "https://www.threads.net/@" + author + "/post/" + networkId, nil
+	case "DeviantArt":
+		return "https://www.deviantart.com/deviation/" + networkId, nil
+	case "Weasyl":
+		return "https://www.weasyl.com/~" + author + "/submissions/" + networkId, nil
 	default:
 		return "", fmt.Errorf("network %v not recognized", network)
 	}

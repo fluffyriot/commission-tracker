@@ -219,6 +219,7 @@ func main() {
 	authorized.POST("/sources/activate", h.ActivateSourceHandler)
 	authorized.POST("/sources/delete", h.DeleteSourceHandler)
 	authorized.POST("/sources/sync", h.SyncSourceHandler)
+	authorized.POST("/sources/token", h.UpdateSourceTokenHandler)
 	authorized.GET("/sources/cookies/export", h.HandleExportCookies)
 	authorized.POST("/sources/cookies/import", h.HandleImportCookies)
 	authorized.PUT("/sources/:source_id/channels", h.UpdateSourceChannelsHandler)

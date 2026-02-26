@@ -223,6 +223,25 @@ func UpdateSourceProfile(
 	})
 }
 
+func ReplaceSourceToken(
+	ctx context.Context,
+	db *database.Queries,
+	encryptionKey []byte,
+	sid uuid.UUID,
+	newAccessToken string,
+) error {
+	_, profileID, _, tokenID, err := GetSourceToken(ctx, db, encryptionKey, sid)
+	if err != nil {
+		return err
+	}
+
+	if err := db.DeleteTokenById(ctx, tokenID); err != nil {
+		return err
+	}
+
+	return InsertSourceToken(ctx, db, sid, newAccessToken, profileID, nil, encryptionKey)
+}
+
 func normalizeAccessTokenPayload(input string) ([]byte, error) {
 	if input == "" {
 		return nil, errors.New("access token is empty")
