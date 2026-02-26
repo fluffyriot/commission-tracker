@@ -12,7 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-webauthn/webauthn v0.15.0
 	github.com/google/uuid v1.6.0
-	github.com/gotd/td v0.137.0
+	github.com/gotd/td v0.139.0
 	github.com/lib/pq v1.11.2
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.0
