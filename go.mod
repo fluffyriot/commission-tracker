@@ -13,7 +13,7 @@ require (
 	github.com/go-webauthn/webauthn v0.15.0
 	github.com/google/uuid v1.6.0
 	github.com/gotd/td v0.137.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.11.2
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.0
 	golang.org/x/crypto v0.48.0
