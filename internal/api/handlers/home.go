@@ -160,6 +160,7 @@ func (h *Handler) RootHandler(c *gin.Context) {
 			UserName:          src.UserName,
 			Network:           src.Network,
 			TotalInteractions: int64(src.TotalInteractions),
+			TotalViews:        int64(src.TotalViews),
 			FollowersCount:    int64(src.FollowersCount),
 			ProfileURL:        profileURL,
 		})

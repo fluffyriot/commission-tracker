@@ -8,6 +8,7 @@ type TopSourceViewModel struct {
 	UserName          string
 	Network           string
 	TotalInteractions int64
+	TotalViews        int64
 	FollowersCount    int64
 	ProfileURL        string
 }

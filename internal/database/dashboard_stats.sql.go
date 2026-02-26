@@ -47,6 +47,7 @@ SELECT s.id,
     SUM(
         COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
     )::BIGINT AS total_interactions,
+    SUM(COALESCE(prh.views, 0))::BIGINT AS total_views,
     COALESCE(
         (
             SELECT ss.followers_count
@@ -61,7 +62,8 @@ FROM sources s
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -78,6 +80,7 @@ type GetRestTopSourcesRow struct {
 	UserName          string    `json:"user_name"`
 	Network           string    `json:"network"`
 	TotalInteractions int64     `json:"total_interactions"`
+	TotalViews        int64     `json:"total_views"`
 	FollowersCount    int64     `json:"followers_count"`
 }
 
@@ -95,6 +98,7 @@ func (q *Queries) GetRestTopSources(ctx context.Context, userID uuid.UUID) ([]Ge
 			&i.UserName,
 			&i.Network,
 			&i.TotalInteractions,
+			&i.TotalViews,
 			&i.FollowersCount,
 		); err != nil {
 			return nil, err
@@ -117,6 +121,7 @@ SELECT s.id,
     SUM(
         COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
     )::BIGINT AS total_interactions,
+    SUM(COALESCE(prh.views, 0))::BIGINT AS total_views,
     COALESCE(
         (
             SELECT ss.followers_count
@@ -131,7 +136,8 @@ FROM sources s
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -149,6 +155,7 @@ type GetTopSourcesRow struct {
 	UserName          string    `json:"user_name"`
 	Network           string    `json:"network"`
 	TotalInteractions int64     `json:"total_interactions"`
+	TotalViews        int64     `json:"total_views"`
 	FollowersCount    int64     `json:"followers_count"`
 }
 
@@ -166,6 +173,7 @@ func (q *Queries) GetTopSources(ctx context.Context, userID uuid.UUID) ([]GetTop
 			&i.UserName,
 			&i.Network,
 			&i.TotalInteractions,
+			&i.TotalViews,
 			&i.FollowersCount,
 		); err != nil {
 			return nil, err
