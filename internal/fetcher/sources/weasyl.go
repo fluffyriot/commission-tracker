@@ -3,12 +3,14 @@ package sources
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fluffyriot/rpsync/internal/authhelp"
@@ -18,12 +20,10 @@ import (
 )
 
 type weasylSubmission struct {
-	SubmitID  int    `json:"submitid"`
-	Title     string `json:"title"`
-	PostedAt  string `json:"posted_at"`
-	Link      string `json:"link"`
-	Rating    string `json:"rating"`
-	SubType   string `json:"subtype"`
+	SubmitID int    `json:"submitid"`
+	Title    string `json:"title"`
+	PostedAt string `json:"posted_at"`
+	SubType  string `json:"subtype"`
 }
 
 type weasylSubmissionsResponse struct {
@@ -31,11 +31,48 @@ type weasylSubmissionsResponse struct {
 	NextID      int                `json:"nextid"`
 }
 
+type weasylSubmissionView struct {
+	Favorites int      `json:"favorites"`
+	Views     int      `json:"views"`
+	Tags      []string `json:"tags"`
+}
+
 type weasylUserView struct {
-	UserInfo struct {
-		Watchers int `json:"watchers"`
-		Watching int `json:"watching"`
-	} `json:"user_info"`
+	Statistics struct {
+		Followed  int `json:"followed"`
+		Following int `json:"following"`
+	} `json:"statistics"`
+}
+
+func fetchWeasylSubmissionView(c *common.Client, submitID int, apiKey string) (*weasylSubmissionView, error) {
+	url := fmt.Sprintf("https://www.weasyl.com/api/submissions/%d/view", submitID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Weasyl-API-Key", apiKey)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("weasyl submission view request failed with status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var view weasylSubmissionView
+	if err := json.Unmarshal(body, &view); err != nil {
+		return nil, err
+	}
+
+	return &view, nil
 }
 
 func fetchWeasylProfile(c *common.Client, username, apiKey string) (*weasylUserView, error) {
@@ -94,10 +131,10 @@ func FetchWeasylPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 	var nextID int
 	const maxPages = 500
 
-	for page := 0; page < maxPages; page++ {
+	for range maxPages {
 		time.Sleep(500 * time.Millisecond)
 
-		apiURL := fmt.Sprintf("https://www.weasyl.com/api/submissions/user/%s?count=100", username)
+		apiURL := fmt.Sprintf("https://www.weasyl.com/api/users/%s/gallery?count=100", username)
 		if nextID > 0 {
 			apiURL += fmt.Sprintf("&nextid=%d", nextID)
 		}
@@ -156,18 +193,44 @@ func FetchWeasylPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 				postedAt = time.Now()
 			}
 
-			_, err = common.CreateOrUpdatePost(
+			time.Sleep(200 * time.Millisecond)
+			var likes, views sql.NullInt64
+			var tags []string
+			if detail, err := fetchWeasylSubmissionView(c, sub.SubmitID, apiKey); err != nil {
+				log.Printf("Weasyl: Failed to fetch detail for submission %s: %v", submitID, err)
+			} else {
+				likes = sql.NullInt64{Int64: int64(detail.Favorites), Valid: true}
+				views = sql.NullInt64{Int64: int64(detail.Views), Valid: true}
+				tags = detail.Tags
+			}
+
+			postType := "post"
+			if sub.SubType == "visual" || sub.SubType == "multimedia" {
+				postType = "image"
+			}
+
+			var sb strings.Builder
+			sb.WriteString(sub.Title)
+			for _, tag := range tags {
+				sb.WriteString(" #")
+				sb.WriteString(strings.ReplaceAll(tag, " ", "_"))
+			}
+			content := sb.String()
+
+			if err := common.ProcessScrapedPost(
 				context.Background(),
 				dbQueries,
 				sourceID,
 				submitID,
 				"Weasyl",
 				postedAt,
-				"post",
+				postType,
 				username,
-				sub.Title,
-			)
-			if err != nil {
+				content,
+				likes,
+				sql.NullInt64{},
+				views,
+			); err != nil {
 				log.Printf("Weasyl: Failed to save submission %s: %v", submitID, err)
 				continue
 			}
@@ -188,10 +251,10 @@ func FetchWeasylPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 		log.Printf("Weasyl: Failed to calculate average stats: %v", err)
 	} else {
 		if profile != nil {
-			watchers := profile.UserInfo.Watchers
-			watching := profile.UserInfo.Watching
-			avgStats.FollowersCount = &watchers
-			avgStats.FollowingCount = &watching
+			followers := profile.Statistics.Followed
+			following := profile.Statistics.Following
+			avgStats.FollowersCount = &followers
+			avgStats.FollowingCount = &following
 		}
 		if err := common.SaveOrUpdateSourceStats(context.Background(), dbQueries, sourceID, avgStats); err != nil {
 			log.Printf("Weasyl: Failed to save stats: %v", err)
