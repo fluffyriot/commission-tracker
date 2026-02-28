@@ -40,7 +40,7 @@
           {{if .ViewsSupported}}<span class="formatted-metric">{{.TotalViews}}</span>{{end}}
         </span>
         <span class="source-stat-label">
-          {{if .EngagementSupported}}Engag.{{end}}{{if and .EngagementSupported .ViewsSupported}} / {{end}}{{if .ViewsSupported}}Views{{end}}
+          {{if and .EngagementSupported .ViewsSupported}}Engag. / Views{{else if .EngagementSupported}}Engagement{{else if .ViewsSupported}}Views{{end}}
         </span>
       </div>
       {{end}}
