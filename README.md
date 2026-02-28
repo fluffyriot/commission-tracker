@@ -19,6 +19,7 @@
 | Platform | Native API | Public Web Scraping | Logged In Web Scraping | Profile Stats | Posts Stats | Comments |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Instagram | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Meta App Setup |
+| Threads | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Meta App Setup & manual token refresh every 60 days |
 | TikTok | ❌ | ❌ | ✅ | ✅ | ✅ | Requires "Login with QR" |
 | Youtube | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Google API Access |
 | Bluesky | ✅ | ❌ | ❌ | ✅ | ✅ | |
@@ -31,12 +32,15 @@
 | Murrtube.net | ❌ | ✅ | ❌ | ✅ | ✅ | |
 | FurTrack.com | ❌ | ✅ | ❌ | ✅ | ✅ | Requires albums to be created |
 | e621.net | ✅ | ❌ | ❌ | ❌ | ✅ | |
+| DeviantArt | ✅ | ❌ | ❌ | ✅ | ✅ | |
+| Weasyl | ✅ | ❌ | ❌ | ✅ | ✅ | |
 | FurAffinity.net | ❌ | ✅ | ❌ | ✅ | ✅ | |
 
 ### Website Stats - Fetch
-| Website | Native API | Website Visitors | Page Views |
-| :--- | :--- | :--- | :--- |
-| Google Analytics | ✅ | ✅ | ✅ |
+| Website | Native API | Website Visitors | Page Views | Impressions |
+| :--- | :--- | :--- | :--- | :--- |
+| Google Analytics | ✅ | ✅ | ✅ | ❌ |
+| Google Search Console | ✅ | ✅ | ❌ | ✅ |
 
 ### Data - Push
 | Target | Native API | Social Profile Stats | Social Posts Stats | Website Stats |
