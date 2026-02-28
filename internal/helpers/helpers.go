@@ -25,13 +25,13 @@ var AvailableSources = []SourceNetwork{
 	{Name: "Twitch", Color: "#9146ff"},
 	{Name: "Reddit", Color: "#ff4500"},
 	{Name: "Mastodon", Color: "#563acc"},
+	{Name: "Discord", Color: "#5662f6"},
 	{Name: "Telegram", Color: "#26a4e3"},
 	{Name: "Google Analytics", Color: "#e37400"},
 	{Name: "Google Search Console", Color: "#4285F4"},
 	{Name: "BadPups", Color: "#c1272d"},
 	{Name: "Murrtube", Color: "#344aa8"},
-	{Name: "Discord", Color: "#5662f6"},
-	{Name: "DeviantArt", Color: "#05CC47"},
+	{Name: "DeviantArt", Color: "#24e39d"},
 	{Name: "e621", Color: "#01549b"},
 	{Name: "Weasyl", Color: "#990000"},
 	{Name: "FurTrack", Color: "#2d0e4c"},
@@ -123,7 +123,6 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 	case "Reddit":
 		return "https://reddit.com/comments/" + networkId, nil
 	case "Twitch":
-		// Video IDs are numeric; clip IDs are alphanumeric slugs
 		isNumeric := len(networkId) > 0
 		for _, ch := range networkId {
 			if ch < '0' || ch > '9' {
@@ -138,7 +137,7 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 	case "Threads":
 		return "https://www.threads.net/@" + author + "/post/" + networkId, nil
 	case "DeviantArt":
-		return "https://www.deviantart.com/deviation/" + networkId, nil
+		return "https://www.deviantart.com/" + author + "/art/" + networkId, nil
 	case "Weasyl":
 		return "https://www.weasyl.com/~" + author + "/submissions/" + networkId, nil
 	default:
