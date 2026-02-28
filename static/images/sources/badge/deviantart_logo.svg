@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1536"
+   height="1536"
+   viewBox="0 0 1536 1536.0001"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1" />
+  <g
+     id="layer1">
+    <rect
+       x="4.9999999e-05"
+       y="4.9999999e-05"
+       width="1536"
+       height="1536"
+       style="clip-rule:evenodd;fill:none;fill-opacity:1;fill-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2"
+       id="rect1" />
+    <polygon
+       id="polygon8"
+       class="st0"
+       points="37.5,95.6 0,167.2 0,204.3 0,204.3 37.1,204.3 40.9,200.6 58.4,167.2 63.9,163.5 126.5,163.5 126.5,112.4 92.1,112.4 89,108.7 126.5,37.2 126.5,0 126.4,0 89.3,0 85.6,3.7 68.1,37.2 62.6,40.9 0,40.9 0,91.9 34.4,91.9 "
+       style="fill:#ffffff"
+       transform="matrix(3.5659371,0,0,3.5659371,542.4545,403.73955)" />
+  </g>
+</svg>

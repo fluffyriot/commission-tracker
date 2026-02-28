@@ -7,8 +7,10 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const getPostingConsistency = `-- name: GetPostingConsistency :many
@@ -50,6 +52,60 @@ func (q *Queries) GetPostingConsistency(ctx context.Context, userID uuid.UUID) (
 	return items, nil
 }
 
+const getPostingConsistencyFiltered = `-- name: GetPostingConsistencyFiltered :many
+SELECT TO_CHAR(p.created_at, 'YYYY-MM-DD') as date_str,
+    count(*) as post_count
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+WHERE s.user_id = $1
+    AND p.created_at > NOW() - INTERVAL '1 year'
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+GROUP BY date_str
+ORDER BY date_str
+`
+
+type GetPostingConsistencyFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetPostingConsistencyFilteredRow struct {
+	DateStr   string `json:"date_str"`
+	PostCount int64  `json:"post_count"`
+}
+
+func (q *Queries) GetPostingConsistencyFiltered(ctx context.Context, arg GetPostingConsistencyFilteredParams) ([]GetPostingConsistencyFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPostingConsistencyFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPostingConsistencyFilteredRow
+	for rows.Next() {
+		var i GetPostingConsistencyFilteredRow
+		if err := rows.Scan(&i.DateStr, &i.PostCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTimePerformance = `-- name: GetTimePerformance :many
 SELECT EXTRACT(
         DOW
@@ -59,12 +115,14 @@ SELECT EXTRACT(
         HOUR
         FROM p.created_at
     )::INT as hour_of_day,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -80,6 +138,7 @@ type GetTimePerformanceRow struct {
 	DayOfWeek int32 `json:"day_of_week"`
 	HourOfDay int32 `json:"hour_of_day"`
 	AvgLikes  int64 `json:"avg_likes"`
+	AvgViews  int64 `json:"avg_views"`
 }
 
 func (q *Queries) GetTimePerformance(ctx context.Context, userID uuid.UUID) ([]GetTimePerformanceRow, error) {
@@ -91,7 +150,90 @@ func (q *Queries) GetTimePerformance(ctx context.Context, userID uuid.UUID) ([]G
 	var items []GetTimePerformanceRow
 	for rows.Next() {
 		var i GetTimePerformanceRow
-		if err := rows.Scan(&i.DayOfWeek, &i.HourOfDay, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.DayOfWeek,
+			&i.HourOfDay,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTimePerformanceFiltered = `-- name: GetTimePerformanceFiltered :many
+SELECT EXTRACT(
+        DOW
+        FROM p.created_at
+    )::INT as day_of_week,
+    EXTRACT(
+        HOUR
+        FROM p.created_at
+    )::INT as hour_of_day,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+GROUP BY day_of_week,
+    hour_of_day
+ORDER BY day_of_week,
+    hour_of_day
+`
+
+type GetTimePerformanceFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetTimePerformanceFilteredRow struct {
+	DayOfWeek int32 `json:"day_of_week"`
+	HourOfDay int32 `json:"hour_of_day"`
+	AvgLikes  int64 `json:"avg_likes"`
+	AvgViews  int64 `json:"avg_views"`
+}
+
+func (q *Queries) GetTimePerformanceFiltered(ctx context.Context, arg GetTimePerformanceFilteredParams) ([]GetTimePerformanceFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTimePerformanceFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTimePerformanceFilteredRow
+	for rows.Next() {
+		var i GetTimePerformanceFilteredRow
+		if err := rows.Scan(
+			&i.DayOfWeek,
+			&i.HourOfDay,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

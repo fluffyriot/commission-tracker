@@ -74,7 +74,7 @@ func LoadConfig() (*AppConfig, error) {
 
 	cfg.DomainName = os.Getenv("DOMAIN_NAME")
 
-	cfg.InstagramAPIVersion = "v24.0"
+	cfg.InstagramAPIVersion = "v25.0"
 
 	cfg.OauthEncryptionKey = os.Getenv("OAUTH_ENCRYPTION_KEY")
 
@@ -233,6 +233,26 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		return "", "", fmt.Errorf("API Key and API Username are required for e621")
 	}
 
+	if params.Network == "Twitch" && (params.Field1 == "" || params.Field2 == "") {
+		return "", "", fmt.Errorf("Client ID and Client Secret are required for Twitch")
+	}
+
+	if params.Network == "DeviantArt" && (params.Field1 == "" || params.Field2 == "") {
+		return "", "", fmt.Errorf("Client ID and Client Secret are required for DeviantArt")
+	}
+
+	if params.Network == "Weasyl" && params.Field1 == "" {
+		return "", "", fmt.Errorf("API Key is required for Weasyl")
+	}
+
+	if params.Network == "Google Search Console" && params.FieldLong == "" {
+		return "", "", fmt.Errorf("Service Account Key is required for Google Search Console")
+	}
+
+	if params.Network == "Threads" && params.Field1 == "" {
+		return "", "", fmt.Errorf("Access Token is required for Threads")
+	}
+
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
@@ -269,6 +289,25 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 
 	case "e621":
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
+
+	case "Reddit":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, "public", params.Field1, nil, params.EncryptionKey)
+
+	case "Twitch":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
+
+	case "DeviantArt":
+		// token=clientSecret, profileId=clientId
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
+
+	case "Weasyl":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)
+
+	case "Google Search Console":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, "", nil, params.EncryptionKey)
+
+	case "Threads":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)
 	}
 
 	if err != nil {

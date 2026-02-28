@@ -47,6 +47,7 @@ SELECT s.id,
     SUM(
         COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
     )::BIGINT AS total_interactions,
+    SUM(COALESCE(prh.views, 0))::BIGINT AS total_views,
     COALESCE(
         (
             SELECT ss.followers_count
@@ -61,14 +62,15 @@ FROM sources s
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND s.is_active = TRUE
-    AND NOT s.network in ('Google Analytics')
+    AND NOT s.network in ('Google Analytics', 'Google Search Console')
 GROUP BY s.id
 ORDER BY total_interactions DESC OFFSET 3
 `
@@ -78,6 +80,7 @@ type GetRestTopSourcesRow struct {
 	UserName          string    `json:"user_name"`
 	Network           string    `json:"network"`
 	TotalInteractions int64     `json:"total_interactions"`
+	TotalViews        int64     `json:"total_views"`
 	FollowersCount    int64     `json:"followers_count"`
 }
 
@@ -95,6 +98,7 @@ func (q *Queries) GetRestTopSources(ctx context.Context, userID uuid.UUID) ([]Ge
 			&i.UserName,
 			&i.Network,
 			&i.TotalInteractions,
+			&i.TotalViews,
 			&i.FollowersCount,
 		); err != nil {
 			return nil, err
@@ -117,6 +121,7 @@ SELECT s.id,
     SUM(
         COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
     )::BIGINT AS total_interactions,
+    SUM(COALESCE(prh.views, 0))::BIGINT AS total_views,
     COALESCE(
         (
             SELECT ss.followers_count
@@ -131,14 +136,15 @@ FROM sources s
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND s.is_active = TRUE
-    AND NOT s.network in ('Google Analytics')
+    AND NOT s.network in ('Google Analytics', 'Google Search Console')
 GROUP BY s.id
 ORDER BY total_interactions DESC
 LIMIT 3
@@ -149,6 +155,7 @@ type GetTopSourcesRow struct {
 	UserName          string    `json:"user_name"`
 	Network           string    `json:"network"`
 	TotalInteractions int64     `json:"total_interactions"`
+	TotalViews        int64     `json:"total_views"`
 	FollowersCount    int64     `json:"followers_count"`
 }
 
@@ -166,6 +173,7 @@ func (q *Queries) GetTopSources(ctx context.Context, userID uuid.UUID) ([]GetTop
 			&i.UserName,
 			&i.Network,
 			&i.TotalInteractions,
+			&i.TotalViews,
 			&i.FollowersCount,
 		); err != nil {
 			return nil, err

@@ -155,23 +155,29 @@ INSERT INTO
         date,
         url_path,
         views,
-        source_id
+        source_id,
+        analytics_type,
+        impressions
     )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (source_id, date, url_path) DO
 UPDATE
 SET
-    views = $4
+    views = EXCLUDED.views,
+    analytics_type = EXCLUDED.analytics_type,
+    impressions = EXCLUDED.impressions
 RETURNING
-    id, date, url_path, views, source_id
+    id, date, url_path, views, source_id, analytics_type, impressions
 `
 
 type CreateAnalyticsPageStatParams struct {
-	ID       uuid.UUID `json:"id"`
-	Date     time.Time `json:"date"`
-	UrlPath  string    `json:"url_path"`
-	Views    int64     `json:"views"`
-	SourceID uuid.UUID `json:"source_id"`
+	ID            uuid.UUID     `json:"id"`
+	Date          time.Time     `json:"date"`
+	UrlPath       string        `json:"url_path"`
+	Views         int64         `json:"views"`
+	SourceID      uuid.UUID     `json:"source_id"`
+	AnalyticsType string        `json:"analytics_type"`
+	Impressions   sql.NullInt64 `json:"impressions"`
 }
 
 func (q *Queries) CreateAnalyticsPageStat(ctx context.Context, arg CreateAnalyticsPageStatParams) (AnalyticsPageStat, error) {
@@ -181,6 +187,8 @@ func (q *Queries) CreateAnalyticsPageStat(ctx context.Context, arg CreateAnalyti
 		arg.UrlPath,
 		arg.Views,
 		arg.SourceID,
+		arg.AnalyticsType,
+		arg.Impressions,
 	)
 	var i AnalyticsPageStat
 	err := row.Scan(
@@ -189,6 +197,8 @@ func (q *Queries) CreateAnalyticsPageStat(ctx context.Context, arg CreateAnalyti
 		&i.UrlPath,
 		&i.Views,
 		&i.SourceID,
+		&i.AnalyticsType,
+		&i.Impressions,
 	)
 	return i, err
 }
@@ -200,24 +210,30 @@ INSERT INTO
         date,
         visitors,
         avg_session_duration,
-        source_id
+        source_id,
+        analytics_type,
+        impressions
     )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (source_id, date) DO
 UPDATE
 SET
     visitors = EXCLUDED.visitors,
-    avg_session_duration = EXCLUDED.avg_session_duration
+    avg_session_duration = EXCLUDED.avg_session_duration,
+    analytics_type = EXCLUDED.analytics_type,
+    impressions = EXCLUDED.impressions
 RETURNING
-    id, date, visitors, avg_session_duration, source_id
+    id, date, visitors, avg_session_duration, source_id, analytics_type, impressions
 `
 
 type CreateAnalyticsSiteStatParams struct {
-	ID                 uuid.UUID `json:"id"`
-	Date               time.Time `json:"date"`
-	Visitors           int64     `json:"visitors"`
-	AvgSessionDuration float64   `json:"avg_session_duration"`
-	SourceID           uuid.UUID `json:"source_id"`
+	ID                 uuid.UUID     `json:"id"`
+	Date               time.Time     `json:"date"`
+	Visitors           int64         `json:"visitors"`
+	AvgSessionDuration float64       `json:"avg_session_duration"`
+	SourceID           uuid.UUID     `json:"source_id"`
+	AnalyticsType      string        `json:"analytics_type"`
+	Impressions        sql.NullInt64 `json:"impressions"`
 }
 
 func (q *Queries) CreateAnalyticsSiteStat(ctx context.Context, arg CreateAnalyticsSiteStatParams) (AnalyticsSiteStat, error) {
@@ -227,6 +243,8 @@ func (q *Queries) CreateAnalyticsSiteStat(ctx context.Context, arg CreateAnalyti
 		arg.Visitors,
 		arg.AvgSessionDuration,
 		arg.SourceID,
+		arg.AnalyticsType,
+		arg.Impressions,
 	)
 	var i AnalyticsSiteStat
 	err := row.Scan(
@@ -235,6 +253,8 @@ func (q *Queries) CreateAnalyticsSiteStat(ctx context.Context, arg CreateAnalyti
 		&i.Visitors,
 		&i.AvgSessionDuration,
 		&i.SourceID,
+		&i.AnalyticsType,
+		&i.Impressions,
 	)
 	return i, err
 }
@@ -267,7 +287,7 @@ func (q *Queries) DeleteAnalyticsPageStatsByPathAndSource(ctx context.Context, a
 
 const getAllAnalyticsPageStatsForUser = `-- name: GetAllAnalyticsPageStatsForUser :many
 SELECT
-    s.id, s.date, s.url_path, s.views, s.source_id,
+    s.id, s.date, s.url_path, s.views, s.source_id, s.analytics_type, s.impressions,
     src.network as source_network,
     src.user_name as source_user_name
 FROM
@@ -279,13 +299,15 @@ ORDER BY s.date DESC
 `
 
 type GetAllAnalyticsPageStatsForUserRow struct {
-	ID             uuid.UUID `json:"id"`
-	Date           time.Time `json:"date"`
-	UrlPath        string    `json:"url_path"`
-	Views          int64     `json:"views"`
-	SourceID       uuid.UUID `json:"source_id"`
-	SourceNetwork  string    `json:"source_network"`
-	SourceUserName string    `json:"source_user_name"`
+	ID             uuid.UUID     `json:"id"`
+	Date           time.Time     `json:"date"`
+	UrlPath        string        `json:"url_path"`
+	Views          int64         `json:"views"`
+	SourceID       uuid.UUID     `json:"source_id"`
+	AnalyticsType  string        `json:"analytics_type"`
+	Impressions    sql.NullInt64 `json:"impressions"`
+	SourceNetwork  string        `json:"source_network"`
+	SourceUserName string        `json:"source_user_name"`
 }
 
 func (q *Queries) GetAllAnalyticsPageStatsForUser(ctx context.Context, userID uuid.UUID) ([]GetAllAnalyticsPageStatsForUserRow, error) {
@@ -303,6 +325,8 @@ func (q *Queries) GetAllAnalyticsPageStatsForUser(ctx context.Context, userID uu
 			&i.UrlPath,
 			&i.Views,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 			&i.SourceNetwork,
 			&i.SourceUserName,
 		); err != nil {
@@ -321,7 +345,7 @@ func (q *Queries) GetAllAnalyticsPageStatsForUser(ctx context.Context, userID uu
 
 const getAllAnalyticsSiteStatsForUser = `-- name: GetAllAnalyticsSiteStatsForUser :many
 SELECT
-    s.id, s.date, s.visitors, s.avg_session_duration, s.source_id,
+    s.id, s.date, s.visitors, s.avg_session_duration, s.source_id, s.analytics_type, s.impressions,
     src.network as source_network,
     src.user_name as source_user_name
 FROM
@@ -333,13 +357,15 @@ ORDER BY s.date DESC
 `
 
 type GetAllAnalyticsSiteStatsForUserRow struct {
-	ID                 uuid.UUID `json:"id"`
-	Date               time.Time `json:"date"`
-	Visitors           int64     `json:"visitors"`
-	AvgSessionDuration float64   `json:"avg_session_duration"`
-	SourceID           uuid.UUID `json:"source_id"`
-	SourceNetwork      string    `json:"source_network"`
-	SourceUserName     string    `json:"source_user_name"`
+	ID                 uuid.UUID     `json:"id"`
+	Date               time.Time     `json:"date"`
+	Visitors           int64         `json:"visitors"`
+	AvgSessionDuration float64       `json:"avg_session_duration"`
+	SourceID           uuid.UUID     `json:"source_id"`
+	AnalyticsType      string        `json:"analytics_type"`
+	Impressions        sql.NullInt64 `json:"impressions"`
+	SourceNetwork      string        `json:"source_network"`
+	SourceUserName     string        `json:"source_user_name"`
 }
 
 func (q *Queries) GetAllAnalyticsSiteStatsForUser(ctx context.Context, userID uuid.UUID) ([]GetAllAnalyticsSiteStatsForUserRow, error) {
@@ -357,6 +383,8 @@ func (q *Queries) GetAllAnalyticsSiteStatsForUser(ctx context.Context, userID uu
 			&i.Visitors,
 			&i.AvgSessionDuration,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 			&i.SourceNetwork,
 			&i.SourceUserName,
 		); err != nil {
@@ -374,7 +402,7 @@ func (q *Queries) GetAllAnalyticsSiteStatsForUser(ctx context.Context, userID uu
 }
 
 const getAllPageStatsWithTargetInfo = `-- name: GetAllPageStatsWithTargetInfo :many
-SELECT s.id, s.date, s.url_path, s.views, s.source_id, map.target_record_id
+SELECT s.id, s.date, s.url_path, s.views, s.source_id, s.analytics_type, s.impressions, map.target_record_id
 FROM
     analytics_page_stats s
     LEFT JOIN analytics_page_stats_on_target map ON s.id = map.stat_id
@@ -394,6 +422,8 @@ type GetAllPageStatsWithTargetInfoRow struct {
 	UrlPath        string         `json:"url_path"`
 	Views          int64          `json:"views"`
 	SourceID       uuid.UUID      `json:"source_id"`
+	AnalyticsType  string         `json:"analytics_type"`
+	Impressions    sql.NullInt64  `json:"impressions"`
 	TargetRecordID sql.NullString `json:"target_record_id"`
 }
 
@@ -412,6 +442,8 @@ func (q *Queries) GetAllPageStatsWithTargetInfo(ctx context.Context, arg GetAllP
 			&i.UrlPath,
 			&i.Views,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 			&i.TargetRecordID,
 		); err != nil {
 			return nil, err
@@ -428,7 +460,7 @@ func (q *Queries) GetAllPageStatsWithTargetInfo(ctx context.Context, arg GetAllP
 }
 
 const getAllSiteStatsWithTargetInfo = `-- name: GetAllSiteStatsWithTargetInfo :many
-SELECT s.id, s.date, s.visitors, s.avg_session_duration, s.source_id, map.target_record_id
+SELECT s.id, s.date, s.visitors, s.avg_session_duration, s.source_id, s.analytics_type, s.impressions, map.target_record_id
 FROM
     analytics_site_stats s
     LEFT JOIN analytics_site_stats_on_target map ON s.id = map.stat_id
@@ -448,6 +480,8 @@ type GetAllSiteStatsWithTargetInfoRow struct {
 	Visitors           int64          `json:"visitors"`
 	AvgSessionDuration float64        `json:"avg_session_duration"`
 	SourceID           uuid.UUID      `json:"source_id"`
+	AnalyticsType      string         `json:"analytics_type"`
+	Impressions        sql.NullInt64  `json:"impressions"`
 	TargetRecordID     sql.NullString `json:"target_record_id"`
 }
 
@@ -466,6 +500,8 @@ func (q *Queries) GetAllSiteStatsWithTargetInfo(ctx context.Context, arg GetAllS
 			&i.Visitors,
 			&i.AvgSessionDuration,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 			&i.TargetRecordID,
 		); err != nil {
 			return nil, err
@@ -482,7 +518,7 @@ func (q *Queries) GetAllSiteStatsWithTargetInfo(ctx context.Context, arg GetAllS
 }
 
 const getAnalyticsPageStatsBySource = `-- name: GetAnalyticsPageStatsBySource :many
-SELECT id, date, url_path, views, source_id
+SELECT id, date, url_path, views, source_id, analytics_type, impressions
 FROM analytics_page_stats
 WHERE
     source_id = $1
@@ -504,6 +540,8 @@ func (q *Queries) GetAnalyticsPageStatsBySource(ctx context.Context, sourceID uu
 			&i.UrlPath,
 			&i.Views,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 		); err != nil {
 			return nil, err
 		}
@@ -519,7 +557,7 @@ func (q *Queries) GetAnalyticsPageStatsBySource(ctx context.Context, sourceID uu
 }
 
 const getAnalyticsSiteStatsBySource = `-- name: GetAnalyticsSiteStatsBySource :many
-SELECT id, date, visitors, avg_session_duration, source_id
+SELECT id, date, visitors, avg_session_duration, source_id, analytics_type, impressions
 FROM analytics_site_stats
 WHERE
     source_id = $1
@@ -541,6 +579,8 @@ func (q *Queries) GetAnalyticsSiteStatsBySource(ctx context.Context, sourceID uu
 			&i.Visitors,
 			&i.AvgSessionDuration,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 		); err != nil {
 			return nil, err
 		}
@@ -556,7 +596,7 @@ func (q *Queries) GetAnalyticsSiteStatsBySource(ctx context.Context, sourceID uu
 }
 
 const getAnalyticsSiteStatsBySourceAndRange = `-- name: GetAnalyticsSiteStatsBySourceAndRange :many
-SELECT id, date, visitors, avg_session_duration, source_id
+SELECT id, date, visitors, avg_session_duration, source_id, analytics_type, impressions
 FROM analytics_site_stats
 WHERE
     source_id = $1
@@ -586,6 +626,8 @@ func (q *Queries) GetAnalyticsSiteStatsBySourceAndRange(ctx context.Context, arg
 			&i.Visitors,
 			&i.AvgSessionDuration,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 		); err != nil {
 			return nil, err
 		}
@@ -682,6 +724,7 @@ FROM
     JOIN sources src ON s.source_id = src.id
 WHERE
     src.user_id = $1
+    AND s.analytics_type = 'ga'
 GROUP BY
     year_month
 ORDER BY year_month ASC
@@ -724,6 +767,7 @@ FROM
     JOIN sources src ON s.source_id = src.id
 WHERE
     src.user_id = $1
+    AND s.analytics_type = 'ga'
 GROUP BY
     year_month
 ORDER BY year_month ASC
@@ -758,7 +802,7 @@ func (q *Queries) GetMonthlySiteVisitors(ctx context.Context, userID uuid.UUID) 
 }
 
 const getSyncedPageStatsForUpdate = `-- name: GetSyncedPageStatsForUpdate :many
-SELECT s.id, s.date, s.url_path, s.views, s.source_id, map.target_record_id
+SELECT s.id, s.date, s.url_path, s.views, s.source_id, s.analytics_type, s.impressions, map.target_record_id
 FROM
     analytics_page_stats s
     JOIN analytics_page_stats_on_target map ON s.id = map.stat_id
@@ -775,12 +819,14 @@ type GetSyncedPageStatsForUpdateParams struct {
 }
 
 type GetSyncedPageStatsForUpdateRow struct {
-	ID             uuid.UUID `json:"id"`
-	Date           time.Time `json:"date"`
-	UrlPath        string    `json:"url_path"`
-	Views          int64     `json:"views"`
-	SourceID       uuid.UUID `json:"source_id"`
-	TargetRecordID string    `json:"target_record_id"`
+	ID             uuid.UUID     `json:"id"`
+	Date           time.Time     `json:"date"`
+	UrlPath        string        `json:"url_path"`
+	Views          int64         `json:"views"`
+	SourceID       uuid.UUID     `json:"source_id"`
+	AnalyticsType  string        `json:"analytics_type"`
+	Impressions    sql.NullInt64 `json:"impressions"`
+	TargetRecordID string        `json:"target_record_id"`
 }
 
 func (q *Queries) GetSyncedPageStatsForUpdate(ctx context.Context, arg GetSyncedPageStatsForUpdateParams) ([]GetSyncedPageStatsForUpdateRow, error) {
@@ -798,6 +844,8 @@ func (q *Queries) GetSyncedPageStatsForUpdate(ctx context.Context, arg GetSynced
 			&i.UrlPath,
 			&i.Views,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 			&i.TargetRecordID,
 		); err != nil {
 			return nil, err
@@ -814,7 +862,7 @@ func (q *Queries) GetSyncedPageStatsForUpdate(ctx context.Context, arg GetSynced
 }
 
 const getSyncedSiteStatsForUpdate = `-- name: GetSyncedSiteStatsForUpdate :many
-SELECT s.id, s.date, s.visitors, s.avg_session_duration, s.source_id, map.target_record_id
+SELECT s.id, s.date, s.visitors, s.avg_session_duration, s.source_id, s.analytics_type, s.impressions, map.target_record_id
 FROM
     analytics_site_stats s
     JOIN analytics_site_stats_on_target map ON s.id = map.stat_id
@@ -831,12 +879,14 @@ type GetSyncedSiteStatsForUpdateParams struct {
 }
 
 type GetSyncedSiteStatsForUpdateRow struct {
-	ID                 uuid.UUID `json:"id"`
-	Date               time.Time `json:"date"`
-	Visitors           int64     `json:"visitors"`
-	AvgSessionDuration float64   `json:"avg_session_duration"`
-	SourceID           uuid.UUID `json:"source_id"`
-	TargetRecordID     string    `json:"target_record_id"`
+	ID                 uuid.UUID     `json:"id"`
+	Date               time.Time     `json:"date"`
+	Visitors           int64         `json:"visitors"`
+	AvgSessionDuration float64       `json:"avg_session_duration"`
+	SourceID           uuid.UUID     `json:"source_id"`
+	AnalyticsType      string        `json:"analytics_type"`
+	Impressions        sql.NullInt64 `json:"impressions"`
+	TargetRecordID     string        `json:"target_record_id"`
 }
 
 func (q *Queries) GetSyncedSiteStatsForUpdate(ctx context.Context, arg GetSyncedSiteStatsForUpdateParams) ([]GetSyncedSiteStatsForUpdateRow, error) {
@@ -854,6 +904,8 @@ func (q *Queries) GetSyncedSiteStatsForUpdate(ctx context.Context, arg GetSynced
 			&i.Visitors,
 			&i.AvgSessionDuration,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 			&i.TargetRecordID,
 		); err != nil {
 			return nil, err
@@ -870,7 +922,7 @@ func (q *Queries) GetSyncedSiteStatsForUpdate(ctx context.Context, arg GetSynced
 }
 
 const getUnsyncedPageStatsForTarget = `-- name: GetUnsyncedPageStatsForTarget :many
-SELECT s.id, s.date, s.url_path, s.views, s.source_id
+SELECT s.id, s.date, s.url_path, s.views, s.source_id, s.analytics_type, s.impressions
 FROM
     analytics_page_stats s
     LEFT JOIN analytics_page_stats_on_target map ON s.id = map.stat_id
@@ -900,6 +952,8 @@ func (q *Queries) GetUnsyncedPageStatsForTarget(ctx context.Context, arg GetUnsy
 			&i.UrlPath,
 			&i.Views,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 		); err != nil {
 			return nil, err
 		}
@@ -915,7 +969,7 @@ func (q *Queries) GetUnsyncedPageStatsForTarget(ctx context.Context, arg GetUnsy
 }
 
 const getUnsyncedSiteStatsForTarget = `-- name: GetUnsyncedSiteStatsForTarget :many
-SELECT s.id, s.date, s.visitors, s.avg_session_duration, s.source_id
+SELECT s.id, s.date, s.visitors, s.avg_session_duration, s.source_id, s.analytics_type, s.impressions
 FROM
     analytics_site_stats s
     LEFT JOIN analytics_site_stats_on_target map ON s.id = map.stat_id
@@ -945,6 +999,8 @@ func (q *Queries) GetUnsyncedSiteStatsForTarget(ctx context.Context, arg GetUnsy
 			&i.Visitors,
 			&i.AvgSessionDuration,
 			&i.SourceID,
+			&i.AnalyticsType,
+			&i.Impressions,
 		); err != nil {
 			return nil, err
 		}

@@ -30,6 +30,8 @@ type NocoRecordFields struct {
 	Date               time.Time `json:"date,omitempty"`
 	Visitors           int64     `json:"visitors,omitempty"`
 	AvgSessionDuration float64   `json:"avg_session_duration,omitempty"`
+	AnalyticsType      string    `json:"analytics_type,omitempty"`
+	Impressions        *int64    `json:"impressions,omitempty"`
 	PagePath           string    `json:"page_path,omitempty"`
 	FollowersCount     int64     `json:"followers_count,omitempty"`
 	FollowingCount     int64     `json:"following_count,omitempty"`

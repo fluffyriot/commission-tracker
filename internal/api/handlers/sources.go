@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/fluffyriot/rpsync/internal/authhelp"
 	"github.com/fluffyriot/rpsync/internal/config"
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/helpers"
@@ -251,6 +252,60 @@ func (h *Handler) SyncSourceHandler(c *gin.Context) {
 		}()
 		h.Worker.SyncSource(sid)
 	}(sourceID)
+
+	c.Redirect(http.StatusSeeOther, "/sources")
+}
+
+func (h *Handler) UpdateSourceTokenHandler(c *gin.Context) {
+	sourceID, err := uuid.Parse(c.PostForm("source_id"))
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(c, gin.H{
+			"error": "Invalid source ID",
+			"title": "Error",
+		}))
+		return
+	}
+
+	newToken := c.PostForm("new_token")
+	if newToken == "" {
+		c.HTML(http.StatusBadRequest, "error.html", h.CommonData(c, gin.H{
+			"error": "New token is required",
+			"title": "Error",
+		}))
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
+	source, err := h.DB.GetSourceById(ctx, sourceID)
+	if err != nil || source.UserID != user.ID {
+		c.HTML(http.StatusNotFound, "error.html", h.CommonData(c, gin.H{
+			"error": "Source not found",
+			"title": "Error",
+		}))
+		return
+	}
+
+	if err := authhelp.ReplaceSourceToken(ctx, h.DB, h.Config.TokenEncryptionKey, sourceID, newToken); err != nil {
+		c.HTML(http.StatusInternalServerError, "error.html", h.CommonData(c, gin.H{
+			"error": "Failed to update token: " + err.Error(),
+			"title": "Error",
+		}))
+		return
+	}
+
+	_, _ = h.DB.UpdateSourceSyncStatusById(ctx, database.UpdateSourceSyncStatusByIdParams{
+		ID:           sourceID,
+		SyncStatus:   "Initialized",
+		StatusReason: sql.NullString{},
+		LastSynced:   sql.NullTime{},
+	})
 
 	c.Redirect(http.StatusSeeOther, "/sources")
 }

@@ -35,7 +35,7 @@
           <label class="form-label">End Date</label>
           <input type="date" id="endDate" class="form-input dropdown-input" />
         </div>
-        <div class="flex justify-between">
+        <div class="flex justify-between pt-2">
           <button class="btn btn-sm btn-ghost" id="clearDates">Clear</button>
           <button class="btn btn-sm btn-primary" id="applyDates">Apply</button>
         </div>
@@ -116,7 +116,7 @@
             </a>
             {{else}}-{{end}}
           </td>
-          <td>{{if .Post.Content.Valid}}{{truncate .Post.Content.String 50}}{{else}}-{{end}}</td>
+          <td data-search="{{if .Post.Content.Valid}}{{.Post.Content.String}}{{else}}-{{end}}">{{if .Post.Content.Valid}}{{truncate .Post.Content.String 50}}{{else}}-{{end}}</td>
         </tr>
         {{end}}
       </tbody>
@@ -561,7 +561,7 @@
 
     const data = {
       source_id: sourceId,
-      network_internal_id: networkInternalId
+      network_internal_id: String(networkInternalId)
     };
 
     try {

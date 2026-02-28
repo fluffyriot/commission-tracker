@@ -32,6 +32,11 @@ func syncNocoAnalyticsSiteStats(dbQueries *database.Queries, c *common.Client, e
 		return fmt.Errorf("failed to get sources table mapping: %w", err)
 	}
 
+	siteStatMappings, err := dbQueries.GetSiteStatsOnTarget(context.Background(), target.ID)
+	if err != nil {
+		return err
+	}
+
 	sources, err := dbQueries.GetUserSources(context.Background(), target.UserID)
 	if err != nil {
 		return err
@@ -74,11 +79,18 @@ func syncNocoAnalyticsSiteStats(dbQueries *database.Queries, c *common.Client, e
 			targetIDVal, _ := strconv.Atoi(stat.TargetRecordID)
 			safeTargetID := targetIDVal
 
+			var impressions *int64
+			if stat.Impressions.Valid {
+				v := stat.Impressions.Int64
+				impressions = &v
+			}
 			fieldMap := NocoRecordFields{
 				ID:                 stat.ID.String(),
 				Date:               stat.Date,
 				Visitors:           stat.Visitors,
 				AvgSessionDuration: stat.AvgSessionDuration,
+				AnalyticsType:      stat.AnalyticsType,
+				Impressions:        impressions,
 			}
 			updateRecords = append(updateRecords, NocoTableRecord{
 				Id:     safeTargetID,
@@ -155,11 +167,18 @@ func syncNocoAnalyticsSiteStats(dbQueries *database.Queries, c *common.Client, e
 		}
 
 		for _, stat := range unsyncedStats {
+			var impressions *int64
+			if stat.Impressions.Valid {
+				v := stat.Impressions.Int64
+				impressions = &v
+			}
 			fieldMap := NocoRecordFields{
 				ID:                 stat.ID.String(),
 				Date:               stat.Date,
 				Visitors:           stat.Visitors,
 				AvgSessionDuration: stat.AvgSessionDuration,
+				AnalyticsType:      stat.AnalyticsType,
+				Impressions:        impressions,
 			}
 
 			records = append(records, NocoTableRecord{
@@ -177,6 +196,42 @@ func syncNocoAnalyticsSiteStats(dbQueries *database.Queries, c *common.Client, e
 			return err
 		}
 	}
+
+	var deleteSiteMappings []database.AnalyticsSiteStatsOnTarget
+	for _, m := range siteStatMappings {
+		if !m.StatID.Valid {
+			deleteSiteMappings = append(deleteSiteMappings, m)
+		}
+	}
+
+	var deleteSiteRecords []NocoDeleteRecord
+	flushSiteDelete := func() error {
+		if len(deleteSiteRecords) == 0 {
+			return nil
+		}
+		if err := deleteNocoRecords(c, dbQueries, encryptionKey, target, tableMapping.TargetTableCode.String, deleteSiteRecords); err != nil {
+			return err
+		}
+		deleteSiteRecords = deleteSiteRecords[:0]
+		return nil
+	}
+
+	for _, m := range deleteSiteMappings {
+		targetIDVal, _ := strconv.Atoi(m.TargetRecordID)
+		deleteSiteRecords = append(deleteSiteRecords, NocoDeleteRecord{ID: targetIDVal})
+		if len(deleteSiteRecords) == batchSize {
+			if err := flushSiteDelete(); err != nil {
+				return err
+			}
+		}
+		if err := dbQueries.DeleteAnalyticsSiteStatOnTarget(context.Background(), m.ID); err != nil {
+			log.Printf("Warning: failed to delete site stat mapping %s: %v", m.ID, err)
+		}
+	}
+	if err := flushSiteDelete(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -253,11 +308,18 @@ func syncNocoAnalyticsPageStats(dbQueries *database.Queries, c *common.Client, e
 			targetIDVal, _ := strconv.Atoi(stat.TargetRecordID)
 			safeTargetID := targetIDVal
 
+			var impressions *int64
+			if stat.Impressions.Valid {
+				v := stat.Impressions.Int64
+				impressions = &v
+			}
 			fieldMap := NocoRecordFields{
-				ID:       stat.ID.String(),
-				Date:     stat.Date,
-				PagePath: stat.UrlPath,
-				Views:    stat.Views,
+				ID:            stat.ID.String(),
+				Date:          stat.Date,
+				PagePath:      stat.UrlPath,
+				Views:         stat.Views,
+				AnalyticsType: stat.AnalyticsType,
+				Impressions:   impressions,
 			}
 			updateRecords = append(updateRecords, NocoTableRecord{
 				Id:     safeTargetID,
@@ -335,11 +397,18 @@ func syncNocoAnalyticsPageStats(dbQueries *database.Queries, c *common.Client, e
 		}
 
 		for _, stat := range unsyncedStats {
+			var impressions *int64
+			if stat.Impressions.Valid {
+				v := stat.Impressions.Int64
+				impressions = &v
+			}
 			fieldMap := NocoRecordFields{
-				ID:       stat.ID.String(),
-				Date:     stat.Date,
-				PagePath: stat.UrlPath,
-				Views:    stat.Views,
+				ID:            stat.ID.String(),
+				Date:          stat.Date,
+				PagePath:      stat.UrlPath,
+				Views:         stat.Views,
+				AnalyticsType: stat.AnalyticsType,
+				Impressions:   impressions,
 			}
 
 			records = append(records, NocoTableRecord{

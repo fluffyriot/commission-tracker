@@ -213,8 +213,6 @@ if [ "$DEPLOY_TYPE" == "1" ]; then
 fi
 
 cat > docker-compose.yml <<EOF
-version: "3.9"
-
 services:
   db:
     image: postgres:16-alpine

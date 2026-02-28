@@ -140,8 +140,10 @@ func GenerateWebsiteCsv(dbQueries *database.Queries, target database.Target, exp
 	if err := writer.Write([]string{
 		"ct_id",
 		"date",
+		"analytics_type",
 		"visitors",
 		"avg_session_duration",
+		"impressions",
 		"source_network",
 		"source_username",
 	}); err != nil {
@@ -149,11 +151,17 @@ func GenerateWebsiteCsv(dbQueries *database.Queries, target database.Target, exp
 	}
 
 	for _, s := range stats {
+		impressions := ""
+		if s.Impressions.Valid {
+			impressions = strconv.FormatInt(s.Impressions.Int64, 10)
+		}
 		if err := writer.Write([]string{
 			s.ID.String(),
 			s.Date.Format("2006-01-02"),
+			s.AnalyticsType,
 			strconv.FormatInt(s.Visitors, 10),
 			fmt.Sprintf("%f", s.AvgSessionDuration),
+			impressions,
 			s.SourceNetwork,
 			s.SourceUserName,
 		}); err != nil {
@@ -187,8 +195,10 @@ func GeneratePageViewsCsv(dbQueries *database.Queries, target database.Target, e
 	if err := writer.Write([]string{
 		"ct_id",
 		"date",
+		"analytics_type",
 		"url_path",
 		"views",
+		"impressions",
 		"source_network",
 		"source_username",
 	}); err != nil {
@@ -196,11 +206,17 @@ func GeneratePageViewsCsv(dbQueries *database.Queries, target database.Target, e
 	}
 
 	for _, s := range stats {
+		impressions := ""
+		if s.Impressions.Valid {
+			impressions = strconv.FormatInt(s.Impressions.Int64, 10)
+		}
 		if err := writer.Write([]string{
 			s.ID.String(),
 			s.Date.Format("2006-01-02"),
+			s.AnalyticsType,
 			s.UrlPath,
 			strconv.FormatInt(s.Views, 10),
+			impressions,
 			s.SourceNetwork,
 			s.SourceUserName,
 		}); err != nil {

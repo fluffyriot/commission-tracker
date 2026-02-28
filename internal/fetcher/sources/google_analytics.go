@@ -49,12 +49,12 @@ func FetchGoogleAnalyticsStatsWithRange(dbQueries *database.Queries, sourceID uu
 		propertyID = source.UserName
 	}
 
-	creds, err := google.CredentialsFromJSON(ctx, []byte(token), analyticsdata.AnalyticsReadonlyScope)
+	jwtCfg, err := google.JWTConfigFromJSON([]byte(token), analyticsdata.AnalyticsReadonlyScope)
 	if err != nil {
-		return fmt.Errorf("failed to parse credentials: %w", err)
+		return fmt.Errorf("failed to parse service account credentials: %w", err)
 	}
 
-	client, err := analyticsdata.NewService(ctx, option.WithCredentials(creds))
+	client, err := analyticsdata.NewService(ctx, option.WithTokenSource(jwtCfg.TokenSource(ctx)))
 	if err != nil {
 		return fmt.Errorf("failed to create analytics client: %w", err)
 	}
@@ -117,6 +117,7 @@ func fetchAndSaveSiteStats(ctx context.Context, svc *analyticsdata.Service, db *
 			Visitors:           int64(visitorsInt),
 			AvgSessionDuration: durationFloat,
 			SourceID:           sourceID,
+			AnalyticsType:      "ga",
 		})
 		if err != nil {
 			log.Printf("Error saving site stat for %s: %v", dateStr, err)
@@ -188,11 +189,12 @@ func fetchAndSavePageStats(ctx context.Context, svc *analyticsdata.Service, db *
 
 	for key, views := range consolidatedStats {
 		_, err = db.CreateAnalyticsPageStat(ctx, database.CreateAnalyticsPageStatParams{
-			ID:       uuid.New(),
-			Date:     key.Date,
-			UrlPath:  key.Path,
-			Views:    int64(views),
-			SourceID: sourceID,
+			ID:            uuid.New(),
+			Date:          key.Date,
+			UrlPath:       key.Path,
+			Views:         int64(views),
+			SourceID:      sourceID,
+			AnalyticsType: "ga",
 		})
 		if err != nil {
 			log.Printf("Error saving page stat for %s %s: %v", key.Date.Format("2006-01-02"), key.Path, err)

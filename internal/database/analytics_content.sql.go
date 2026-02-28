@@ -7,9 +7,11 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const getEngagementVelocityData = `-- name: GetEngagementVelocityData :many
@@ -17,6 +19,7 @@ SELECT prh.post_id,
     prh.synced_at as history_synced_at,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     p.created_at as post_created_at,
     COALESCE(p.content, '')::TEXT as content,
     p.author,
@@ -44,6 +47,7 @@ type GetEngagementVelocityDataRow struct {
 	HistorySyncedAt   time.Time `json:"history_synced_at"`
 	Likes             int64     `json:"likes"`
 	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
 	PostCreatedAt     time.Time `json:"post_created_at"`
 	Content           string    `json:"content"`
 	Author            string    `json:"author"`
@@ -65,6 +69,97 @@ func (q *Queries) GetEngagementVelocityData(ctx context.Context, userID uuid.UUI
 			&i.HistorySyncedAt,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
+			&i.PostCreatedAt,
+			&i.Content,
+			&i.Author,
+			&i.NetworkInternalID,
+			&i.Network,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEngagementVelocityDataFiltered = `-- name: GetEngagementVelocityDataFiltered :many
+SELECT prh.post_id,
+    prh.synced_at as history_synced_at,
+    COALESCE(prh.likes, 0)::BIGINT as likes,
+    COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
+    p.created_at as post_created_at,
+    COALESCE(p.content, '')::TEXT as content,
+    p.author,
+    p.network_internal_id,
+    s.network
+FROM posts_reactions_history prh
+    JOIN posts p ON prh.post_id = p.id
+    JOIN sources s ON p.source_id = s.id
+    JOIN (
+        SELECT post_id,
+            MIN(synced_at) as first_synced
+        FROM posts_reactions_history
+        GROUP BY post_id
+    ) first_sync ON p.id = first_sync.post_id
+WHERE s.user_id = $1
+    AND p.created_at > NOW() - INTERVAL '30 days'
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND DATE(p.created_at) = DATE(first_sync.first_synced)
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+ORDER BY prh.post_id,
+    prh.synced_at ASC
+`
+
+type GetEngagementVelocityDataFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetEngagementVelocityDataFilteredRow struct {
+	PostID            uuid.UUID `json:"post_id"`
+	HistorySyncedAt   time.Time `json:"history_synced_at"`
+	Likes             int64     `json:"likes"`
+	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
+	PostCreatedAt     time.Time `json:"post_created_at"`
+	Content           string    `json:"content"`
+	Author            string    `json:"author"`
+	NetworkInternalID string    `json:"network_internal_id"`
+	Network           string    `json:"network"`
+}
+
+func (q *Queries) GetEngagementVelocityDataFiltered(ctx context.Context, arg GetEngagementVelocityDataFilteredParams) ([]GetEngagementVelocityDataFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEngagementVelocityDataFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEngagementVelocityDataFilteredRow
+	for rows.Next() {
+		var i GetEngagementVelocityDataFilteredRow
+		if err := rows.Scan(
+			&i.PostID,
+			&i.HistorySyncedAt,
+			&i.Likes,
+			&i.Reposts,
+			&i.Views,
 			&i.PostCreatedAt,
 			&i.Content,
 			&i.Author,
@@ -85,15 +180,11 @@ func (q *Queries) GetEngagementVelocityData(ctx context.Context, userID uuid.UUI
 }
 
 const getHashtagAnalytics = `-- name: GetHashtagAnalytics :many
-SELECT substring(
-        word
-        from 2
-    ) as tag,
+SELECT lower(matches [1]) as tag,
     count(*) as usage_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
 FROM (
-        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+        SELECT regexp_matches(content, '#([[:alnum:]_]+)', 'g') as matches,
             posts.id as post_id
         FROM posts
             JOIN sources s ON posts.source_id = s.id
@@ -102,24 +193,20 @@ FROM (
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes,
-            views
+            likes
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
     ) prh ON t.post_id = prh.post_id
-WHERE word LIKE '#%'
-    AND length(word) > 1
 GROUP BY tag
 ORDER BY avg_likes DESC
 LIMIT 20
 `
 
 type GetHashtagAnalyticsRow struct {
-	Tag        interface{} `json:"tag"`
-	UsageCount int64       `json:"usage_count"`
-	AvgLikes   int64       `json:"avg_likes"`
-	AvgViews   int64       `json:"avg_views"`
+	Tag        string `json:"tag"`
+	UsageCount int64  `json:"usage_count"`
+	AvgLikes   int64  `json:"avg_likes"`
 }
 
 func (q *Queries) GetHashtagAnalytics(ctx context.Context, userID uuid.UUID) ([]GetHashtagAnalyticsRow, error) {
@@ -131,12 +218,7 @@ func (q *Queries) GetHashtagAnalytics(ctx context.Context, userID uuid.UUID) ([]
 	var items []GetHashtagAnalyticsRow
 	for rows.Next() {
 		var i GetHashtagAnalyticsRow
-		if err := rows.Scan(
-			&i.Tag,
-			&i.UsageCount,
-			&i.AvgLikes,
-			&i.AvgViews,
-		); err != nil {
+		if err := rows.Scan(&i.Tag, &i.UsageCount, &i.AvgLikes); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -150,7 +232,196 @@ func (q *Queries) GetHashtagAnalytics(ctx context.Context, userID uuid.UUID) ([]
 	return items, nil
 }
 
-const getPerformanceDeviationData = `-- name: GetPerformanceDeviationData :many
+const getHashtagAnalyticsFiltered = `-- name: GetHashtagAnalyticsFiltered :many
+SELECT lower(matches [1]) as tag,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+FROM (
+        SELECT regexp_matches(content, '#([[:alnum:]_]+)', 'g') as matches,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+            AND ($2::date IS NULL OR posts.created_at >= $2::date)
+            AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
+            AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+GROUP BY tag
+ORDER BY avg_likes DESC
+LIMIT 20
+`
+
+type GetHashtagAnalyticsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetHashtagAnalyticsFilteredRow struct {
+	Tag        string `json:"tag"`
+	UsageCount int64  `json:"usage_count"`
+	AvgLikes   int64  `json:"avg_likes"`
+}
+
+func (q *Queries) GetHashtagAnalyticsFiltered(ctx context.Context, arg GetHashtagAnalyticsFilteredParams) ([]GetHashtagAnalyticsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getHashtagAnalyticsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetHashtagAnalyticsFilteredRow
+	for rows.Next() {
+		var i GetHashtagAnalyticsFilteredRow
+		if err := rows.Scan(&i.Tag, &i.UsageCount, &i.AvgLikes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getHashtagAnalyticsViews = `-- name: GetHashtagAnalyticsViews :many
+SELECT lower(matches [1]) as tag,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM (
+        SELECT regexp_matches(content, '#([[:alnum:]_]+)', 'g') as matches,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+GROUP BY tag
+ORDER BY avg_views DESC
+LIMIT 20
+`
+
+type GetHashtagAnalyticsViewsRow struct {
+	Tag        string `json:"tag"`
+	UsageCount int64  `json:"usage_count"`
+	AvgViews   int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetHashtagAnalyticsViews(ctx context.Context, userID uuid.UUID) ([]GetHashtagAnalyticsViewsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getHashtagAnalyticsViews, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetHashtagAnalyticsViewsRow
+	for rows.Next() {
+		var i GetHashtagAnalyticsViewsRow
+		if err := rows.Scan(&i.Tag, &i.UsageCount, &i.AvgViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getHashtagAnalyticsViewsFiltered = `-- name: GetHashtagAnalyticsViewsFiltered :many
+SELECT lower(matches [1]) as tag,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM (
+        SELECT regexp_matches(content, '#([[:alnum:]_]+)', 'g') as matches,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+            AND ($2::date IS NULL OR posts.created_at >= $2::date)
+            AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
+            AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+GROUP BY tag
+ORDER BY avg_views DESC
+LIMIT 20
+`
+
+type GetHashtagAnalyticsViewsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetHashtagAnalyticsViewsFilteredRow struct {
+	Tag        string `json:"tag"`
+	UsageCount int64  `json:"usage_count"`
+	AvgViews   int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetHashtagAnalyticsViewsFiltered(ctx context.Context, arg GetHashtagAnalyticsViewsFilteredParams) ([]GetHashtagAnalyticsViewsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getHashtagAnalyticsViewsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetHashtagAnalyticsViewsFilteredRow
+	for rows.Next() {
+		var i GetHashtagAnalyticsViewsFilteredRow
+		if err := rows.Scan(&i.Tag, &i.UsageCount, &i.AvgViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationNegative = `-- name: GetPerformanceDeviationNegative :many
 WITH SourceAverages AS (
     SELECT p.source_id,
         AVG(
@@ -197,23 +468,25 @@ FROM posts p
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND p.post_type NOT IN ('tag', 'repost', 'quote')
-ORDER BY ABS(
-        (
-            COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
-        ) - (
+    AND (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) < (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+ORDER BY (
+        (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
             sa.avg_engagement * LEAST(
                 1.0,
-                EXTRACT(
-                    EPOCH
-                    FROM (NOW() - p.created_at)
-                ) / 86400.0
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
             )
         )
-    ) DESC
-LIMIT 100
+    ) ASC
+LIMIT 7
 `
 
-type GetPerformanceDeviationDataRow struct {
+type GetPerformanceDeviationNegativeRow struct {
 	ID                 uuid.UUID `json:"id"`
 	NetworkInternalID  string    `json:"network_internal_id"`
 	Content            string    `json:"content"`
@@ -225,15 +498,15 @@ type GetPerformanceDeviationDataRow struct {
 	ExpectedEngagement float64   `json:"expected_engagement"`
 }
 
-func (q *Queries) GetPerformanceDeviationData(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationDataRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationData, userID)
+func (q *Queries) GetPerformanceDeviationNegative(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationNegativeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationNegative, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPerformanceDeviationDataRow
+	var items []GetPerformanceDeviationNegativeRow
 	for rows.Next() {
-		var i GetPerformanceDeviationDataRow
+		var i GetPerformanceDeviationNegativeRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.NetworkInternalID,
@@ -243,6 +516,808 @@ func (q *Queries) GetPerformanceDeviationData(ctx context.Context, userID uuid.U
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationNegativeFiltered = `-- name: GetPerformanceDeviationNegativeFiltered :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(
+            COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
+        ) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                likes,
+                reposts
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.likes, 0)::BIGINT as likes,
+    COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) < (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+ORDER BY (
+        (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) ASC
+LIMIT 7
+`
+
+type GetPerformanceDeviationNegativeFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetPerformanceDeviationNegativeFilteredRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Likes              int64     `json:"likes"`
+	Reposts            int64     `json:"reposts"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationNegativeFiltered(ctx context.Context, arg GetPerformanceDeviationNegativeFilteredParams) ([]GetPerformanceDeviationNegativeFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationNegativeFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationNegativeFilteredRow
+	for rows.Next() {
+		var i GetPerformanceDeviationNegativeFilteredRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Likes,
+			&i.Reposts,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationNegativeViews = `-- name: GetPerformanceDeviationNegativeViews :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(COALESCE(prh.views, 0)) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                views
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.views, 0)::BIGINT as views,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND COALESCE(prh.views, 0) < (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+ORDER BY (
+        COALESCE(prh.views, 0) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) ASC
+LIMIT 7
+`
+
+type GetPerformanceDeviationNegativeViewsRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Views              int64     `json:"views"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationNegativeViews(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationNegativeViewsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationNegativeViews, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationNegativeViewsRow
+	for rows.Next() {
+		var i GetPerformanceDeviationNegativeViewsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Views,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationNegativeViewsFiltered = `-- name: GetPerformanceDeviationNegativeViewsFiltered :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(COALESCE(prh.views, 0)) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                views
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.views, 0)::BIGINT as views,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND COALESCE(prh.views, 0) < (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+ORDER BY (
+        COALESCE(prh.views, 0) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) ASC
+LIMIT 7
+`
+
+type GetPerformanceDeviationNegativeViewsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetPerformanceDeviationNegativeViewsFilteredRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Views              int64     `json:"views"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationNegativeViewsFiltered(ctx context.Context, arg GetPerformanceDeviationNegativeViewsFilteredParams) ([]GetPerformanceDeviationNegativeViewsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationNegativeViewsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationNegativeViewsFilteredRow
+	for rows.Next() {
+		var i GetPerformanceDeviationNegativeViewsFilteredRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Views,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationPositive = `-- name: GetPerformanceDeviationPositive :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(
+            COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
+        ) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                likes,
+                reposts
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.likes, 0)::BIGINT as likes,
+    COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) > (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+ORDER BY (
+        (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) DESC
+LIMIT 7
+`
+
+type GetPerformanceDeviationPositiveRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Likes              int64     `json:"likes"`
+	Reposts            int64     `json:"reposts"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationPositive(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationPositiveRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationPositive, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationPositiveRow
+	for rows.Next() {
+		var i GetPerformanceDeviationPositiveRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Likes,
+			&i.Reposts,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationPositiveFiltered = `-- name: GetPerformanceDeviationPositiveFiltered :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(
+            COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
+        ) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                likes,
+                reposts
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.likes, 0)::BIGINT as likes,
+    COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) > (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+ORDER BY (
+        (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) DESC
+LIMIT 7
+`
+
+type GetPerformanceDeviationPositiveFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetPerformanceDeviationPositiveFilteredRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Likes              int64     `json:"likes"`
+	Reposts            int64     `json:"reposts"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationPositiveFiltered(ctx context.Context, arg GetPerformanceDeviationPositiveFilteredParams) ([]GetPerformanceDeviationPositiveFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationPositiveFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationPositiveFilteredRow
+	for rows.Next() {
+		var i GetPerformanceDeviationPositiveFilteredRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Likes,
+			&i.Reposts,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationPositiveViews = `-- name: GetPerformanceDeviationPositiveViews :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(COALESCE(prh.views, 0)) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                views
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.views, 0)::BIGINT as views,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND COALESCE(prh.views, 0) > (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+ORDER BY (
+        COALESCE(prh.views, 0) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) DESC
+LIMIT 7
+`
+
+type GetPerformanceDeviationPositiveViewsRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Views              int64     `json:"views"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationPositiveViews(ctx context.Context, userID uuid.UUID) ([]GetPerformanceDeviationPositiveViewsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationPositiveViews, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationPositiveViewsRow
+	for rows.Next() {
+		var i GetPerformanceDeviationPositiveViewsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Views,
+			&i.ExpectedEngagement,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPerformanceDeviationPositiveViewsFiltered = `-- name: GetPerformanceDeviationPositiveViewsFiltered :many
+WITH SourceAverages AS (
+    SELECT p.source_id,
+        AVG(COALESCE(prh.views, 0)) as avg_engagement
+    FROM posts p
+        LEFT JOIN (
+            SELECT DISTINCT ON (post_id) post_id,
+                views
+            FROM posts_reactions_history
+            ORDER BY post_id,
+                synced_at DESC
+        ) prh ON p.id = prh.post_id
+    GROUP BY p.source_id
+)
+SELECT p.id,
+    p.network_internal_id,
+    COALESCE(p.content, '')::TEXT as content,
+    p.created_at,
+    p.author,
+    s.network,
+    COALESCE(prh.views, 0)::BIGINT as views,
+    (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(
+                EPOCH
+                FROM (NOW() - p.created_at)
+            ) / 86400.0
+        )
+    )::FLOAT as expected_engagement
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    JOIN SourceAverages sa ON p.source_id = sa.source_id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND p.post_type NOT IN ('tag', 'repost', 'quote')
+    AND COALESCE(prh.views, 0) > (
+        sa.avg_engagement * LEAST(
+            1.0,
+            EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+        )
+    )
+    AND p.created_at > NOW() - INTERVAL '90 days'
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+ORDER BY (
+        COALESCE(prh.views, 0) - (
+            sa.avg_engagement * LEAST(
+                1.0,
+                EXTRACT(EPOCH FROM (NOW() - p.created_at)) / 86400.0
+            )
+        )
+    ) DESC
+LIMIT 7
+`
+
+type GetPerformanceDeviationPositiveViewsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetPerformanceDeviationPositiveViewsFilteredRow struct {
+	ID                 uuid.UUID `json:"id"`
+	NetworkInternalID  string    `json:"network_internal_id"`
+	Content            string    `json:"content"`
+	CreatedAt          time.Time `json:"created_at"`
+	Author             string    `json:"author"`
+	Network            string    `json:"network"`
+	Views              int64     `json:"views"`
+	ExpectedEngagement float64   `json:"expected_engagement"`
+}
+
+func (q *Queries) GetPerformanceDeviationPositiveViewsFiltered(ctx context.Context, arg GetPerformanceDeviationPositiveViewsFilteredParams) ([]GetPerformanceDeviationPositiveViewsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPerformanceDeviationPositiveViewsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPerformanceDeviationPositiveViewsFilteredRow
+	for rows.Next() {
+		var i GetPerformanceDeviationPositiveViewsFilteredRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.Content,
+			&i.CreatedAt,
+			&i.Author,
+			&i.Network,
+			&i.Views,
 			&i.ExpectedEngagement,
 		); err != nil {
 			return nil, err

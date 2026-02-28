@@ -110,11 +110,29 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *common.Client, 
 		case "Discord":
 			return sources.FetchDiscordPosts(dbQueries, encryptionKey, source.ID, c)
 
+		case "Reddit":
+			return sources.FetchRedditPosts(dbQueries, encryptionKey, source.ID, c)
+
+		case "Twitch":
+			return sources.FetchTwitchPosts(dbQueries, encryptionKey, source.ID, c)
+
 		case "FurAffinity":
 			return sources.FetchFurAffinityPosts(dbQueries, c, source.UserID, source.ID)
 
 		case "e621":
 			return sources.FetchE621Posts(dbQueries, encryptionKey, source.ID, c)
+
+		case "DeviantArt":
+			return sources.FetchDeviantArtPosts(dbQueries, encryptionKey, source.ID, c)
+
+		case "Weasyl":
+			return sources.FetchWeasylPosts(dbQueries, encryptionKey, source.ID, c)
+
+		case "Google Search Console":
+			return sources.FetchGoogleSearchConsoleStats(dbQueries, source.ID, encryptionKey)
+
+		case "Threads":
+			return sources.FetchThreadsPosts(dbQueries, encryptionKey, source.ID, c)
 
 		default:
 			return nil

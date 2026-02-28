@@ -63,14 +63,19 @@ type instagramProfile struct {
 	FollowersCount int `json:"followers_count"`
 }
 
-func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, string, string, string, error) {
+func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte, noInsights bool) (string, string, string, string, error) {
 
 	token, pid, _, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
 	if err != nil {
 		return "", "", "", "", err
 	}
 
-	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
+	var apiString string
+	if noInsights {
+		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username&access_token=%v&limit=25", version, pid, token)
+	} else {
+		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
+	}
 
 	if next != "" {
 		apiString = next
@@ -111,13 +116,13 @@ func fetchInstagramProfile(token, pid, version string, c *common.Client) (*insta
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to get profile: %v %v", resp.StatusCode, resp.Status)
-	}
-
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to get profile: %v %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 	}
 
 	var profile instagramProfile
@@ -142,10 +147,11 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 	var next string
 	var token, pid, ver string
 	var url string
+	var noInsights bool
 
 	for page := 0; page < maxPages; page++ {
 
-		url, token, pid, ver, err = getInstagramApiString(dbQueries, sourceId, next, version, encryptionKey)
+		url, token, pid, ver, err = getInstagramApiString(dbQueries, sourceId, next, version, encryptionKey, noInsights)
 		if err != nil {
 			return err
 		}
@@ -160,14 +166,25 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 			return err
 		}
 
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("Failed to get a successfull response. Code: %v. Status: %v", resp.StatusCode, resp.Status)
-		}
-
 		data, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			return err
+		}
+
+		if resp.StatusCode != 200 {
+			if strings.Contains(string(data), "business account conversion") {
+				if !noInsights {
+					log.Printf("Instagram: retrying without insights for source %s (pre-business-account content)", sourceId)
+					noInsights = true
+					next = ""
+					page = -1
+					continue
+				}
+				log.Printf("Instagram: ignoring pre-business-account conversion error for source %s (Instagram API limitation)", sourceId)
+				break
+			}
+			return fmt.Errorf("Failed to get a successfull response. Code: %v. Status: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 
 		var feed instagramFeed
@@ -198,19 +215,23 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 				post_type = "image"
 			}
 
-			views := 0
-			if len(item.Insights.Data) != 0 {
-				insight := item.Insights.Data[0]
-				if len(insight.Values) != 0 {
-					views = insight.Values[0].Value
+			var viewsVal sql.NullInt64
+			if !noInsights {
+				views := 0
+				if len(item.Insights.Data) != 0 {
+					insight := item.Insights.Data[0]
+					if len(insight.Values) != 0 {
+						views = insight.Values[0].Value
+					}
 				}
+				viewsVal = sql.NullInt64{Int64: int64(views), Valid: true}
 			}
 
 			err = common.ProcessScrapedPost(
 				context.Background(), dbQueries, sourceId, item.Shortcode, "Instagram", timeParse, post_type, item.Username, item.Caption,
 				sql.NullInt64{Int64: int64(item.LikeCount), Valid: true},
 				sql.NullInt64{Valid: false},
-				sql.NullInt64{Int64: int64(views), Valid: true},
+				viewsVal,
 			)
 			if err != nil {
 				return err
@@ -276,14 +297,14 @@ func FetchInstagramTags(dbQueries *database.Queries, c *common.Client, sourceId 
 			return err
 		}
 
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("Failed to get a successfull response. %v: %v", resp.StatusCode, resp.Status)
-		}
-
 		data, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			return err
+		}
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("Failed to get a successfull response. %v: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 
 		var feed instagramTagsFeed

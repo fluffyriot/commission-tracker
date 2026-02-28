@@ -71,13 +71,13 @@ func fetchMastodonProfile(domain string, c *common.Client, userId string) (*mast
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to get a successfull response. %v: %v", resp.StatusCode, resp.Status)
-	}
-
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("Failed to get a successfull response. %v: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 	}
 
 	var mastProfile mastodonProfile
@@ -95,12 +95,9 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 		return err
 	}
 
-	username, err := dbQueries.GetUserActiveSourceByName(
+	username, err := dbQueries.GetSourceById(
 		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "Mastodon",
-		},
+		sourceId,
 	)
 
 	if err != nil {
@@ -108,6 +105,9 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 	}
 
 	splits := strings.SplitN(username.UserName, "@", 2)
+	if len(splits) < 2 {
+		return fmt.Errorf("invalid mastodon username format (expected user@domain): %s", username.UserName)
+	}
 	user := splits[0]
 	domain := splits[1]
 
@@ -157,15 +157,14 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 			return err
 		}
 
-		if resp.StatusCode != 200 {
-			resp.Body.Close()
-			return fmt.Errorf("Failed to get a successfull response. %v: %v", resp.StatusCode, resp.Status)
-		}
-
 		data, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			return err
+		}
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("Failed to get a successfull response. %v: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 
 		var feed mastFeed
@@ -187,7 +186,12 @@ func FetchMastodonPosts(dbQueries *database.Queries, c *common.Client, uid uuid.
 				if item.Reblog.Account.Id == item.Account.Id {
 					continue
 				}
-				postId = strings.Split(item.Reblog.Uri, "statuses/")[1]
+				parts := strings.Split(item.Reblog.Uri, "statuses/")
+				if len(parts) > 1 {
+					postId = parts[1]
+				} else {
+					postId = path.Base(item.Reblog.Uri)
+				}
 			} else {
 				postId = item.ID
 			}

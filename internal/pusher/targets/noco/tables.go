@@ -100,8 +100,10 @@ func InitializeNoco(dbQueries *database.Queries, c *common.Client, encryptionKey
 			Fields: []NocoColumn{
 				{Title: "ct_id", Type: "SingleLineText", Unique: true},
 				{Title: "date", Type: "Date"},
+				{Title: "analytics_type", Type: "SingleLineText"},
 				{Title: "visitors", Type: "Number"},
 				{Title: "avg_session_duration", Type: "Decimal"},
+				{Title: "impressions", Type: "Number"},
 			},
 		}
 
@@ -143,6 +145,33 @@ func InitializeNoco(dbQueries *database.Queries, c *common.Client, encryptionKey
 		})
 		if err == nil {
 			siteStatsRespID = tm.TargetTableCode.String
+			for _, col := range []struct{ name, typ string }{
+				{"analytics_type", "SingleLineText"},
+				{"impressions", "Number"},
+			} {
+				_, err := dbQueries.GetColumnMappingsByTableAndName(context.Background(), database.GetColumnMappingsByTableAndNameParams{
+					TableMappingID:   tm.ID,
+					TargetColumnName: col.name,
+				})
+				if err != nil {
+					respCol, err := createNocoColumn(c, dbQueries, encryptionKey, target, siteStatsRespID, NocoColumn{Title: col.name, Type: col.typ})
+					if err != nil {
+						log.Printf("Failed to add analytics_site_stats column %s: %v", col.name, err)
+						continue
+					}
+					_, err = dbQueries.CreateMappingForColumn(context.Background(), database.CreateMappingForColumnParams{
+						ID:               uuid.New(),
+						CreatedAt:        time.Now(),
+						TableMappingID:   tm.ID,
+						SourceColumnName: col.name,
+						TargetColumnName: col.name,
+						TargetColumnCode: sql.NullString{String: respCol.ID, Valid: true},
+					})
+					if err != nil {
+						log.Printf("Failed to save analytics_site_stats column mapping %s: %v", col.name, err)
+					}
+				}
+			}
 		}
 	}
 
@@ -158,8 +187,10 @@ func InitializeNoco(dbQueries *database.Queries, c *common.Client, encryptionKey
 			Fields: []NocoColumn{
 				{Title: "ct_id", Type: "SingleLineText", Unique: true},
 				{Title: "date", Type: "Date"},
+				{Title: "analytics_type", Type: "SingleLineText"},
 				{Title: "page_path", Type: "SingleLineText"},
 				{Title: "views", Type: "Number"},
+				{Title: "impressions", Type: "Number"},
 			},
 		}
 
@@ -201,6 +232,33 @@ func InitializeNoco(dbQueries *database.Queries, c *common.Client, encryptionKey
 		})
 		if err == nil {
 			pageStatsRespID = tm.TargetTableCode.String
+			for _, col := range []struct{ name, typ string }{
+				{"analytics_type", "SingleLineText"},
+				{"impressions", "Number"},
+			} {
+				_, err := dbQueries.GetColumnMappingsByTableAndName(context.Background(), database.GetColumnMappingsByTableAndNameParams{
+					TableMappingID:   tm.ID,
+					TargetColumnName: col.name,
+				})
+				if err != nil {
+					respCol, err := createNocoColumn(c, dbQueries, encryptionKey, target, pageStatsRespID, NocoColumn{Title: col.name, Type: col.typ})
+					if err != nil {
+						log.Printf("Failed to add analytics_page_stats column %s: %v", col.name, err)
+						continue
+					}
+					_, err = dbQueries.CreateMappingForColumn(context.Background(), database.CreateMappingForColumnParams{
+						ID:               uuid.New(),
+						CreatedAt:        time.Now(),
+						TableMappingID:   tm.ID,
+						SourceColumnName: col.name,
+						TargetColumnName: col.name,
+						TargetColumnCode: sql.NullString{String: respCol.ID, Valid: true},
+					})
+					if err != nil {
+						log.Printf("Failed to save analytics_page_stats column mapping %s: %v", col.name, err)
+					}
+				}
+			}
 		}
 	}
 

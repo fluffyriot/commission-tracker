@@ -154,15 +154,26 @@ func (h *Handler) RootHandler(c *gin.Context) {
 
 	var topSources []TopSourceViewModel
 	for _, src := range topSourcesDB {
+		caps := helpers.GetSourceByName(src.Network)
+		if caps != nil && !caps.EngagementSupported && !caps.ViewsSupported && !caps.FollowersTracked {
+			continue
+		}
 		profileURL, _ := helpers.ConvNetworkToURL(src.Network, src.UserName)
-		topSources = append(topSources, TopSourceViewModel{
+		vm := TopSourceViewModel{
 			ID:                src.ID,
 			UserName:          src.UserName,
 			Network:           src.Network,
 			TotalInteractions: int64(src.TotalInteractions),
+			TotalViews:        int64(src.TotalViews),
 			FollowersCount:    int64(src.FollowersCount),
 			ProfileURL:        profileURL,
-		})
+		}
+		if caps != nil {
+			vm.EngagementSupported = caps.EngagementSupported
+			vm.ViewsSupported = caps.ViewsSupported
+			vm.FollowersTracked = caps.FollowersTracked
+		}
+		topSources = append(topSources, vm)
 	}
 
 	c.HTML(http.StatusOK, "index.html", h.CommonData(c, gin.H{

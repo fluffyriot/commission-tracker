@@ -7,9 +7,11 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const getCollaborationsData = `-- name: GetCollaborationsData :many
@@ -67,6 +69,187 @@ func (q *Queries) GetCollaborationsData(ctx context.Context, userID uuid.UUID) (
 	return items, nil
 }
 
+const getCollaborationsDataFiltered = `-- name: GetCollaborationsDataFiltered :many
+SELECT collaborator,
+    COUNT(*) as collaboration_count,
+    COALESCE(AVG(likes), 0)::BIGINT as avg_likes
+FROM (
+        SELECT p.author as collaborator,
+            COALESCE(prh.likes, 0) as likes
+        FROM posts p
+            JOIN sources s ON p.source_id = s.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (post_id) post_id,
+                    likes
+                FROM posts_reactions_history
+                ORDER BY post_id,
+                    synced_at DESC
+            ) prh ON p.id = prh.post_id
+        WHERE s.user_id = $1
+            AND p.post_type IN ('repost', 'tag')
+            AND p.author IS NOT NULL
+            AND p.author != ''
+            AND ($2::date IS NULL OR p.created_at >= $2::date)
+            AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    ) combined_collaborations
+GROUP BY collaborator
+ORDER BY avg_likes DESC
+LIMIT 50
+`
+
+type GetCollaborationsDataFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+}
+
+type GetCollaborationsDataFilteredRow struct {
+	Collaborator       string `json:"collaborator"`
+	CollaborationCount int64  `json:"collaboration_count"`
+	AvgLikes           int64  `json:"avg_likes"`
+}
+
+func (q *Queries) GetCollaborationsDataFiltered(ctx context.Context, arg GetCollaborationsDataFilteredParams) ([]GetCollaborationsDataFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCollaborationsDataFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCollaborationsDataFilteredRow
+	for rows.Next() {
+		var i GetCollaborationsDataFilteredRow
+		if err := rows.Scan(&i.Collaborator, &i.CollaborationCount, &i.AvgLikes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCollaborationsDataViews = `-- name: GetCollaborationsDataViews :many
+SELECT collaborator,
+    COUNT(*) as collaboration_count,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
+FROM (
+        SELECT p.author as collaborator,
+            COALESCE(prh.views, 0) as views
+        FROM posts p
+            JOIN sources s ON p.source_id = s.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (post_id) post_id,
+                    views
+                FROM posts_reactions_history
+                ORDER BY post_id,
+                    synced_at DESC
+            ) prh ON p.id = prh.post_id
+        WHERE s.user_id = $1
+            AND p.post_type IN ('repost', 'tag')
+            AND p.author IS NOT NULL
+            AND p.author != ''
+    ) combined_collaborations
+GROUP BY collaborator
+ORDER BY avg_views DESC
+LIMIT 50
+`
+
+type GetCollaborationsDataViewsRow struct {
+	Collaborator       string `json:"collaborator"`
+	CollaborationCount int64  `json:"collaboration_count"`
+	AvgViews           int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetCollaborationsDataViews(ctx context.Context, userID uuid.UUID) ([]GetCollaborationsDataViewsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCollaborationsDataViews, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCollaborationsDataViewsRow
+	for rows.Next() {
+		var i GetCollaborationsDataViewsRow
+		if err := rows.Scan(&i.Collaborator, &i.CollaborationCount, &i.AvgViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCollaborationsDataViewsFiltered = `-- name: GetCollaborationsDataViewsFiltered :many
+SELECT collaborator,
+    COUNT(*) as collaboration_count,
+    COALESCE(AVG(views), 0)::BIGINT as avg_views
+FROM (
+        SELECT p.author as collaborator,
+            COALESCE(prh.views, 0) as views
+        FROM posts p
+            JOIN sources s ON p.source_id = s.id
+            LEFT JOIN (
+                SELECT DISTINCT ON (post_id) post_id,
+                    views
+                FROM posts_reactions_history
+                ORDER BY post_id,
+                    synced_at DESC
+            ) prh ON p.id = prh.post_id
+        WHERE s.user_id = $1
+            AND p.post_type IN ('repost', 'tag')
+            AND p.author IS NOT NULL
+            AND p.author != ''
+            AND ($2::date IS NULL OR p.created_at >= $2::date)
+            AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    ) combined_collaborations
+GROUP BY collaborator
+ORDER BY avg_views DESC
+LIMIT 50
+`
+
+type GetCollaborationsDataViewsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+}
+
+type GetCollaborationsDataViewsFilteredRow struct {
+	Collaborator       string `json:"collaborator"`
+	CollaborationCount int64  `json:"collaboration_count"`
+	AvgViews           int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetCollaborationsDataViewsFiltered(ctx context.Context, arg GetCollaborationsDataViewsFilteredParams) ([]GetCollaborationsDataViewsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCollaborationsDataViewsFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCollaborationsDataViewsFilteredRow
+	for rows.Next() {
+		var i GetCollaborationsDataViewsFilteredRow
+		if err := rows.Scan(&i.Collaborator, &i.CollaborationCount, &i.AvgViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEngagementRateData = `-- name: GetEngagementRateData :many
 SELECT p.id,
     p.network_internal_id,
@@ -74,13 +257,15 @@ SELECT p.id,
     s.network,
     COALESCE(prh.likes, 0)::BIGINT as likes,
     COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
     COALESCE(ss.followers_count, 0)::BIGINT as followers_count
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -104,6 +289,7 @@ type GetEngagementRateDataRow struct {
 	Network           string    `json:"network"`
 	Likes             int64     `json:"likes"`
 	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
 	FollowersCount    int64     `json:"followers_count"`
 }
 
@@ -123,6 +309,97 @@ func (q *Queries) GetEngagementRateData(ctx context.Context, userID uuid.UUID) (
 			&i.Network,
 			&i.Likes,
 			&i.Reposts,
+			&i.Views,
+			&i.FollowersCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEngagementRateDataFiltered = `-- name: GetEngagementRateDataFiltered :many
+SELECT p.id,
+    p.network_internal_id,
+    p.created_at,
+    s.network,
+    COALESCE(prh.likes, 0)::BIGINT as likes,
+    COALESCE(prh.reposts, 0)::BIGINT as reposts,
+    COALESCE(prh.views, 0)::BIGINT as views,
+    COALESCE(ss.followers_count, 0)::BIGINT as followers_count
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+    LEFT JOIN LATERAL (
+        SELECT followers_count
+        FROM sources_stats
+        WHERE source_id = s.id
+            AND date <= p.created_at
+        ORDER BY date DESC
+        LIMIT 1
+    ) ss ON true
+WHERE s.user_id = $1
+    AND ss.followers_count > 0
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+`
+
+type GetEngagementRateDataFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetEngagementRateDataFilteredRow struct {
+	ID                uuid.UUID `json:"id"`
+	NetworkInternalID string    `json:"network_internal_id"`
+	CreatedAt         time.Time `json:"created_at"`
+	Network           string    `json:"network"`
+	Likes             int64     `json:"likes"`
+	Reposts           int64     `json:"reposts"`
+	Views             int64     `json:"views"`
+	FollowersCount    int64     `json:"followers_count"`
+}
+
+func (q *Queries) GetEngagementRateDataFiltered(ctx context.Context, arg GetEngagementRateDataFilteredParams) ([]GetEngagementRateDataFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEngagementRateDataFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEngagementRateDataFilteredRow
+	for rows.Next() {
+		var i GetEngagementRateDataFilteredRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.NetworkInternalID,
+			&i.CreatedAt,
+			&i.Network,
+			&i.Likes,
+			&i.Reposts,
+			&i.Views,
 			&i.FollowersCount,
 		); err != nil {
 			return nil, err
@@ -195,12 +472,14 @@ func (q *Queries) GetFollowRatioData(ctx context.Context, userID uuid.UUID) ([]G
 const getGlobalPostTypeAnalytics = `-- name: GetGlobalPostTypeAnalytics :many
 SELECT post_type,
     count(*) as post_count,
-    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
-            likes
+            likes,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -214,6 +493,7 @@ type GetGlobalPostTypeAnalyticsRow struct {
 	PostType  string `json:"post_type"`
 	PostCount int64  `json:"post_count"`
 	AvgLikes  int64  `json:"avg_likes"`
+	AvgViews  int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetGlobalPostTypeAnalytics(ctx context.Context, userID uuid.UUID) ([]GetGlobalPostTypeAnalyticsRow, error) {
@@ -225,7 +505,82 @@ func (q *Queries) GetGlobalPostTypeAnalytics(ctx context.Context, userID uuid.UU
 	var items []GetGlobalPostTypeAnalyticsRow
 	for rows.Next() {
 		var i GetGlobalPostTypeAnalyticsRow
-		if err := rows.Scan(&i.PostType, &i.PostCount, &i.AvgLikes); err != nil {
+		if err := rows.Scan(
+			&i.PostType,
+			&i.PostCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGlobalPostTypeAnalyticsFiltered = `-- name: GetGlobalPostTypeAnalyticsFiltered :many
+SELECT post_type,
+    count(*) as post_count,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+GROUP BY post_type
+ORDER BY avg_likes DESC
+`
+
+type GetGlobalPostTypeAnalyticsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetGlobalPostTypeAnalyticsFilteredRow struct {
+	PostType  string `json:"post_type"`
+	PostCount int64  `json:"post_count"`
+	AvgLikes  int64  `json:"avg_likes"`
+	AvgViews  int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetGlobalPostTypeAnalyticsFiltered(ctx context.Context, arg GetGlobalPostTypeAnalyticsFilteredParams) ([]GetGlobalPostTypeAnalyticsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGlobalPostTypeAnalyticsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGlobalPostTypeAnalyticsFilteredRow
+	for rows.Next() {
+		var i GetGlobalPostTypeAnalyticsFilteredRow
+		if err := rows.Scan(
+			&i.PostType,
+			&i.PostCount,
+			&i.AvgLikes,
+			&i.AvgViews,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -312,17 +667,268 @@ func (q *Queries) GetMentionsAnalytics(ctx context.Context, userID uuid.UUID) ([
 	return items, nil
 }
 
+const getMentionsAnalyticsFiltered = `-- name: GetMentionsAnalyticsFiltered :many
+SELECT regexp_replace(
+        substring(
+            word
+            from 2
+        ),
+        '[^a-z0-9_.]',
+        '',
+        'g'
+    ) as mention,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes
+FROM (
+        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+            AND ($2::date IS NULL OR posts.created_at >= $2::date)
+            AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
+            AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+WHERE word LIKE '@%'
+GROUP BY mention
+HAVING length(
+        regexp_replace(
+            substring(
+                word
+                from 2
+            ),
+            '[^a-z0-9_.]',
+            '',
+            'g'
+        )
+    ) > 1
+ORDER BY avg_likes DESC
+LIMIT 20
+`
+
+type GetMentionsAnalyticsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetMentionsAnalyticsFilteredRow struct {
+	Mention    string `json:"mention"`
+	UsageCount int64  `json:"usage_count"`
+	AvgLikes   int64  `json:"avg_likes"`
+}
+
+func (q *Queries) GetMentionsAnalyticsFiltered(ctx context.Context, arg GetMentionsAnalyticsFilteredParams) ([]GetMentionsAnalyticsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMentionsAnalyticsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMentionsAnalyticsFilteredRow
+	for rows.Next() {
+		var i GetMentionsAnalyticsFilteredRow
+		if err := rows.Scan(&i.Mention, &i.UsageCount, &i.AvgLikes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMentionsAnalyticsViews = `-- name: GetMentionsAnalyticsViews :many
+SELECT regexp_replace(
+        substring(
+            word
+            from 2
+        ),
+        '[^a-z0-9_.]',
+        '',
+        'g'
+    ) as mention,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM (
+        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+WHERE word LIKE '@%'
+GROUP BY mention
+HAVING length(
+        regexp_replace(
+            substring(
+                word
+                from 2
+            ),
+            '[^a-z0-9_.]',
+            '',
+            'g'
+        )
+    ) > 1
+ORDER BY avg_views DESC
+LIMIT 20
+`
+
+type GetMentionsAnalyticsViewsRow struct {
+	Mention    string `json:"mention"`
+	UsageCount int64  `json:"usage_count"`
+	AvgViews   int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetMentionsAnalyticsViews(ctx context.Context, userID uuid.UUID) ([]GetMentionsAnalyticsViewsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMentionsAnalyticsViews, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMentionsAnalyticsViewsRow
+	for rows.Next() {
+		var i GetMentionsAnalyticsViewsRow
+		if err := rows.Scan(&i.Mention, &i.UsageCount, &i.AvgViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMentionsAnalyticsViewsFiltered = `-- name: GetMentionsAnalyticsViewsFiltered :many
+SELECT regexp_replace(
+        substring(
+            word
+            from 2
+        ),
+        '[^a-z0-9_.]',
+        '',
+        'g'
+    ) as mention,
+    count(*) as usage_count,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM (
+        SELECT regexp_split_to_table(lower(content), '\s+') as word,
+            posts.id as post_id
+        FROM posts
+            JOIN sources s ON posts.source_id = s.id
+        WHERE s.user_id = $1
+            AND content IS NOT NULL
+            AND ($2::date IS NULL OR posts.created_at >= $2::date)
+            AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
+            AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+    ) t
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON t.post_id = prh.post_id
+WHERE word LIKE '@%'
+GROUP BY mention
+HAVING length(
+        regexp_replace(
+            substring(
+                word
+                from 2
+            ),
+            '[^a-z0-9_.]',
+            '',
+            'g'
+        )
+    ) > 1
+ORDER BY avg_views DESC
+LIMIT 20
+`
+
+type GetMentionsAnalyticsViewsFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetMentionsAnalyticsViewsFilteredRow struct {
+	Mention    string `json:"mention"`
+	UsageCount int64  `json:"usage_count"`
+	AvgViews   int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetMentionsAnalyticsViewsFiltered(ctx context.Context, arg GetMentionsAnalyticsViewsFilteredParams) ([]GetMentionsAnalyticsViewsFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMentionsAnalyticsViewsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMentionsAnalyticsViewsFilteredRow
+	for rows.Next() {
+		var i GetMentionsAnalyticsViewsFilteredRow
+		if err := rows.Scan(&i.Mention, &i.UsageCount, &i.AvgViews); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNetworkEfficiency = `-- name: GetNetworkEfficiency :many
 SELECT s.network,
     count(*) as post_count,
     COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
-    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts
+    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
 FROM posts p
     JOIN sources s ON p.source_id = s.id
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
@@ -337,6 +943,7 @@ type GetNetworkEfficiencyRow struct {
 	PostCount  int64  `json:"post_count"`
 	AvgLikes   int64  `json:"avg_likes"`
 	AvgReposts int64  `json:"avg_reposts"`
+	AvgViews   int64  `json:"avg_views"`
 }
 
 func (q *Queries) GetNetworkEfficiency(ctx context.Context, userID uuid.UUID) ([]GetNetworkEfficiencyRow, error) {
@@ -353,6 +960,81 @@ func (q *Queries) GetNetworkEfficiency(ctx context.Context, userID uuid.UUID) ([
 			&i.PostCount,
 			&i.AvgLikes,
 			&i.AvgReposts,
+			&i.AvgViews,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getNetworkEfficiencyFiltered = `-- name: GetNetworkEfficiencyFiltered :many
+SELECT s.network,
+    count(*) as post_count,
+    COALESCE(AVG(prh.likes), 0)::BIGINT as avg_likes,
+    COALESCE(AVG(prh.reposts), 0)::BIGINT as avg_reposts,
+    COALESCE(AVG(prh.views), 0)::BIGINT as avg_views
+FROM posts p
+    JOIN sources s ON p.source_id = s.id
+    LEFT JOIN (
+        SELECT DISTINCT ON (post_id) post_id,
+            likes,
+            reposts,
+            views
+        FROM posts_reactions_history
+        ORDER BY post_id,
+            synced_at DESC
+    ) prh ON p.id = prh.post_id
+WHERE s.user_id = $1
+    AND ($2::date IS NULL OR p.created_at >= $2::date)
+    AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+    AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+GROUP BY s.network
+ORDER BY avg_likes DESC
+`
+
+type GetNetworkEfficiencyFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+	PostTypes []string     `json:"post_types"`
+}
+
+type GetNetworkEfficiencyFilteredRow struct {
+	Network    string `json:"network"`
+	PostCount  int64  `json:"post_count"`
+	AvgLikes   int64  `json:"avg_likes"`
+	AvgReposts int64  `json:"avg_reposts"`
+	AvgViews   int64  `json:"avg_views"`
+}
+
+func (q *Queries) GetNetworkEfficiencyFiltered(ctx context.Context, arg GetNetworkEfficiencyFilteredParams) ([]GetNetworkEfficiencyFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getNetworkEfficiencyFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.PostTypes),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetNetworkEfficiencyFilteredRow
+	for rows.Next() {
+		var i GetNetworkEfficiencyFilteredRow
+		if err := rows.Scan(
+			&i.Network,
+			&i.PostCount,
+			&i.AvgLikes,
+			&i.AvgReposts,
+			&i.AvgViews,
 		); err != nil {
 			return nil, err
 		}

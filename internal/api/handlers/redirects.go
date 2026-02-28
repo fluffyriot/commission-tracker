@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -124,35 +125,53 @@ func (h *Handler) HandleCreateRedirect(c *gin.Context) {
 		}
 
 		for _, stat := range stats {
-			if stat.UrlPath == req.FromPath {
-				targetStat, found := findStatByDateAndPath(stats, stat.Date, req.ToPath)
-				if found {
-					newViews := targetStat.Views + stat.Views
-					_, err := h.DB.CreateAnalyticsPageStat(bgCtx, database.CreateAnalyticsPageStatParams{
-						ID:       targetStat.ID,
-						Date:     targetStat.Date,
-						UrlPath:  req.ToPath,
-						Views:    newViews,
-						SourceID: sourceID,
-					})
-					if err != nil {
-						log.Printf("Error updating target stat during merge: %v", err)
-						continue
-					}
+			if stat.UrlPath != req.FromPath {
+				continue
+			}
 
-					err = h.DB.DeleteAnalyticsPageStat(bgCtx, stat.ID)
-					if err != nil {
-						log.Printf("Error deleting old stat after merge: %v", err)
-					}
-				} else {
-					err = h.DB.UpdateAnalyticsPageStatPath(bgCtx, database.UpdateAnalyticsPageStatPathParams{
-						ID:      stat.ID,
-						UrlPath: req.ToPath,
-					})
-					if err != nil {
-						log.Printf("Error renaming stat path: %v", err)
+			newViews := stat.Views
+			newImpressions := stat.Impressions
+			analyticsType := stat.AnalyticsType
+
+			targetStat, found := findStatByDateAndPath(stats, stat.Date, req.ToPath)
+			if found {
+				newViews = targetStat.Views + stat.Views
+				if targetStat.Impressions.Valid || stat.Impressions.Valid {
+					newImpressions = sql.NullInt64{
+						Int64: targetStat.Impressions.Int64 + stat.Impressions.Int64,
+						Valid: true,
 					}
 				}
+				// Delete the to_path stat so its NocoDB mapping stat_id is NULLed
+				// (via ON DELETE SET NULL), ensuring the old NocoDB record is cleaned
+				// up on the next sync regardless of how old the entry is.
+				if err := h.DB.DeleteAnalyticsPageStat(bgCtx, targetStat.ID); err != nil {
+					log.Printf("Error deleting to_path stat during merge: %v", err)
+				}
+			}
+
+			// Delete the from_path stat, again triggering the ON DELETE SET NULL
+			// cascade so the existing NocoDB record is queued for cleanup.
+			if err := h.DB.DeleteAnalyticsPageStat(bgCtx, stat.ID); err != nil {
+				log.Printf("Error deleting from_path stat: %v", err)
+				continue
+			}
+
+			// Re-create the stat at the new path with a fresh UUID. Because there
+			// is no analytics_page_stats_on_target mapping for this new UUID,
+			// GetUnsyncedPageStatsForTarget (which has no date filter) will pick it
+			// up on the next sync and create a correct NocoDB record.
+			_, err = h.DB.CreateAnalyticsPageStat(bgCtx, database.CreateAnalyticsPageStatParams{
+				ID:            uuid.New(),
+				Date:          stat.Date,
+				UrlPath:       req.ToPath,
+				Views:         newViews,
+				SourceID:      sourceID,
+				AnalyticsType: analyticsType,
+				Impressions:   newImpressions,
+			})
+			if err != nil {
+				log.Printf("Error creating stat at new path: %v", err)
 			}
 		}
 	}()
@@ -229,12 +248,19 @@ func (h *Handler) HandleDeleteRedirect(c *gin.Context) {
 
 		daysSinceCreation := int(time.Since(source.CreatedAt).Hours() / 24)
 		totalDays := 730 + daysSinceCreation
-		startDate := fmt.Sprintf("%ddaysAgo", totalDays)
-		endDate := "today"
 
-		err = sources.FetchGoogleAnalyticsStatsWithRange(h.DB, redirect.SourceID, h.Config.TokenEncryptionKey, startDate, endDate)
-		if err != nil {
-			log.Printf("Error re-fetching stats after redirect deletion: %v", err)
+		var fetchErr error
+		if source.Network == "Google Search Console" {
+			startDate := time.Now().AddDate(0, 0, -totalDays).Format("2006-01-02")
+			endDate := time.Now().Format("2006-01-02")
+			fetchErr = sources.FetchGoogleSearchConsoleStatsWithRange(h.DB, redirect.SourceID, h.Config.TokenEncryptionKey, startDate, endDate)
+		} else {
+			startDate := fmt.Sprintf("%ddaysAgo", totalDays)
+			endDate := "today"
+			fetchErr = sources.FetchGoogleAnalyticsStatsWithRange(h.DB, redirect.SourceID, h.Config.TokenEncryptionKey, startDate, endDate)
+		}
+		if fetchErr != nil {
+			log.Printf("Error re-fetching stats after redirect deletion: %v", fetchErr)
 		}
 	}()
 

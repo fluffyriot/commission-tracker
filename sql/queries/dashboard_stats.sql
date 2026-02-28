@@ -85,6 +85,7 @@ SELECT s.id,
     SUM(
         COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
     )::BIGINT AS total_interactions,
+    SUM(COALESCE(prh.views, 0))::BIGINT AS total_views,
     COALESCE(
         (
             SELECT ss.followers_count
@@ -99,14 +100,15 @@ FROM sources s
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND s.is_active = TRUE
-    AND NOT s.network in ('Google Analytics')
+    AND NOT s.network in ('Google Analytics', 'Google Search Console')
 GROUP BY s.id
 ORDER BY total_interactions DESC
 LIMIT 3;
@@ -117,6 +119,7 @@ SELECT s.id,
     SUM(
         COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
     )::BIGINT AS total_interactions,
+    SUM(COALESCE(prh.views, 0))::BIGINT AS total_views,
     COALESCE(
         (
             SELECT ss.followers_count
@@ -131,13 +134,14 @@ FROM sources s
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
             likes,
-            reposts
+            reposts,
+            views
         FROM posts_reactions_history
         ORDER BY post_id,
             synced_at DESC
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND s.is_active = TRUE
-    AND NOT s.network in ('Google Analytics')
+    AND NOT s.network in ('Google Analytics', 'Google Search Console')
 GROUP BY s.id
 ORDER BY total_interactions DESC OFFSET 3;

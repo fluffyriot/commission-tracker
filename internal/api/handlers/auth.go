@@ -96,7 +96,7 @@ func (h *Handler) FacebookCallbackHandler(c *gin.Context) {
 		return
 	}
 
-	longLivedToken, err := authhelp.ExchangeLongLivedToken(token.AccessToken, fbConfig)
+	longLivedToken, err := authhelp.ExchangeLongLivedToken(token.AccessToken, fbConfig, h.Config.InstagramAPIVersion)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "long-lived token exchange failed", "details": err.Error()})
 		return
@@ -164,7 +164,7 @@ func (h *Handler) FacebookRefreshTokenHandler(c *gin.Context) {
 
 	fbConfig := authhelp.GenerateFacebookConfig(appID, appSecret, h.Config.BaseURL+"/auth/facebook/callback")
 
-	newLongLivedToken, err := authhelp.ExchangeLongLivedToken(currentAccessToken, fbConfig)
+	newLongLivedToken, err := authhelp.ExchangeLongLivedToken(currentAccessToken, fbConfig, h.Config.InstagramAPIVersion)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to refresh token with Facebook", "details": err.Error()})
 		return

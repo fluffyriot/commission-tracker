@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -82,12 +83,17 @@ func FetchE621Posts(dbQueries *database.Queries, encryptionKey []byte, sourceId 
 			continue
 		}
 
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
 		if resp.StatusCode != 200 {
-			return fmt.Errorf("e621 API returned status: %d", resp.StatusCode)
+			return fmt.Errorf("e621 API returned status: %d. Body: %s", resp.StatusCode, string(data))
 		}
 
 		var response E621Response
-		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		if err := json.Unmarshal(data, &response); err != nil {
 			return fmt.Errorf("failed to decode e621 response: %w", err)
 		}
 

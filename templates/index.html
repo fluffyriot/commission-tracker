@@ -32,14 +32,24 @@
       </div>
     </div>
     <div class="source-stats">
+      {{if or .EngagementSupported .ViewsSupported}}
       <div class="source-stat">
-        <span class="source-stat-value formatted-metric">{{.TotalInteractions}}</span>
-        <span class="source-stat-label">Interactions</span>
+        <span class="source-stat-value">
+          {{if .EngagementSupported}}<span class="formatted-metric">{{.TotalInteractions}}</span>{{end}}
+          {{if and .EngagementSupported .ViewsSupported}} / {{end}}
+          {{if .ViewsSupported}}<span class="formatted-metric">{{.TotalViews}}</span>{{end}}
+        </span>
+        <span class="source-stat-label">
+          {{if and .EngagementSupported .ViewsSupported}}Engag. / Views{{else if .EngagementSupported}}Engagement{{else if .ViewsSupported}}Views{{end}}
+        </span>
       </div>
+      {{end}}
+      {{if .FollowersTracked}}
       <div class="source-stat source-stat-right">
         <span class="source-stat-value formatted-metric">{{.FollowersCount}}</span>
         <span class="source-stat-label">Followers</span>
       </div>
+      {{end}}
     </div>
   </div>
   {{end}}
@@ -709,29 +719,50 @@
           const statsDiv = document.createElement('div');
           statsDiv.className = 'source-stats';
 
-          const stat1 = document.createElement('div');
-          stat1.className = 'source-stat';
-          const val1 = document.createElement('span');
-          val1.className = 'source-stat-value formatted-metric';
-          val1.textContent = Number(source.TotalInteractions).toLocaleString();
-          stat1.appendChild(val1);
-          const label1 = document.createElement('span');
-          label1.className = 'source-stat-label';
-          label1.textContent = 'Interactions';
-          stat1.appendChild(label1);
-          statsDiv.appendChild(stat1);
+          if (source.EngagementSupported || source.ViewsSupported) {
+            const stat1 = document.createElement('div');
+            stat1.className = 'source-stat';
+            const val1 = document.createElement('span');
+            val1.className = 'source-stat-value';
+            if (source.EngagementSupported) {
+              const span1 = document.createElement('span');
+              span1.className = 'formatted-metric';
+              span1.textContent = Number(source.TotalInteractions).toLocaleString();
+              val1.appendChild(span1);
+            }
+            if (source.EngagementSupported && source.ViewsSupported) {
+              val1.appendChild(document.createTextNode(' / '));
+            }
+            if (source.ViewsSupported) {
+              const span2 = document.createElement('span');
+              span2.className = 'formatted-metric';
+              span2.textContent = Number(source.TotalViews).toLocaleString();
+              val1.appendChild(span2);
+            }
+            stat1.appendChild(val1);
+            const label1 = document.createElement('span');
+            label1.className = 'source-stat-label';
+            let labelParts = [];
+            if (source.EngagementSupported) labelParts.push('Engag.');
+            if (source.ViewsSupported) labelParts.push('Views');
+            label1.textContent = labelParts.join(' / ');
+            stat1.appendChild(label1);
+            statsDiv.appendChild(stat1);
+          }
 
-          const stat2 = document.createElement('div');
-          stat2.className = 'source-stat source-stat-right';
-          const val2 = document.createElement('span');
-          val2.className = 'source-stat-value formatted-metric';
-          val2.textContent = Number(source.FollowersCount).toLocaleString();
-          stat2.appendChild(val2);
-          const label2 = document.createElement('span');
-          label2.className = 'source-stat-label';
-          label2.textContent = 'Followers';
-          stat2.appendChild(label2);
-          statsDiv.appendChild(stat2);
+          if (source.FollowersTracked) {
+            const stat2 = document.createElement('div');
+            stat2.className = 'source-stat source-stat-right';
+            const val2 = document.createElement('span');
+            val2.className = 'source-stat-value formatted-metric';
+            val2.textContent = Number(source.FollowersCount).toLocaleString();
+            stat2.appendChild(val2);
+            const label2 = document.createElement('span');
+            label2.className = 'source-stat-label';
+            label2.textContent = 'Followers';
+            stat2.appendChild(label2);
+            statsDiv.appendChild(stat2);
+          }
 
           tile.appendChild(statsDiv);
 

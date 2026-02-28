@@ -30,8 +30,8 @@ func OauthTokenToString(token *oauth2.Token) (string, error) {
 	return string(tokenM), nil
 }
 
-func ExchangeLongLivedToken(shortLivedToken string, config *oauth2.Config) (string, error) {
-	endpoint := "https://graph.facebook.com/v24.0/oauth/access_token"
+func ExchangeLongLivedToken(shortLivedToken string, config *oauth2.Config, apiVersion string) (string, error) {
+	endpoint := "https://graph.facebook.com/" + apiVersion + "/oauth/access_token"
 	params := url.Values{}
 	params.Add("grant_type", "fb_exchange_token")
 	params.Add("client_id", config.ClientID)

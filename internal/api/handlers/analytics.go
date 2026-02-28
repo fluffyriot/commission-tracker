@@ -2,15 +2,49 @@
 package handlers
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
-	"sort"
+	"strings"
+	"time"
 
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/helpers"
 	"github.com/fluffyriot/rpsync/internal/stats"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
+
+type analyticsFilters struct {
+	UserID    uuid.UUID
+	StartDate sql.NullTime
+	EndDate   sql.NullTime
+	PostTypes []string
+	HasFilter bool
+}
+
+func parseAnalyticsFilters(c *gin.Context, userID uuid.UUID) analyticsFilters {
+	f := analyticsFilters{UserID: userID}
+
+	if sd := c.Query("start_date"); sd != "" {
+		if t, err := time.Parse("2006-01-02", sd); err == nil {
+			f.StartDate = sql.NullTime{Time: t, Valid: true}
+			f.HasFilter = true
+		}
+	}
+	if ed := c.Query("end_date"); ed != "" {
+		if t, err := time.Parse("2006-01-02", ed); err == nil {
+			f.EndDate = sql.NullTime{Time: t, Valid: true}
+			f.HasFilter = true
+		}
+	}
+	if pt := c.Query("post_types"); pt != "" {
+		f.PostTypes = strings.Split(pt, ",")
+		f.HasFilter = true
+	}
+
+	return f
+}
 
 func (h *Handler) AnalyticsEngagementHandler(c *gin.Context) {
 
@@ -100,15 +134,26 @@ func (h *Handler) AnalyticsTopSourcesHandler(c *gin.Context) {
 
 	var topSources []TopSourceViewModel
 	for _, src := range topSourcesDB {
+		caps := helpers.GetSourceByName(src.Network)
+		if caps != nil && !caps.EngagementSupported && !caps.ViewsSupported && !caps.FollowersTracked {
+			continue
+		}
 		profileURL, _ := helpers.ConvNetworkToURL(src.Network, src.UserName)
-		topSources = append(topSources, TopSourceViewModel{
+		vm := TopSourceViewModel{
 			ID:                src.ID,
 			UserName:          src.UserName,
 			Network:           src.Network,
 			TotalInteractions: int64(src.TotalInteractions),
+			TotalViews:        int64(src.TotalViews),
 			FollowersCount:    int64(src.FollowersCount),
 			ProfileURL:        profileURL,
-		})
+		}
+		if caps != nil {
+			vm.EngagementSupported = caps.EngagementSupported
+			vm.ViewsSupported = caps.ViewsSupported
+			vm.FollowersTracked = caps.FollowersTracked
+		}
+		topSources = append(topSources, vm)
 	}
 
 	if topSources == nil {
@@ -138,7 +183,19 @@ func (h *Handler) AnalyticsWordCloudHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetWordCloudData(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		data, err = h.DB.GetWordCloudDataFiltered(c.Request.Context(), database.GetWordCloudDataFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+			PostTypes: f.PostTypes,
+		})
+	} else {
+		data, err = h.DB.GetWordCloudData(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting word cloud data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -154,7 +211,33 @@ func (h *Handler) AnalyticsHashtagsHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetHashtagAnalytics(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		if viewsMode {
+			data, err = h.DB.GetHashtagAnalyticsViewsFiltered(c.Request.Context(), database.GetHashtagAnalyticsViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		} else {
+			data, err = h.DB.GetHashtagAnalyticsFiltered(c.Request.Context(), database.GetHashtagAnalyticsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		}
+	} else {
+		if viewsMode {
+			data, err = h.DB.GetHashtagAnalyticsViews(c.Request.Context(), user.ID)
+		} else {
+			data, err = h.DB.GetHashtagAnalytics(c.Request.Context(), user.ID)
+		}
+	}
 	if err != nil {
 		log.Printf("Error getting hashtags data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -170,7 +253,33 @@ func (h *Handler) AnalyticsMentionsHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetMentionsAnalytics(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		if viewsMode {
+			data, err = h.DB.GetMentionsAnalyticsViewsFiltered(c.Request.Context(), database.GetMentionsAnalyticsViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		} else {
+			data, err = h.DB.GetMentionsAnalyticsFiltered(c.Request.Context(), database.GetMentionsAnalyticsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+		}
+	} else {
+		if viewsMode {
+			data, err = h.DB.GetMentionsAnalyticsViews(c.Request.Context(), user.ID)
+		} else {
+			data, err = h.DB.GetMentionsAnalytics(c.Request.Context(), user.ID)
+		}
+	}
 	if err != nil {
 		log.Printf("Error getting mentions data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -186,7 +295,19 @@ func (h *Handler) AnalyticsTimeHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetTimePerformance(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		data, err = h.DB.GetTimePerformanceFiltered(c.Request.Context(), database.GetTimePerformanceFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+			PostTypes: f.PostTypes,
+		})
+	} else {
+		data, err = h.DB.GetTimePerformance(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting time performance data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -202,7 +323,19 @@ func (h *Handler) AnalyticsPostTypesHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetGlobalPostTypeAnalytics(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		data, err = h.DB.GetGlobalPostTypeAnalyticsFiltered(c.Request.Context(), database.GetGlobalPostTypeAnalyticsFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+			PostTypes: f.PostTypes,
+		})
+	} else {
+		data, err = h.DB.GetGlobalPostTypeAnalytics(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting post type analytics: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -218,7 +351,19 @@ func (h *Handler) AnalyticsNetworkEfficiencyHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetNetworkEfficiency(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		data, err = h.DB.GetNetworkEfficiencyFiltered(c.Request.Context(), database.GetNetworkEfficiencyFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+			PostTypes: f.PostTypes,
+		})
+	} else {
+		data, err = h.DB.GetNetworkEfficiency(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting network efficiency: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -234,7 +379,18 @@ func (h *Handler) AnalyticsTopPagesHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetTopPagesByViews(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter && (f.StartDate.Valid || f.EndDate.Valid) {
+		data, err = h.DB.GetTopPagesByViewsFiltered(c.Request.Context(), database.GetTopPagesByViewsFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+		})
+	} else {
+		data, err = h.DB.GetTopPagesByViews(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting top pages: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -250,9 +406,52 @@ func (h *Handler) AnalyticsSiteStatsHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetSiteStatsOverTime(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter && (f.StartDate.Valid || f.EndDate.Valid) {
+		data, err = h.DB.GetSiteStatsOverTimeFiltered(c.Request.Context(), database.GetSiteStatsOverTimeFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+		})
+	} else {
+		data, err = h.DB.GetSiteStatsOverTime(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting site stats: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsGSCSiteStatsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetGSCSiteStatsOverTime(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting GSC site stats: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsGSCTopPagesHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetGSCTopPagesByClicks(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting GSC top pages: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -266,7 +465,19 @@ func (h *Handler) AnalyticsPostingConsistencyHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetPostingConsistency(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		data, err = h.DB.GetPostingConsistencyFiltered(c.Request.Context(), database.GetPostingConsistencyFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+			PostTypes: f.PostTypes,
+		})
+	} else {
+		data, err = h.DB.GetPostingConsistency(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting posting consistency: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -282,7 +493,19 @@ func (h *Handler) AnalyticsEngagementRateHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetEngagementRateData(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		data, err = h.DB.GetEngagementRateDataFiltered(c.Request.Context(), database.GetEngagementRateDataFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+			PostTypes: f.PostTypes,
+		})
+	} else {
+		data, err = h.DB.GetEngagementRateData(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting engagement rate data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -317,57 +540,173 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetPerformanceDeviationData(c.Request.Context(), user.ID)
-	if err != nil {
-		log.Printf("Error getting performance deviation data: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
 
 	type DeviationItem struct {
-		database.GetPerformanceDeviationDataRow
-		URL       string  `json:"url"`
-		Deviation float64 `json:"deviation"`
+		ID                 interface{} `json:"id"`
+		NetworkInternalID  string      `json:"network_internal_id"`
+		Content            string      `json:"content"`
+		CreatedAt          interface{} `json:"created_at"`
+		Author             string      `json:"author"`
+		Network            string      `json:"network"`
+		Likes              int64       `json:"likes"`
+		Reposts            int64       `json:"reposts"`
+		Views              int64       `json:"views"`
+		ExpectedEngagement float64     `json:"expected_engagement"`
+		URL                string      `json:"url"`
+		Deviation          float64     `json:"deviation"`
 	}
 
-	var positive []DeviationItem
-	var negative []DeviationItem
-
-	for _, item := range data {
-		actual := float64(item.Likes + item.Reposts)
-		deviation := actual - item.ExpectedEngagement
-
-		url := ""
-		if item.Network != "" && item.Author != "" {
-			url, _ = helpers.ConvPostToURL(item.Network, item.Author, item.NetworkInternalID)
+	buildURL := func(network, author, networkInternalID string) string {
+		if network == "" || author == "" {
+			return ""
 		}
+		u, _ := helpers.ConvPostToURL(network, author, networkInternalID)
+		return u
+	}
 
-		di := DeviationItem{
-			GetPerformanceDeviationDataRow: item,
-			URL:                            url,
-			Deviation:                      deviation,
-		}
+	var positive, negative []DeviationItem
 
-		if deviation >= 0 {
-			positive = append(positive, di)
+	if viewsMode {
+		if f.HasFilter {
+			params := database.GetPerformanceDeviationPositiveViewsFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			}
+			rows, e := h.DB.GetPerformanceDeviationPositiveViewsFiltered(c.Request.Context(), params)
+			if e != nil {
+				log.Printf("Error getting performance deviation positive views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rows {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
+			paramN := database.GetPerformanceDeviationNegativeViewsFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			}
+			rowsN, e := h.DB.GetPerformanceDeviationNegativeViewsFiltered(c.Request.Context(), paramN)
+			if e != nil {
+				log.Printf("Error getting performance deviation negative views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rowsN {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
 		} else {
-			negative = append(negative, di)
+			rows, e := h.DB.GetPerformanceDeviationPositiveViews(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation positive views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rows {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
+			rowsN, e := h.DB.GetPerformanceDeviationNegativeViews(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation negative views data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rowsN {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Views: r.Views, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Views) - r.ExpectedEngagement,
+				})
+			}
+		}
+	} else {
+		if f.HasFilter {
+			rawPos, e := h.DB.GetPerformanceDeviationPositiveFiltered(c.Request.Context(), database.GetPerformanceDeviationPositiveFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			})
+			if e != nil {
+				log.Printf("Error getting performance deviation positive data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rawPos {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
+			rawNeg, e := h.DB.GetPerformanceDeviationNegativeFiltered(c.Request.Context(), database.GetPerformanceDeviationNegativeFilteredParams{
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+			})
+			if e != nil {
+				log.Printf("Error getting performance deviation negative data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rawNeg {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
+		} else {
+			rows, e := h.DB.GetPerformanceDeviationPositive(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation positive data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rows {
+				positive = append(positive, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
+			rowsN, e := h.DB.GetPerformanceDeviationNegative(c.Request.Context(), user.ID)
+			if e != nil {
+				log.Printf("Error getting performance deviation negative data: %v", e)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+				return
+			}
+			for _, r := range rowsN {
+				negative = append(negative, DeviationItem{
+					ID: r.ID, NetworkInternalID: r.NetworkInternalID, Content: r.Content,
+					CreatedAt: r.CreatedAt, Author: r.Author, Network: r.Network,
+					Likes: r.Likes, Reposts: r.Reposts, ExpectedEngagement: r.ExpectedEngagement,
+					URL:       buildURL(r.Network, r.Author, r.NetworkInternalID),
+					Deviation: float64(r.Likes+r.Reposts) - r.ExpectedEngagement,
+				})
+			}
 		}
 	}
-
-	sort.Slice(positive, func(i, j int) bool {
-		return positive[i].Deviation > positive[j].Deviation
-	})
-	sort.Slice(negative, func(i, j int) bool {
-		return negative[i].Deviation < negative[j].Deviation
-	})
-
-    if len(positive) > 7 {
-        positive = positive[:7]
-    }
-    if len(negative) > 7 {
-        negative = negative[:7]
-    }
 
 	c.JSON(http.StatusOK, gin.H{
 		"positive": positive,
@@ -382,27 +721,58 @@ func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetEngagementVelocityData(c.Request.Context(), user.ID)
-	if err != nil {
-		log.Printf("Error getting engagement velocity data: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	f := parseAnalyticsFilters(c, user.ID)
 
 	type VelocityItem struct {
-		database.GetEngagementVelocityDataRow
-		URL string `json:"url"`
+		PostID            interface{} `json:"post_id"`
+		HistorySyncedAt   interface{} `json:"history_synced_at"`
+		Likes             int64       `json:"likes"`
+		Reposts           int64       `json:"reposts"`
+		Views             int64       `json:"views"`
+		PostCreatedAt     interface{} `json:"post_created_at"`
+		Content           string      `json:"content"`
+		Author            string      `json:"author"`
+		NetworkInternalID string      `json:"network_internal_id"`
+		Network           string      `json:"network"`
+		URL               string      `json:"url"`
 	}
 
-	items := make([]VelocityItem, len(data))
-	for i, d := range data {
-		url := ""
-		if d.Network != "" && d.Author != "" {
-			url, _ = helpers.ConvPostToURL(d.Network, d.Author, d.NetworkInternalID)
+	var items []VelocityItem
+
+	if f.HasFilter {
+		data, err := h.DB.GetEngagementVelocityDataFiltered(c.Request.Context(), database.GetEngagementVelocityDataFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+			PostTypes: f.PostTypes,
+		})
+		if err != nil {
+			log.Printf("Error getting engagement velocity data: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
-		items[i] = VelocityItem{
-			GetEngagementVelocityDataRow: d,
-			URL:                          url,
+		items = make([]VelocityItem, len(data))
+		for i, d := range data {
+			url := ""
+			if d.Network != "" && d.Author != "" {
+				url, _ = helpers.ConvPostToURL(d.Network, d.Author, d.NetworkInternalID)
+			}
+			items[i] = VelocityItem{d.PostID, d.HistorySyncedAt, d.Likes, d.Reposts, d.Views, d.PostCreatedAt, d.Content, d.Author, d.NetworkInternalID, d.Network, url}
+		}
+	} else {
+		data, err := h.DB.GetEngagementVelocityData(c.Request.Context(), user.ID)
+		if err != nil {
+			log.Printf("Error getting engagement velocity data: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		items = make([]VelocityItem, len(data))
+		for i, d := range data {
+			url := ""
+			if d.Network != "" && d.Author != "" {
+				url, _ = helpers.ConvPostToURL(d.Network, d.Author, d.NetworkInternalID)
+			}
+			items[i] = VelocityItem{d.PostID, d.HistorySyncedAt, d.Likes, d.Reposts, d.Views, d.PostCreatedAt, d.Content, d.Author, d.NetworkInternalID, d.Network, url}
 		}
 	}
 
@@ -416,7 +786,31 @@ func (h *Handler) AnalyticsCollaborationsHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetCollaborationsData(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		if viewsMode {
+			data, err = h.DB.GetCollaborationsDataViewsFiltered(c.Request.Context(), database.GetCollaborationsDataViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+			})
+		} else {
+			data, err = h.DB.GetCollaborationsDataFiltered(c.Request.Context(), database.GetCollaborationsDataFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+			})
+		}
+	} else {
+		if viewsMode {
+			data, err = h.DB.GetCollaborationsDataViews(c.Request.Context(), user.ID)
+		} else {
+			data, err = h.DB.GetCollaborationsData(c.Request.Context(), user.ID)
+		}
+	}
 	if err != nil {
 		log.Printf("Error getting collaborations data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -432,14 +826,53 @@ func (h *Handler) AnalyticsWordCloudEngagementHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetWordCloudEngagementData(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	viewsMode := c.Query("mode") == "views"
+	var data interface{}
+	var err error
+	if f.HasFilter {
+		if viewsMode {
+			d, e := h.DB.GetWordCloudEngagementDataViewsFiltered(c.Request.Context(), database.GetWordCloudEngagementDataViewsFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataViewsFilteredRow{}
+			}
+			data, err = d, e
+		} else {
+			d, e := h.DB.GetWordCloudEngagementDataFiltered(c.Request.Context(), database.GetWordCloudEngagementDataFilteredParams{
+				UserID:    f.UserID,
+				StartDate: f.StartDate,
+				EndDate:   f.EndDate,
+				PostTypes: f.PostTypes,
+			})
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataFilteredRow{}
+			}
+			data, err = d, e
+		}
+	} else {
+		if viewsMode {
+			d, e := h.DB.GetWordCloudEngagementDataViews(c.Request.Context(), user.ID)
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataViewsRow{}
+			}
+			data, err = d, e
+		} else {
+			d, e := h.DB.GetWordCloudEngagementData(c.Request.Context(), user.ID)
+			if d == nil {
+				d = []database.GetWordCloudEngagementDataRow{}
+			}
+			data, err = d, e
+		}
+	}
 	if err != nil {
 		log.Printf("Error getting word cloud engagement data: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-	if data == nil {
-		data = []database.GetWordCloudEngagementDataRow{}
 	}
 	c.JSON(http.StatusOK, data)
 }

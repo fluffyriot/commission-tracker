@@ -14,6 +14,36 @@ document.addEventListener("DOMContentLoaded", function () {
     Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 
     const loadedTabs = new Set();
+    const chartInstances = {};
+    const filterState = { startDate: '', endDate: '', postTypes: null, mode: 'likes' };
+
+    function isViewsMode() { return filterState.mode === 'views'; }
+    function engagementLabel() { return isViewsMode() ? 'Avg Views' : 'Avg Likes'; }
+
+    function buildFilterParams() {
+        const params = new URLSearchParams();
+        if (filterState.startDate) params.set('start_date', filterState.startDate);
+        if (filterState.endDate) params.set('end_date', filterState.endDate);
+        if (filterState.postTypes !== null && filterState.postTypes.length > 0) {
+            params.set('post_types', filterState.postTypes.join(','));
+        }
+        if (filterState.mode === 'views') params.set('mode', 'views');
+        return params;
+    }
+
+    function getFilteredUrl(base) {
+        const params = buildFilterParams();
+        const qs = params.toString();
+        return qs ? `${base}?${qs}` : base;
+    }
+
+    function applyGlobalFilters() {
+        Object.values(chartInstances).forEach(c => c.destroy());
+        Object.keys(chartInstances).forEach(k => delete chartInstances[k]);
+        loadedTabs.clear();
+        const activeTabBtn = document.querySelector('.tab-btn.active');
+        if (activeTabBtn) loadTab(activeTabBtn.dataset.tab);
+    }
 
     function loadTab(tabName) {
         if (loadedTabs.has(tabName) && tabName !== 'wordcloud') return;
@@ -84,9 +114,41 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setActiveTab(activeTab);
 
+    function showEmptyState(containerEl) {
+        containerEl.querySelectorAll('canvas').forEach(c => { c.style.display = 'none'; });
+        if (containerEl.querySelector('.chart-empty-state')) return;
+        const div = document.createElement('div');
+        div.className = 'chart-empty-state';
+        const icon = document.createElement('i');
+        icon.dataset.lucide = 'bar-chart-2';
+        div.appendChild(icon);
+        const span = document.createElement('span');
+        span.textContent = 'Not enough data';
+        div.appendChild(span);
+        containerEl.appendChild(div);
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function hideEmptyState(containerEl) {
+        containerEl.querySelectorAll('canvas').forEach(c => { c.style.display = ''; });
+        containerEl.querySelectorAll('.chart-empty-state').forEach(el => el.remove());
+    }
+
+    function emptyChartState(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        showEmptyState(canvas.closest('.chart-container') || canvas.parentElement);
+    }
+
     function createChart(ctxId, type, data, options = {}) {
-        const ctx = document.getElementById(ctxId).getContext('2d');
-        return new Chart(ctx, {
+        if (chartInstances[ctxId]) {
+            chartInstances[ctxId].destroy();
+            delete chartInstances[ctxId];
+        }
+        const canvasEl = document.getElementById(ctxId);
+        hideEmptyState(canvasEl.closest('.chart-container') || canvasEl.parentElement);
+        const ctx = canvasEl.getContext('2d');
+        const chart = new Chart(ctx, {
             type: type,
             data: data,
             options: {
@@ -95,17 +157,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 ...options
             }
         });
+        chartInstances[ctxId] = chart;
+        return chart;
     }
 
     function loadWordCloud() {
-        fetch('/analytics/data/wordcloud')
+        fetch(getFilteredUrl('/analytics/data/wordcloud'))
             .then(res => res.json())
             .then(data => {
                 renderWordCloud(data, 'wordCloudCanvas', 'word-cloud-container', 'usage_count');
             })
             .catch(err => console.error(err));
 
-        fetch('/analytics/data/wordcloud/engagement')
+        fetch(getFilteredUrl('/analytics/data/wordcloud/engagement'))
             .then(res => res.json())
             .then(data => {
                 renderWordCloud(data, 'wordCloudEngagementCanvas', 'word-cloud-engagement-container', 'avg_engagement');
@@ -114,9 +178,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function renderWordCloud(data, canvasId, containerId, valueKey) {
-        if (!data || !Array.isArray(data) || data.length === 0) return;
-        const canvas = document.getElementById(canvasId);
         const container = document.getElementById(containerId);
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            if (container) showEmptyState(container);
+            return;
+        }
+        const canvas = document.getElementById(canvasId);
 
         if (!container || container.clientWidth === 0) return;
 
@@ -198,27 +265,35 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadHashtags() {
-        fetch('/analytics/data/hashtags')
+        fetch(getFilteredUrl('/analytics/data/hashtags'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('hashtagsChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('hashtagsChart', 'bar', {
-                    labels: data.map(d => d.tag),
+                    labels: sorted.map(d => d.tag),
                     datasets: [{
-                        label: 'Usage Count',
-                        data: data.map(d => d.usage_count),
+                        label: engLbl,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primary,
-                        yAxisID: 'y'
-                    }, {
-                        label: 'Avg Likes',
-                        data: data.map(d => d.avg_likes),
-                        backgroundColor: colors.primaryLight,
-                        yAxisID: 'y1'
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Usage Count',
+                        data: sorted.map(d => d.usage_count),
+                        borderColor: colors.accent,
+                        backgroundColor: colors.accent,
+                        type: 'line',
+                        yAxisID: 'y1',
+                        order: 1
                     }]
                 }, {
                     scales: {
                         y: { position: 'left', title: { display: true, text: 'Posts Count' } },
-                        y1: { position: 'right', title: { display: true, text: 'Avg Likes' }, grid: { drawOnChartArea: false } }
+                        y1: { position: 'right', title: { display: true, text: engLbl }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
                         legend: {
@@ -233,21 +308,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadMentions() {
-        fetch('/analytics/data/mentions')
+        fetch(getFilteredUrl('/analytics/data/mentions'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('mentionsChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('mentionsChart', 'bar', {
-                    labels: data.map(d => d.mention),
+                    labels: sorted.map(d => d.mention),
                     datasets: [{
-                        label: 'Avg Likes',
-                        data: data.map(d => d.avg_likes),
+                        label: engLbl,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primary,
                         yAxisID: 'y',
                         order: 2
                     }, {
                         label: 'Usage Count',
-                        data: data.map(d => d.usage_count),
+                        data: sorted.map(d => d.usage_count),
                         borderColor: colors.accent,
                         backgroundColor: colors.accent,
                         type: 'line',
@@ -256,7 +334,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }]
                 }, {
                     scales: {
-                        y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
+                        y: { position: 'left', title: { display: true, text: engLbl } },
                         y1: { position: 'right', title: { display: true, text: 'Usage Count' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
@@ -272,14 +350,16 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadPostTypes() {
-        fetch('/analytics/data/types')
+        fetch(getFilteredUrl('/analytics/data/types'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('postTypesChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel().toLowerCase();
                 createChart('postTypesChart', 'doughnut', {
-                    labels: data.map(d => d.post_type),
+                    labels: data.map(d => ' ' + d.post_type),
                     datasets: [{
-                        data: data.map(d => d.avg_likes),
+                        data: data.map(d => d[engKey]),
                         backgroundColor: colors.highContrast
                     }]
                 }, {
@@ -294,7 +374,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const label = context.label || '';
                                     const value = context.raw || 0;
                                     const count = data[context.dataIndex].post_count;
-                                    return ` ${label}: ${value} avg likes (${count} posts)`;
+                                    return ` ${label}: ${value} ${engLbl} (${count} posts)`;
                                 }
                             }
                         }
@@ -305,21 +385,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadNetworkEfficiency() {
-        fetch('/analytics/data/networks')
+        fetch(getFilteredUrl('/analytics/data/networks'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('networkEfficiencyChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('networkEfficiencyChart', 'bar', {
-                    labels: data.map(d => d.network),
+                    labels: sorted.map(d => d.network),
                     datasets: [{
-                        label: 'Avg Likes per Post',
-                        data: data.map(d => d.avg_likes),
+                        label: `${engLbl} per Post`,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primary,
                         yAxisID: 'y',
                         order: 2
                     }, {
                         label: 'Post Count',
-                        data: data.map(d => d.post_count),
+                        data: sorted.map(d => d.post_count),
                         borderColor: colors.accent,
                         backgroundColor: colors.accent,
                         type: 'line',
@@ -329,7 +412,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, {
                     indexAxis: 'x',
                     scales: {
-                        y: { position: 'left', title: { display: true, text: 'Avg Likes' } },
+                        y: { position: 'left', title: { display: true, text: engLbl } },
                         y1: { position: 'right', title: { display: true, text: 'Post Count' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
@@ -345,11 +428,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadTiming() {
-        fetch('/analytics/data/time')
+        fetch(getFilteredUrl('/analytics/data/time'))
             .then(res => res.json())
             .then(data => {
                 if (!data) return;
-                renderHeatmap(data);
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const header = document.getElementById('timingCardHeader');
+                if (header) header.textContent = `Best Time to Post (${engagementLabel()})`;
+                renderHeatmap(data, engKey);
             });
     }
 
@@ -377,9 +463,10 @@ document.addEventListener("DOMContentLoaded", function () {
         tip.style.display = 'none';
     }
 
-    function renderHeatmap(data) {
+    function renderHeatmap(data, engKey = 'avg_likes') {
         const container = document.getElementById('heatmap-container');
         container.replaceChildren();
+        if (!data || data.length === 0) { showEmptyState(container); return; }
 
         const mainContainer = document.createElement('div');
         mainContainer.className = 'calendar-heatmap-container';
@@ -407,9 +494,10 @@ document.addEventListener("DOMContentLoaded", function () {
         gridBody.style.gap = '2px';
 
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const maxVal = Math.max(...data.map(d => d.avg_likes));
+        const maxVal = Math.max(...data.map(d => d[engKey]));
         const dataMap = {};
-        data.forEach(d => { dataMap[`${d.day_of_week}-${d.hour_of_day}`] = d.avg_likes; });
+        data.forEach(d => { dataMap[`${d.day_of_week}-${d.hour_of_day}`] = d[engKey]; });
+        const tooltipLabel = engKey === 'avg_views' ? 'Avg Views' : 'Avg Likes';
 
         for (let d = 0; d < 7; d++) {
             const row = document.createElement('div');
@@ -437,7 +525,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     cell.style.backgroundColor = `rgba(145, 103, 228, ${intensity * 0.9 + 0.1})`;
                 }
 
-                cell.addEventListener('mousemove', (e) => showTooltip(e, `${days[d]} ${h}:00 - Avg Likes: ${Math.round(val)}`));
+                cell.addEventListener('mousemove', (e) => showTooltip(e, `${days[d]} ${h}:00 - ${tooltipLabel}: ${Math.round(val)}`));
                 cell.addEventListener('mouseleave', hideTooltip);
 
                 row.appendChild(cell);
@@ -449,7 +537,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadPostingConsistency() {
-        fetch('/analytics/data/consistency')
+        fetch(getFilteredUrl('/analytics/data/consistency'))
             .then(res => res.json())
             .then(data => {
                 renderCalendarHeatmap(data || []);
@@ -467,6 +555,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderCalendarHeatmap(data) {
         const container = document.getElementById('calendar-heatmap-container');
         container.replaceChildren();
+        if (!data || data.length === 0) { showEmptyState(container); return; }
 
         const weeklyData = Array.from({ length: 53 }, () => Array(7).fill(0));
 
@@ -561,10 +650,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function loadWebsiteStats() {
         Promise.all([
-            fetch('/analytics/data/site').then(r => r.json()),
-            fetch('/analytics/data/pages').then(r => r.json())
-        ]).then(([siteData, pagesData]) => {
-            if (siteData) {
+            fetch(getFilteredUrl('/analytics/data/site')).then(r => r.json()),
+            fetch(getFilteredUrl('/analytics/data/pages')).then(r => r.json()),
+            fetch('/analytics/data/gsc/site').then(r => r.json()),
+            fetch('/analytics/data/gsc/pages').then(r => r.json())
+        ]).then(([siteData, pagesData, gscSiteData, gscPagesData]) => {
+            if (!siteData || !Array.isArray(siteData) || siteData.length === 0) {
+                emptyChartState('siteStatsChart');
+            } else {
                 createChart('siteStatsChart', 'line', {
                     labels: siteData.map(d => d.date_str),
                     datasets: [{
@@ -587,16 +680,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         y1: { position: 'right', title: { display: true, text: 'Seconds' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
-                        legend: {
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        }
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
                     }
                 });
             }
-            if (pagesData) {
+            if (!pagesData || !Array.isArray(pagesData) || pagesData.length === 0) {
+                emptyChartState('topPagesChart');
+            } else {
                 createChart('topPagesChart', 'bar', {
                     labels: pagesData.slice(0, 15).map(d => d.url_path),
                     datasets: [{
@@ -607,12 +697,59 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, {
                     indexAxis: 'y',
                     plugins: {
-                        legend: {
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        }
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
+                    }
+                });
+            }
+
+            if (!gscSiteData || !Array.isArray(gscSiteData) || gscSiteData.length === 0) {
+                emptyChartState('gscSiteChart');
+            } else {
+                createChart('gscSiteChart', 'line', {
+                    labels: gscSiteData.map(d => d.date_str),
+                    datasets: [{
+                        label: 'Clicks',
+                        data: gscSiteData.map(d => d.total_clicks),
+                        borderColor: colors.primary,
+                        backgroundColor: 'rgba(145, 103, 228, 0.1)',
+                        fill: true,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Impressions',
+                        data: gscSiteData.map(d => d.total_impressions),
+                        borderColor: colors.primaryLight,
+                        borderDash: [5, 5],
+                        yAxisID: 'y1'
+                    }]
+                }, {
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Clicks' } },
+                        y1: { position: 'right', title: { display: true, text: 'Impressions' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
+                    }
+                });
+            }
+
+            if (!gscPagesData || !Array.isArray(gscPagesData) || gscPagesData.length === 0) {
+                emptyChartState('gscPagesChart');
+            } else {
+                createChart('gscPagesChart', 'bar', {
+                    labels: gscPagesData.slice(0, 15).map(d => d.url_path),
+                    datasets: [{
+                        label: 'Clicks',
+                        data: gscPagesData.slice(0, 15).map(d => d.total_clicks),
+                        backgroundColor: colors.primary
+                    }, {
+                        label: 'Impressions',
+                        data: gscPagesData.slice(0, 15).map(d => d.total_impressions),
+                        backgroundColor: colors.primaryLight
+                    }]
+                }, {
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
                     }
                 });
             }
@@ -621,7 +758,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     function loadEngagementRate() {
-        fetch('/analytics/data/engagement-rate')
+        fetch(getFilteredUrl('/analytics/data/engagement-rate'))
             .then(res => res.json())
             .then(data => {
                 if (!data || !Array.isArray(data)) return;
@@ -631,7 +768,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     const netData = data.filter(d => d.network === network);
                     if (netData.length === 0) return null;
 
-                    const totalEngagement = netData.reduce((sum, d) => sum + d.likes + d.reposts, 0);
+                    const totalEngagement = isViewsMode()
+                        ? netData.reduce((sum, d) => sum + d.views, 0)
+                        : netData.reduce((sum, d) => sum + d.likes + d.reposts, 0);
                     const maxFollowers = Math.max(...netData.map(d => d.followers_count));
 
                     if (maxFollowers === 0) return null;
@@ -645,6 +784,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     };
                 }).filter(d => d !== null);
 
+                if (aggregatedData.length === 0) { emptyChartState('engagementRateChart'); return; }
                 createChart('engagementRateChart', 'bubble', {
                     datasets: [{
                         label: 'Avg Engagement Rate',
@@ -686,7 +826,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/analytics/data/follow-ratio')
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('followRatioChart'); return; }
 
                 const labels = data.map(d => d.network);
                 const ratios = data.map(d => d.following_count > 0 ? d.followers_count / d.following_count : 0);
@@ -728,21 +868,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadCollaborations() {
-        fetch('/analytics/data/collaborations')
+        fetch(getFilteredUrl('/analytics/data/collaborations'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) { emptyChartState('collaborationsChart'); return; }
+                const engKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const engLbl = engagementLabel();
+                const sorted = [...data].sort((a, b) => b[engKey] - a[engKey]);
                 createChart('collaborationsChart', 'bar', {
-                    labels: data.map(d => d.collaborator),
+                    labels: sorted.map(d => d.collaborator),
                     datasets: [{
-                        label: 'Avg Likes',
-                        data: data.map(d => d.avg_likes),
+                        label: engLbl,
+                        data: sorted.map(d => d[engKey]),
                         backgroundColor: colors.primary,
                         yAxisID: 'y',
                         order: 2
                     }, {
                         label: 'Collaboration Count',
-                        data: data.map(d => d.collaboration_count),
+                        data: sorted.map(d => d.collaboration_count),
                         type: 'line',
                         borderColor: colors.accent,
                         backgroundColor: colors.accent,
@@ -751,7 +894,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }]
                 }, {
                     scales: {
-                        y: { title: { display: true, text: 'Avg Likes' } },
+                        y: { title: { display: true, text: engLbl } },
                         y1: { position: 'right', title: { display: true, text: 'Count' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
@@ -767,7 +910,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadPerformanceDeviation() {
-        fetch('/analytics/data/performance-deviation')
+        fetch(getFilteredUrl('/analytics/data/performance-deviation'))
             .then(res => res.json())
             .then(data => {
                 if (!data) return;
@@ -776,16 +919,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     const tbody = document.querySelector(`#${tableId} tbody`);
                     tbody.replaceChildren();
 
-                    if (!items) return;
+                    if (!items || items.length === 0) {
+                        const tr = document.createElement('tr');
+                        const td = document.createElement('td');
+                        td.colSpan = 5;
+                        td.className = 'p-6 text-center text-muted opacity-50';
+                        td.textContent = 'Not enough data';
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                        return;
+                    }
 
                     items.forEach(d => {
                         const row = document.createElement('tr');
                         row.className = 'hover:bg-white/5 transition-colors';
 
                         const date = new Date(d.created_at).toLocaleDateString();
-                        const engagement = d.likes + d.reposts;
+                        const engagement = isViewsMode() ? d.views : d.likes + d.reposts;
                         const baseline = d.expected_engagement;
-                        const deviation = d.deviation;
+                        const deviation = isViewsMode() ? d.views - d.expected_engagement : d.deviation;
 
                         const dateCell = document.createElement('td');
                         dateCell.className = 'p-2 border-b border-white/10 text-sm text-gray-400';
@@ -839,12 +991,28 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadEngagementVelocity() {
-        fetch('/analytics/data/velocity')
+        fetch(getFilteredUrl('/analytics/data/velocity'))
             .then(res => res.json())
             .then(data => {
-                if (!data || !Array.isArray(data)) return;
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    emptyChartState('velocityChart');
+                    const tbody = document.querySelector('#velocityTable tbody');
+                    if (tbody) {
+                        tbody.replaceChildren();
+                        const tr = document.createElement('tr');
+                        const td = document.createElement('td');
+                        td.colSpan = 5;
+                        td.className = 'p-6 text-center text-muted opacity-50';
+                        td.textContent = 'Not enough data';
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                    }
+                    return;
+                }
                 const posts = {};
                 const postDetails = {};
+
+                const viewsMode = isViewsMode();
 
                 data.forEach(d => {
                     if (!posts[d.post_id]) {
@@ -858,23 +1026,41 @@ document.addEventListener("DOMContentLoaded", function () {
                             content: d.content,
                             likes: d.likes,
                             reposts: d.reposts,
+                            views: d.views,
                             url: d.url
                         };
                     }
 
                     if (d.likes > postDetails[d.post_id].likes) postDetails[d.post_id].likes = d.likes;
                     if (d.reposts > postDetails[d.post_id].reposts) postDetails[d.post_id].reposts = d.reposts;
+                    if (d.views > postDetails[d.post_id].views) postDetails[d.post_id].views = d.views;
 
                     posts[d.post_id].history.push({
                         t: new Date(d.history_synced_at),
-                        engagement: d.likes + d.reposts
+                        engagement: viewsMode ? d.views : d.likes + d.reposts
                     });
                 });
 
                 const tbody = document.querySelector('#velocityTable tbody');
                 tbody.replaceChildren();
 
-                const sortedDetails = Object.values(postDetails).sort((a, b) => (b.likes + b.reposts) - (a.likes + a.reposts)).slice(0, 7);
+                const velocityThead = document.querySelector('#velocityTable thead tr');
+                if (velocityThead) {
+                    const ths = velocityThead.querySelectorAll('th');
+                    if (viewsMode) {
+                        if (ths[2]) ths[2].textContent = 'Views';
+                        if (ths[3]) ths[3].textContent = '';
+                        if (ths[4]) ths[4].textContent = 'Total';
+                    } else {
+                        if (ths[2]) ths[2].textContent = 'Likes';
+                        if (ths[3]) ths[3].textContent = 'Reposts';
+                        if (ths[4]) ths[4].textContent = 'Total';
+                    }
+                }
+
+                const sortedDetails = viewsMode
+                    ? Object.values(postDetails).sort((a, b) => b.views - a.views).slice(0, 7)
+                    : Object.values(postDetails).sort((a, b) => (b.likes + b.reposts) - (a.likes + a.reposts)).slice(0, 7);
 
                 sortedDetails.forEach(p => {
                     const row = document.createElement('tr');
@@ -902,17 +1088,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const likesCell = document.createElement('td');
                     likesCell.className = 'p-2 border-b border-white/10 text-sm';
-                    likesCell.textContent = p.likes;
+                    likesCell.textContent = viewsMode ? p.views : p.likes;
                     row.appendChild(likesCell);
 
                     const repostsCell = document.createElement('td');
                     repostsCell.className = 'p-2 border-b border-white/10 text-sm';
-                    repostsCell.textContent = p.reposts;
+                    repostsCell.textContent = viewsMode ? '' : p.reposts;
                     row.appendChild(repostsCell);
 
                     const totalCell = document.createElement('td');
                     totalCell.className = 'p-2 border-b border-white/10 text-sm font-bold';
-                    totalCell.textContent = p.likes + p.reposts;
+                    totalCell.textContent = viewsMode ? p.views : p.likes + p.reposts;
                     row.appendChild(totalCell);
 
                     tbody.appendChild(row);
@@ -945,7 +1131,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, {
                     scales: {
                         x: { type: 'linear', title: { display: true, text: 'Hours since posted' } },
-                        y: { title: { display: true, text: 'Total Engagement' } }
+                        y: { title: { display: true, text: viewsMode ? 'Total Views' : 'Total Engagement' } }
                     },
                     plugins: {
                         legend: {
@@ -965,4 +1151,162 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             });
     }
+    const ALL_POST_TYPES = ['post', 'image', 'video', 'broadcast', 'thread', 'album', 'quote', 'repost', 'tag'];
+
+    function updateDateBtnState() {
+        const btn = document.getElementById('analyticsDateBtn');
+        if (!btn) return;
+        const active = !!(filterState.startDate || filterState.endDate);
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
+    }
+
+    function updatePostTypesBtnState() {
+        const btn = document.getElementById('analyticsPostTypesBtn');
+        if (!btn) return;
+        const active = filterState.postTypes !== null && filterState.postTypes.length !== ALL_POST_TYPES.length;
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
+    }
+
+    function getDateRange(range) {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const today = fmt(now);
+        switch (range) {
+            case 'today': return { start: today, end: today };
+            case 'yesterday': {
+                const y = new Date(now); y.setDate(y.getDate() - 1);
+                const yd = fmt(y); return { start: yd, end: yd };
+            }
+            case 'thisWeek': {
+                const d = new Date(now); d.setDate(d.getDate() - d.getDay());
+                return { start: fmt(d), end: today };
+            }
+            case 'thisMonth': return { start: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`, end: today };
+            case 'thisYear': return { start: `${now.getFullYear()}-01-01`, end: today };
+            case 'last7': { const d = new Date(now); d.setDate(d.getDate() - 6); return { start: fmt(d), end: today }; }
+            case 'last30': { const d = new Date(now); d.setDate(d.getDate() - 29); return { start: fmt(d), end: today }; }
+            case 'last365': { const d = new Date(now); d.setDate(d.getDate() - 364); return { start: fmt(d), end: today }; }
+            default: return { start: '', end: '' };
+        }
+    }
+
+    const ptContainer = document.getElementById('analyticsPostTypesOptions');
+    if (ptContainer) {
+        ALL_POST_TYPES.forEach(pt => {
+            const label = document.createElement('label');
+            label.className = 'flex items-center gap-2 py-1 cursor-pointer';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'analytics-pt-check';
+            checkbox.value = pt;
+            checkbox.checked = true;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(' ' + pt));
+            ptContainer.appendChild(label);
+        });
+    }
+
+    const dateBtn = document.getElementById('analyticsDateBtn');
+    const dateMenu = document.getElementById('analyticsDateMenu');
+    const ptBtn = document.getElementById('analyticsPostTypesBtn');
+    const ptMenu = document.getElementById('analyticsPostTypesMenu');
+    const modeBtn = document.getElementById('analyticsModeBtn');
+    const modeMenu = document.getElementById('analyticsModeMenu');
+
+    function closeAllFilterDropdowns() {
+        dateMenu && dateMenu.classList.remove('show');
+        ptMenu && ptMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.remove('show');
+    }
+
+    dateBtn && dateBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        ptMenu && ptMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.remove('show');
+        dateMenu && dateMenu.classList.toggle('show');
+    });
+
+    ptBtn && ptBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        dateMenu && dateMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.remove('show');
+        ptMenu && ptMenu.classList.toggle('show');
+    });
+
+    modeBtn && modeBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        dateMenu && dateMenu.classList.remove('show');
+        ptMenu && ptMenu.classList.remove('show');
+        modeMenu && modeMenu.classList.toggle('show');
+    });
+
+    dateMenu && dateMenu.addEventListener('click', e => e.stopPropagation());
+    ptMenu && ptMenu.addEventListener('click', e => e.stopPropagation());
+    modeMenu && modeMenu.addEventListener('click', e => e.stopPropagation());
+
+    document.addEventListener('click', closeAllFilterDropdowns);
+
+    document.querySelectorAll('.analytics-date-suggestion').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const { start, end } = getDateRange(btn.dataset.range);
+            document.getElementById('analyticsStartDate').value = start;
+            document.getElementById('analyticsEndDate').value = end;
+        });
+    });
+
+    document.getElementById('analyticsApplyDates') && document.getElementById('analyticsApplyDates').addEventListener('click', () => {
+        filterState.startDate = document.getElementById('analyticsStartDate').value;
+        filterState.endDate = document.getElementById('analyticsEndDate').value;
+        closeAllFilterDropdowns();
+        updateDateBtnState();
+        applyGlobalFilters();
+    });
+
+    document.getElementById('analyticsClearDates') && document.getElementById('analyticsClearDates').addEventListener('click', () => {
+        document.getElementById('analyticsStartDate').value = '';
+        document.getElementById('analyticsEndDate').value = '';
+        filterState.startDate = '';
+        filterState.endDate = '';
+        closeAllFilterDropdowns();
+        updateDateBtnState();
+        applyGlobalFilters();
+    });
+
+    document.getElementById('analyticsPostTypesSelectAll') && document.getElementById('analyticsPostTypesSelectAll').addEventListener('click', () => {
+        document.querySelectorAll('.analytics-pt-check').forEach(cb => cb.checked = true);
+    });
+
+    document.getElementById('analyticsPostTypesClear') && document.getElementById('analyticsPostTypesClear').addEventListener('click', () => {
+        document.querySelectorAll('.analytics-pt-check').forEach(cb => cb.checked = false);
+    });
+
+    document.getElementById('analyticsApplyPostTypes') && document.getElementById('analyticsApplyPostTypes').addEventListener('click', () => {
+        const checked = [...document.querySelectorAll('.analytics-pt-check:checked')].map(cb => cb.value);
+        filterState.postTypes = (checked.length === ALL_POST_TYPES.length) ? null : checked;
+        closeAllFilterDropdowns();
+        updatePostTypesBtnState();
+        applyGlobalFilters();
+    });
+
+    function updateModeBtnState() {
+        if (!modeBtn) return;
+        const views = isViewsMode();
+        modeBtn.classList.toggle('btn-primary', views);
+        modeBtn.classList.toggle('btn-secondary', !views);
+        const label = document.getElementById('analyticsModeLabel');
+        if (label) label.textContent = `Mode: ${views ? 'Views' : 'Likes'}`;
+    }
+
+    document.getElementById('analyticsApplyMode') && document.getElementById('analyticsApplyMode').addEventListener('click', () => {
+        const selected = document.querySelector('.analytics-mode-radio:checked');
+        if (selected && selected.value !== filterState.mode) {
+            filterState.mode = selected.value;
+            updateModeBtnState();
+            applyGlobalFilters();
+        }
+        closeAllFilterDropdowns();
+    });
 });

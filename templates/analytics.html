@@ -4,6 +4,76 @@
     <div>
         <h1>Analytics</h1>
     </div>
+    <div class="flex gap-2 items-end">
+        <div class="dropdown" id="analyticsDateDropdown">
+            <button class="btn btn-secondary btn-icon" id="analyticsDateBtn" type="button">
+                <i data-lucide="calendar"></i> <span class="filter-btn-label" id="analyticsDateLabel">Dates</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown date-filter-dropdown p-3" id="analyticsDateMenu">
+                <div class="mb-4">
+                    <label class="form-label-bold mb-2">Suggested</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="today">Today</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="yesterday">Yesterday</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="thisWeek">This Week</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="thisMonth">This Month</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="thisYear">This Year</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="last7">Last 7 Days</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="last30">Last 30 Days</button>
+                        <button class="btn btn-sm btn-ghost analytics-date-suggestion" data-range="last365">Last 365 Days</button>
+                    </div>
+                </div>
+                <div class="mb-2 border-t pt-2">
+                    <label class="form-label-bold mb-2">Custom</label>
+                </div>
+                <div class="form-group mb-sm">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" id="analyticsStartDate" class="form-input dropdown-input" />
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label">End Date</label>
+                    <input type="date" id="analyticsEndDate" class="form-input dropdown-input" />
+                </div>
+                <div class="flex justify-between pt-2">
+                    <button class="btn btn-sm btn-ghost" id="analyticsClearDates">Clear</button>
+                    <button class="btn btn-sm btn-primary" id="analyticsApplyDates">Apply</button>
+                </div>
+            </div>
+        </div>
+        <div class="dropdown" id="analyticsPostTypesDropdown">
+            <button class="btn btn-secondary btn-icon" id="analyticsPostTypesBtn" type="button">
+                <i data-lucide="layers"></i> <span class="filter-btn-label" id="analyticsPostTypesLabel">Post Types</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown p-3" id="analyticsPostTypesMenu" style="min-width: 180px">
+                <div class="flex justify-between mb-2">
+                    <button class="btn btn-sm btn-ghost" id="analyticsPostTypesSelectAll">All</button>
+                    <button class="btn btn-sm btn-ghost" id="analyticsPostTypesClear">None</button>
+                </div>
+                <div id="analyticsPostTypesOptions"></div>
+                <div class="flex justify-end mt-2">
+                    <button class="btn btn-sm btn-primary" id="analyticsApplyPostTypes">Apply</button>
+                </div>
+            </div>
+        </div>
+        <div class="dropdown" id="analyticsModeDropdown">
+            <button class="btn btn-secondary btn-icon" id="analyticsModeBtn" type="button">
+                <i data-lucide="gauge"></i> <span class="filter-btn-label" id="analyticsModeLabel">Mode: Likes</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown p-3" id="analyticsModeMenu" style="min-width: 150px">
+                <div id="analyticsModeOptions">
+                    <label class="flex items-center gap-2 py-1 cursor-pointer">
+                        <input type="radio" name="analyticsMode" class="analytics-mode-radio" value="likes" checked> Likes
+                    </label>
+                    <label class="flex items-center gap-2 py-1 cursor-pointer">
+                        <input type="radio" name="analyticsMode" class="analytics-mode-radio" value="views"> Views
+                    </label>
+                </div>
+                <div class="flex justify-end mt-2">
+                    <button class="btn btn-sm btn-primary" id="analyticsApplyMode">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="tabs mb-6">
@@ -131,7 +201,7 @@
 
 <div id="timing-tab" class="tab-content hidden">
     <div class="card">
-        <div class="card-header">Best Time to Post (Avg Likes)</div>
+        <div class="card-header" id="timingCardHeader">Best Time to Post (Avg Likes)</div>
         <div class="relative w-full overflow-auto">
             <div id="heatmap-container" class="min-w-[600px] h-[500px]"></div>
         </div>
@@ -167,16 +237,38 @@
 
 <div id="website-tab" class="tab-content hidden">
     <div class="grid-dashboard">
-        <div class="card col-span-full">
-            <div class="card-header">Site Stats Over Time</div>
-            <div class="chart-container">
-                <canvas id="siteStatsChart"></canvas>
+        <div class="col-span-full">
+            <div class="card-header mb-4">Google Analytics</div>
+            <div class="grid-dashboard">
+                <div class="card col-span-full">
+                    <div class="card-header">Site Stats Over Time</div>
+                    <div class="chart-container">
+                        <canvas id="siteStatsChart"></canvas>
+                    </div>
+                </div>
+                <div class="card col-span-full">
+                    <div class="card-header">Top Viewed Pages</div>
+                    <div class="chart-container h-500">
+                        <canvas id="topPagesChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="card col-span-full">
-            <div class="card-header">Top Viewed Pages</div>
-            <div class="chart-container h-500">
-                <canvas id="topPagesChart"></canvas>
+        <div class="col-span-full">
+            <div class="card-header mb-4">Google Search Console</div>
+            <div class="grid-dashboard">
+                <div class="card col-span-full">
+                    <div class="card-header">Search Clicks &amp; Impressions Over Time</div>
+                    <div class="chart-container">
+                        <canvas id="gscSiteChart"></canvas>
+                    </div>
+                </div>
+                <div class="card col-span-full">
+                    <div class="card-header">Top Pages by Search Clicks</div>
+                    <div class="chart-container h-500">
+                        <canvas id="gscPagesChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

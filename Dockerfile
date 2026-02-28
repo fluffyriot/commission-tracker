@@ -13,14 +13,21 @@ RUN go mod download
 
 COPY . .
 
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o rpsync .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 \
+    GOMAXPROCS=1 \
+    GOOS=${TARGETOS} \
+    GOARCH=${TARGETARCH} \
+    go build -trimpath -ldflags="-s -w" -o rpsync .
 
 # Stage 2: Runtime
-FROM --platform=$TARGETPLATFORM debian:trixie
+FROM debian:trixie
 
 WORKDIR /app
 
-RUN apt-get update \
+RUN echo "deb http://security.debian.org/debian-security trixie-security main" >> /etc/apt/sources.list.d/debian-security.list \
+ && apt-get update \
  && apt-get install -y bash netcat-openbsd ca-certificates chromium fonts-liberation util-linux \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /app/outputs \

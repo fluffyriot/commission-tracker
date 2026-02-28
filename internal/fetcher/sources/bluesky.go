@@ -60,14 +60,11 @@ type bskyProfile struct {
 	PostsCount     int `json:"postsCount"`
 }
 
-func getBskyApiString(dbQueries *database.Queries, uid uuid.UUID, cursor string) (string, string, error) {
+func getBskyApiString(dbQueries *database.Queries, sourceId uuid.UUID, cursor string) (string, string, error) {
 
-	username, err := dbQueries.GetUserActiveSourceByName(
+	username, err := dbQueries.GetSourceById(
 		context.Background(),
-		database.GetUserActiveSourceByNameParams{
-			UserID:  uid,
-			Network: "Bluesky",
-		},
+		sourceId,
 	)
 
 	if err != nil {
@@ -102,13 +99,13 @@ func fetchBlueskyProfile(username string, c *common.Client) (*bskyProfile, error
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to get profile: %v %v", resp.StatusCode, resp.Status)
-	}
-
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to get profile: %v %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 	}
 
 	var profile bskyProfile
@@ -136,7 +133,7 @@ func FetchBlueskyPosts(dbQueries *database.Queries, c *common.Client, uid uuid.U
 
 	for page := 0; page < maxPages; page++ {
 
-		url, username, err = getBskyApiString(dbQueries, uid, cursor)
+		url, username, err = getBskyApiString(dbQueries, sourceId, cursor)
 		if err != nil {
 			return err
 		}
@@ -151,14 +148,14 @@ func FetchBlueskyPosts(dbQueries *database.Queries, c *common.Client, uid uuid.U
 			return err
 		}
 
-		if resp.StatusCode != 200 {
-			return fmt.Errorf("Failed to get a successfull response. %v: %v", resp.StatusCode, resp.Status)
-		}
-
 		data, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			return err
+		}
+
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("Failed to get a successfull response. %v: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 
 		var feed bskyFeed
