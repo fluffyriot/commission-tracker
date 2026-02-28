@@ -7,8 +7,11 @@ import (
 )
 
 type SourceNetwork struct {
-	Name  string
-	Color string
+	Name                string
+	Color               string
+	EngagementSupported bool
+	ViewsSupported      bool
+	FollowersTracked    bool
 }
 
 type TargetNetwork struct {
@@ -17,25 +20,34 @@ type TargetNetwork struct {
 }
 
 var AvailableSources = []SourceNetwork{
-	{Name: "Instagram", Color: "#ff0076"},
-	{Name: "Threads", Color: "#000000"},
-	{Name: "Bluesky", Color: "#1185fe"},
-	{Name: "YouTube", Color: "#ff0033"},
-	{Name: "TikTok", Color: "#fe2c55"},
-	{Name: "Twitch", Color: "#9146ff"},
-	{Name: "Reddit", Color: "#ff4500"},
-	{Name: "Mastodon", Color: "#563acc"},
-	{Name: "Discord", Color: "#5662f6"},
-	{Name: "Telegram", Color: "#26a4e3"},
-	{Name: "Google Analytics", Color: "#e37400"},
-	{Name: "Google Search Console", Color: "#4285F4"},
-	{Name: "BadPups", Color: "#c1272d"},
-	{Name: "Murrtube", Color: "#344aa8"},
-	{Name: "DeviantArt", Color: "#24e39d"},
-	{Name: "e621", Color: "#01549b"},
-	{Name: "Weasyl", Color: "#990000"},
-	{Name: "FurTrack", Color: "#2d0e4c"},
-	{Name: "FurAffinity", Color: "#f9af3B"},
+	{Name: "Instagram", Color: "#ff0076", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "Threads", Color: "#000000", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "Bluesky", Color: "#1185fe", EngagementSupported: true, ViewsSupported: false, FollowersTracked: true},
+	{Name: "YouTube", Color: "#ff0033", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "TikTok", Color: "#fe2c55", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "Twitch", Color: "#9146ff", EngagementSupported: false, ViewsSupported: true, FollowersTracked: true},
+	{Name: "Reddit", Color: "#ff4500", EngagementSupported: true, ViewsSupported: false, FollowersTracked: false},
+	{Name: "Mastodon", Color: "#563acc", EngagementSupported: true, ViewsSupported: false, FollowersTracked: true},
+	{Name: "Discord", Color: "#5662f6", EngagementSupported: true, ViewsSupported: false, FollowersTracked: true},
+	{Name: "Telegram", Color: "#26a4e3", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "Google Analytics", Color: "#e37400", EngagementSupported: false, ViewsSupported: false, FollowersTracked: false},
+	{Name: "Google Search Console", Color: "#4285F4", EngagementSupported: false, ViewsSupported: false, FollowersTracked: false},
+	{Name: "BadPups", Color: "#c1272d", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "Murrtube", Color: "#344aa8", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "DeviantArt", Color: "#24e39d", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "e621", Color: "#01549b", EngagementSupported: true, ViewsSupported: false, FollowersTracked: false},
+	{Name: "Weasyl", Color: "#990000", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "FurTrack", Color: "#2d0e4c", EngagementSupported: true, ViewsSupported: false, FollowersTracked: false},
+	{Name: "FurAffinity", Color: "#f9af3B", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+}
+
+func GetSourceByName(name string) *SourceNetwork {
+	for i := range AvailableSources {
+		if AvailableSources[i].Name == name {
+			return &AvailableSources[i]
+		}
+	}
+	return nil
 }
 
 var AvailableTargets = []TargetNetwork{
