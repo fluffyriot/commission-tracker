@@ -245,8 +245,8 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		return "", "", fmt.Errorf("API Key is required for Weasyl")
 	}
 
-	if params.Network == "Google Search Console" && (params.FieldLong == "" || params.Field1 == "") {
-		return "", "", fmt.Errorf("Site URL and Service Account Key are required for Google Search Console")
+	if params.Network == "Google Search Console" && params.FieldLong == "" {
+		return "", "", fmt.Errorf("Service Account Key is required for Google Search Console")
 	}
 
 	if params.Network == "Threads" && params.Field1 == "" {
@@ -304,8 +304,7 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)
 
 	case "Google Search Console":
-		// token=serviceAccountJSON, profileId=siteUrl
-		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, params.Field1, nil, params.EncryptionKey)
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, "", nil, params.EncryptionKey)
 
 	case "Threads":
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)

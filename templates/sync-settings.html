@@ -380,8 +380,10 @@
             let lastExclusionId = "";
             let lastRedirectId = "";
 
+            const analyticsNetworks = ['Google Analytics', 'Google Search Console'];
+
             allSources.forEach(source => {
-                if (source.network !== 'Google Analytics') {
+                if (!analyticsNetworks.includes(source.network)) {
                     const option = document.createElement('option');
                     option.value = source.id;
                     option.textContent = `${source.network} - ${source.user_name}`;
@@ -390,7 +392,7 @@
                     lastExclusionId = source.id;
                 }
 
-                if (source.network === 'Google Analytics') {
+                if (analyticsNetworks.includes(source.network)) {
                     const option = document.createElement('option');
                     option.value = source.id;
                     option.textContent = `${source.network} - ${source.user_name}`;
@@ -432,14 +434,16 @@
         try {
             allRedirects = [];
 
-            const gaSources = allSources.filter(source => source.network === 'Google Analytics');
+            const analyticsSources = allSources.filter(source =>
+                source.network === 'Google Analytics' || source.network === 'Google Search Console'
+            );
 
-            if (gaSources.length === 0) {
+            if (analyticsSources.length === 0) {
                 applyRedirectFilters();
                 return;
             }
 
-            for (const source of gaSources) {
+            for (const source of analyticsSources) {
                 if (!source.id) {
                     console.error('Source missing ID:', source);
                     continue;
@@ -503,17 +507,34 @@
         const endIndex = startIndex + itemsPerPage;
         const pageItems = filteredExclusions.slice(startIndex, endIndex);
 
-        container.innerHTML = pageItems.map(excl => `
-            <div class="card exclusion-item">
-                <div>
-                    <strong>${excl.network_internal_id}</strong><br>
-                    <span class="text-muted text-xs">${excl.network} - ${excl.user_name}</span>
-                </div>
-                <button class="btn btn-danger btn-icon" onclick="deleteExclusion('${excl.id}')" title="Delete">
-                    <i data-lucide="trash-2"></i>
-                </button>
-            </div>
-        `).join('');
+        const exclFragment = document.createDocumentFragment();
+        pageItems.forEach(excl => {
+            const card = document.createElement('div');
+            card.className = 'card exclusion-item';
+
+            const infoDiv = document.createElement('div');
+            const strong = document.createElement('strong');
+            strong.textContent = excl.network_internal_id;
+            infoDiv.appendChild(strong);
+            infoDiv.appendChild(document.createElement('br'));
+            const span = document.createElement('span');
+            span.className = 'text-muted text-xs';
+            span.textContent = `${excl.network} - ${excl.user_name}`;
+            infoDiv.appendChild(span);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-danger btn-icon';
+            btn.title = 'Delete';
+            btn.addEventListener('click', () => deleteExclusion(excl.id));
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'trash-2');
+            btn.appendChild(icon);
+
+            card.appendChild(infoDiv);
+            card.appendChild(btn);
+            exclFragment.appendChild(card);
+        });
+        container.replaceChildren(exclFragment);
 
         renderPagination();
         lucide.createIcons();
@@ -533,21 +554,45 @@
         const endIndex = startIndex + itemsPerPage;
         const pageItems = filteredRedirects.slice(startIndex, endIndex);
 
-        container.innerHTML = pageItems.map(r => `
-            <div class="card exclusion-item">
-                <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <strong>${r.from_path}</strong>
-                        <i data-lucide="arrow-right" style="width: 16px;"></i>
-                        <strong>${r.to_path}</strong>
-                    </div>
-                    <span class="text-muted text-xs">${r.network} - ${r.user_name}</span>
-                </div>
-                <button class="btn btn-danger btn-icon" onclick="deleteRedirect('${r.id}')" title="Delete">
-                    <i data-lucide="trash-2"></i>
-                </button>
-            </div>
-        `).join('');
+        const redirectFragment = document.createDocumentFragment();
+        pageItems.forEach(r => {
+            const card = document.createElement('div');
+            card.className = 'card exclusion-item';
+
+            const infoDiv = document.createElement('div');
+
+            const pathDiv = document.createElement('div');
+            pathDiv.style.cssText = 'display: flex; align-items: center; gap: 0.5rem;';
+            const fromStrong = document.createElement('strong');
+            fromStrong.textContent = r.from_path;
+            pathDiv.appendChild(fromStrong);
+            const arrowIcon = document.createElement('i');
+            arrowIcon.setAttribute('data-lucide', 'arrow-right');
+            arrowIcon.style.width = '16px';
+            pathDiv.appendChild(arrowIcon);
+            const toStrong = document.createElement('strong');
+            toStrong.textContent = r.to_path;
+            pathDiv.appendChild(toStrong);
+            infoDiv.appendChild(pathDiv);
+
+            const span = document.createElement('span');
+            span.className = 'text-muted text-xs';
+            span.textContent = `${r.network} - ${r.user_name}`;
+            infoDiv.appendChild(span);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-danger btn-icon';
+            btn.title = 'Delete';
+            btn.addEventListener('click', () => deleteRedirect(r.id));
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'trash-2');
+            btn.appendChild(icon);
+
+            card.appendChild(infoDiv);
+            card.appendChild(btn);
+            redirectFragment.appendChild(card);
+        });
+        container.replaceChildren(redirectFragment);
 
         renderRedirectPagination();
         lucide.createIcons();

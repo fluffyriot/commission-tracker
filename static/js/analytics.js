@@ -651,8 +651,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadWebsiteStats() {
         Promise.all([
             fetch(getFilteredUrl('/analytics/data/site')).then(r => r.json()),
-            fetch(getFilteredUrl('/analytics/data/pages')).then(r => r.json())
-        ]).then(([siteData, pagesData]) => {
+            fetch(getFilteredUrl('/analytics/data/pages')).then(r => r.json()),
+            fetch('/analytics/data/gsc/site').then(r => r.json()),
+            fetch('/analytics/data/gsc/pages').then(r => r.json())
+        ]).then(([siteData, pagesData, gscSiteData, gscPagesData]) => {
             if (!siteData || !Array.isArray(siteData) || siteData.length === 0) {
                 emptyChartState('siteStatsChart');
             } else {
@@ -678,12 +680,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         y1: { position: 'right', title: { display: true, text: 'Seconds' }, grid: { drawOnChartArea: false } }
                     },
                     plugins: {
-                        legend: {
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        }
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
                     }
                 });
             }
@@ -700,12 +697,59 @@ document.addEventListener("DOMContentLoaded", function () {
                 }, {
                     indexAxis: 'y',
                     plugins: {
-                        legend: {
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
-                        }
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
+                    }
+                });
+            }
+
+            if (!gscSiteData || !Array.isArray(gscSiteData) || gscSiteData.length === 0) {
+                emptyChartState('gscSiteChart');
+            } else {
+                createChart('gscSiteChart', 'line', {
+                    labels: gscSiteData.map(d => d.date_str),
+                    datasets: [{
+                        label: 'Clicks',
+                        data: gscSiteData.map(d => d.total_clicks),
+                        borderColor: colors.primary,
+                        backgroundColor: 'rgba(145, 103, 228, 0.1)',
+                        fill: true,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Impressions',
+                        data: gscSiteData.map(d => d.total_impressions),
+                        borderColor: colors.primaryLight,
+                        borderDash: [5, 5],
+                        yAxisID: 'y1'
+                    }]
+                }, {
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Clicks' } },
+                        y1: { position: 'right', title: { display: true, text: 'Impressions' }, grid: { drawOnChartArea: false } }
+                    },
+                    plugins: {
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
+                    }
+                });
+            }
+
+            if (!gscPagesData || !Array.isArray(gscPagesData) || gscPagesData.length === 0) {
+                emptyChartState('gscPagesChart');
+            } else {
+                createChart('gscPagesChart', 'bar', {
+                    labels: gscPagesData.slice(0, 15).map(d => d.url_path),
+                    datasets: [{
+                        label: 'Clicks',
+                        data: gscPagesData.slice(0, 15).map(d => d.total_clicks),
+                        backgroundColor: colors.primary
+                    }, {
+                        label: 'Impressions',
+                        data: gscPagesData.slice(0, 15).map(d => d.total_impressions),
+                        backgroundColor: colors.primaryLight
+                    }]
+                }, {
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { labels: { usePointStyle: true, padding: 20 } }
                     }
                 });
             }
@@ -1154,7 +1198,13 @@ document.addEventListener("DOMContentLoaded", function () {
         ALL_POST_TYPES.forEach(pt => {
             const label = document.createElement('label');
             label.className = 'flex items-center gap-2 py-1 cursor-pointer';
-            label.innerHTML = `<input type="checkbox" class="analytics-pt-check" value="${pt}" checked> ${pt}`;
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'analytics-pt-check';
+            checkbox.value = pt;
+            checkbox.checked = true;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(' ' + pt));
             ptContainer.appendChild(label);
         });
     }

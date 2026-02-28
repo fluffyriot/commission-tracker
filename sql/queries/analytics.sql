@@ -5,14 +5,18 @@ INSERT INTO
         date,
         visitors,
         avg_session_duration,
-        source_id
+        source_id,
+        analytics_type,
+        impressions
     )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (source_id, date) DO
 UPDATE
 SET
     visitors = EXCLUDED.visitors,
-    avg_session_duration = EXCLUDED.avg_session_duration
+    avg_session_duration = EXCLUDED.avg_session_duration,
+    analytics_type = EXCLUDED.analytics_type,
+    impressions = EXCLUDED.impressions
 RETURNING
     *;
 
@@ -23,13 +27,17 @@ INSERT INTO
         date,
         url_path,
         views,
-        source_id
+        source_id,
+        analytics_type,
+        impressions
     )
-VALUES ($1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (source_id, date, url_path) DO
 UPDATE
 SET
-    views = $4
+    views = EXCLUDED.views,
+    analytics_type = EXCLUDED.analytics_type,
+    impressions = EXCLUDED.impressions
 RETURNING
     *;
 
@@ -214,6 +222,7 @@ FROM
     JOIN sources src ON s.source_id = src.id
 WHERE
     src.user_id = $1
+    AND s.analytics_type = 'ga'
 GROUP BY
     year_month
 ORDER BY year_month ASC;
@@ -225,6 +234,7 @@ FROM
     JOIN sources src ON s.source_id = src.id
 WHERE
     src.user_id = $1
+    AND s.analytics_type = 'ga'
 GROUP BY
     year_month
 ORDER BY year_month ASC;

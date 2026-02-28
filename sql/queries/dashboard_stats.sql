@@ -108,7 +108,7 @@ FROM sources s
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND s.is_active = TRUE
-    AND NOT s.network in ('Google Analytics')
+    AND NOT s.network in ('Google Analytics', 'Google Search Console')
 GROUP BY s.id
 ORDER BY total_interactions DESC
 LIMIT 3;
@@ -142,6 +142,6 @@ FROM sources s
     ) prh ON p.id = prh.post_id
 WHERE s.user_id = $1
     AND s.is_active = TRUE
-    AND NOT s.network in ('Google Analytics')
+    AND NOT s.network in ('Google Analytics', 'Google Search Console')
 GROUP BY s.id
 ORDER BY total_interactions DESC OFFSET 3;

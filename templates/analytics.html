@@ -237,16 +237,38 @@
 
 <div id="website-tab" class="tab-content hidden">
     <div class="grid-dashboard">
-        <div class="card col-span-full">
-            <div class="card-header">Site Stats Over Time</div>
-            <div class="chart-container">
-                <canvas id="siteStatsChart"></canvas>
+        <div class="col-span-full">
+            <div class="card-header mb-4">Google Analytics</div>
+            <div class="grid-dashboard">
+                <div class="card col-span-full">
+                    <div class="card-header">Site Stats Over Time</div>
+                    <div class="chart-container">
+                        <canvas id="siteStatsChart"></canvas>
+                    </div>
+                </div>
+                <div class="card col-span-full">
+                    <div class="card-header">Top Viewed Pages</div>
+                    <div class="chart-container h-500">
+                        <canvas id="topPagesChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="card col-span-full">
-            <div class="card-header">Top Viewed Pages</div>
-            <div class="chart-container h-500">
-                <canvas id="topPagesChart"></canvas>
+        <div class="col-span-full">
+            <div class="card-header mb-4">Google Search Console</div>
+            <div class="grid-dashboard">
+                <div class="card col-span-full">
+                    <div class="card-header">Search Clicks &amp; Impressions Over Time</div>
+                    <div class="chart-container">
+                        <canvas id="gscSiteChart"></canvas>
+                    </div>
+                </div>
+                <div class="card col-span-full">
+                    <div class="card-header">Top Pages by Search Clicks</div>
+                    <div class="chart-container h-500">
+                        <canvas id="gscPagesChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

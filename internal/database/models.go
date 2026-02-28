@@ -13,11 +13,13 @@ import (
 )
 
 type AnalyticsPageStat struct {
-	ID       uuid.UUID `json:"id"`
-	Date     time.Time `json:"date"`
-	UrlPath  string    `json:"url_path"`
-	Views    int64     `json:"views"`
-	SourceID uuid.UUID `json:"source_id"`
+	ID            uuid.UUID     `json:"id"`
+	Date          time.Time     `json:"date"`
+	UrlPath       string        `json:"url_path"`
+	Views         int64         `json:"views"`
+	SourceID      uuid.UUID     `json:"source_id"`
+	AnalyticsType string        `json:"analytics_type"`
+	Impressions   sql.NullInt64 `json:"impressions"`
 }
 
 type AnalyticsPageStatsOnTarget struct {
@@ -29,11 +31,13 @@ type AnalyticsPageStatsOnTarget struct {
 }
 
 type AnalyticsSiteStat struct {
-	ID                 uuid.UUID `json:"id"`
-	Date               time.Time `json:"date"`
-	Visitors           int64     `json:"visitors"`
-	AvgSessionDuration float64   `json:"avg_session_duration"`
-	SourceID           uuid.UUID `json:"source_id"`
+	ID                 uuid.UUID     `json:"id"`
+	Date               time.Time     `json:"date"`
+	Visitors           int64         `json:"visitors"`
+	AvgSessionDuration float64       `json:"avg_session_duration"`
+	SourceID           uuid.UUID     `json:"source_id"`
+	AnalyticsType      string        `json:"analytics_type"`
+	Impressions        sql.NullInt64 `json:"impressions"`
 }
 
 type AnalyticsSiteStatsOnTarget struct {

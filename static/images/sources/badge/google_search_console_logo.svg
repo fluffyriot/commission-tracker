@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1536"
+   height="1536"
+   viewBox="0 0 1536 1536"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <clipPath
+       id="a">
+      <path
+         fill="#ffffff"
+         d="M 0,0 H 40 V 40 H 0 Z"
+         id="path8" />
+    </clipPath>
+  </defs>
+  <g
+     clip-path="url(#a)"
+     id="g6"
+     transform="matrix(24.854043,0,0,24.789466,219.13574,210.23702)"
+     style="clip-rule:evenodd;fill-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2">
+    <path
+       d="m 11.081,30.527 -4.7199999,4.721 a 0.933,0.933 0 0 1 -1.317,0 l -0.292,-0.292 a 0.933,0.933 0 0 1 0,-1.316 l 4.72,-4.721 a 0.933,0.933 0 0 1 1.3179999,0 l 0.291,0.291 a 0.93,0.93 0 0 1 0,1.317 z"
+       fill="#fbbc04"
+       id="path1-3"
+       style="fill:#f2f2f2" />
+    <path
+       d="m 23.75,32.5 h 6.042 a 6.04,6.04 0 0 0 6.041,-6.042 V 10.208 A 6.04,6.04 0 0 0 29.792,4.1669999 6.04,6.04 0 0 0 23.75,10.208 Z"
+       fill="#4285f4"
+       id="path2"
+       style="fill:#808080" />
+    <path
+       d="M 13.75,32.5 A 6.04,6.04 0 0 0 19.792,26.458 6.04,6.04 0 0 0 13.75,20.417 6.04,6.04 0 0 0 7.7080001,26.458 6.04,6.04 0 0 0 13.75,32.5 Z"
+       fill="#fbbc04"
+       id="path3"
+       style="fill:#f2f2f2" />
+    <path
+       d="m 27.97,32.5 h -5.887 a 6.04,6.04 0 0 1 -6.041,-6.042 v -7.916 a 6.04,6.04 0 0 1 6.041,-6.042 6.04,6.04 0 0 1 6.042,6.042 V 32.346 A 0.154,0.154 0 0 1 27.971,32.5 Z"
+       fill="#34a853"
+       id="path4"
+       style="fill:#cccccc" />
+    <path
+       d="M 28.125,32.346 V 18.542 A 6.042,6.042 0 0 0 23.75,12.735 V 32.5 h 4.22 a 0.154,0.154 0 0 0 0.155,-0.154 z"
+       fill="#1967d2"
+       id="path5"
+       style="fill:#666666" />
+    <path
+       d="m 19.792,26.575 a 6.04,6.04 0 0 0 -3.75,-5.59 v 5.59 c 0,1.72 0.72,3.273 1.875,4.373 a 6.024,6.024 0 0 0 1.875,-4.373 z"
+       fill="#ea4335"
+       id="path6"
+       style="fill:#999999" />
+  </g>
+</svg>

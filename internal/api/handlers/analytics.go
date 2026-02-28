@@ -416,6 +416,38 @@ func (h *Handler) AnalyticsSiteStatsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
+func (h *Handler) AnalyticsGSCSiteStatsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetGSCSiteStatsOverTime(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting GSC site stats: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *Handler) AnalyticsGSCTopPagesHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	data, err := h.DB.GetGSCTopPagesByClicks(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting GSC top pages: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
 func (h *Handler) AnalyticsPostingConsistencyHandler(c *gin.Context) {
 	user, loggedIn := h.GetAuthenticatedUser(c)
 	if !loggedIn {

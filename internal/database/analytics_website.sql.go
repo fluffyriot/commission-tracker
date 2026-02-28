@@ -15,8 +15,9 @@ import (
 const getAverageWebsiteSession = `-- name: GetAverageWebsiteSession :one
 SELECT COALESCE(AVG(avg_session_duration), 0)::BIGINT AS average_website_session
 FROM analytics_site_stats
-    left join sources on analytics_site_stats.source_id = sources.id
-where sources.user_id = $1
+    LEFT JOIN sources ON analytics_site_stats.source_id = sources.id
+WHERE sources.user_id = $1
+    AND analytics_site_stats.analytics_type = 'ga'
 `
 
 func (q *Queries) GetAverageWebsiteSession(ctx context.Context, userID uuid.UUID) (int64, error) {
@@ -24,6 +25,94 @@ func (q *Queries) GetAverageWebsiteSession(ctx context.Context, userID uuid.UUID
 	var average_website_session int64
 	err := row.Scan(&average_website_session)
 	return average_website_session, err
+}
+
+const getGSCSiteStatsOverTime = `-- name: GetGSCSiteStatsOverTime :many
+SELECT date_str, total_clicks, total_impressions
+FROM (
+        SELECT TO_CHAR(DATE_TRUNC('week', date), 'IYYY-"W"IW') as date_str,
+            COALESCE(SUM(visitors), 0)::BIGINT as total_clicks,
+            COALESCE(SUM(impressions), 0)::BIGINT as total_impressions
+        FROM analytics_site_stats ass
+            JOIN sources s ON ass.source_id = s.id
+        WHERE s.user_id = $1
+            AND ass.analytics_type = 'gsc'
+        GROUP BY DATE_TRUNC('week', date)
+        ORDER BY DATE_TRUNC('week', date) DESC
+        LIMIT 52
+    ) recent_weeks
+ORDER BY date_str ASC
+`
+
+type GetGSCSiteStatsOverTimeRow struct {
+	DateStr          string `json:"date_str"`
+	TotalClicks      int64  `json:"total_clicks"`
+	TotalImpressions int64  `json:"total_impressions"`
+}
+
+func (q *Queries) GetGSCSiteStatsOverTime(ctx context.Context, userID uuid.UUID) ([]GetGSCSiteStatsOverTimeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGSCSiteStatsOverTime, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGSCSiteStatsOverTimeRow
+	for rows.Next() {
+		var i GetGSCSiteStatsOverTimeRow
+		if err := rows.Scan(&i.DateStr, &i.TotalClicks, &i.TotalImpressions); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGSCTopPagesByClicks = `-- name: GetGSCTopPagesByClicks :many
+SELECT url_path,
+    COALESCE(SUM(views), 0)::BIGINT as total_clicks,
+    COALESCE(SUM(impressions), 0)::BIGINT as total_impressions
+FROM analytics_page_stats aps
+    JOIN sources s ON aps.source_id = s.id
+WHERE s.user_id = $1
+    AND aps.analytics_type = 'gsc'
+GROUP BY url_path
+ORDER BY total_clicks DESC
+LIMIT 50
+`
+
+type GetGSCTopPagesByClicksRow struct {
+	UrlPath          string `json:"url_path"`
+	TotalClicks      int64  `json:"total_clicks"`
+	TotalImpressions int64  `json:"total_impressions"`
+}
+
+func (q *Queries) GetGSCTopPagesByClicks(ctx context.Context, userID uuid.UUID) ([]GetGSCTopPagesByClicksRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGSCTopPagesByClicks, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGSCTopPagesByClicksRow
+	for rows.Next() {
+		var i GetGSCTopPagesByClicksRow
+		if err := rows.Scan(&i.UrlPath, &i.TotalClicks, &i.TotalImpressions); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getSiteStatsOverTime = `-- name: GetSiteStatsOverTime :many
@@ -35,6 +124,7 @@ FROM (
         FROM analytics_site_stats ass
             JOIN sources s ON ass.source_id = s.id
         WHERE s.user_id = $1
+            AND ass.analytics_type = 'ga'
         GROUP BY DATE_TRUNC('week', date)
         ORDER BY DATE_TRUNC('week', date) DESC
         LIMIT 52
@@ -80,6 +170,7 @@ FROM (
         FROM analytics_site_stats ass
             JOIN sources s ON ass.source_id = s.id
         WHERE s.user_id = $1
+            AND ass.analytics_type = 'ga'
             AND ($2::date IS NULL OR ass.date >= $2::date)
             AND ($3::date IS NULL OR ass.date <= $3::date)
         GROUP BY DATE_TRUNC('week', date)
@@ -130,6 +221,7 @@ SELECT url_path,
 FROM analytics_page_stats aps
     JOIN sources s ON aps.source_id = s.id
 WHERE s.user_id = $1
+    AND aps.analytics_type = 'ga'
 GROUP BY url_path
 ORDER BY total_views DESC
 LIMIT 50
@@ -169,6 +261,7 @@ SELECT url_path,
 FROM analytics_page_stats aps
     JOIN sources s ON aps.source_id = s.id
 WHERE s.user_id = $1
+    AND aps.analytics_type = 'ga'
     AND ($2::date IS NULL OR aps.date >= $2::date)
     AND ($3::date IS NULL OR aps.date <= $3::date)
 GROUP BY url_path
@@ -213,8 +306,9 @@ func (q *Queries) GetTopPagesByViewsFiltered(ctx context.Context, arg GetTopPage
 const getTotalPageViews = `-- name: GetTotalPageViews :one
 SELECT COALESCE(SUM(views), 0)::BIGINT AS total_page_views
 FROM analytics_page_stats
-    left join sources on analytics_page_stats.source_id = sources.id
-where sources.user_id = $1
+    LEFT JOIN sources ON analytics_page_stats.source_id = sources.id
+WHERE sources.user_id = $1
+    AND analytics_page_stats.analytics_type = 'ga'
 `
 
 func (q *Queries) GetTotalPageViews(ctx context.Context, userID uuid.UUID) (int64, error) {
@@ -227,8 +321,9 @@ func (q *Queries) GetTotalPageViews(ctx context.Context, userID uuid.UUID) (int6
 const getTotalSiteStats = `-- name: GetTotalSiteStats :one
 SELECT COALESCE(SUM(visitors), 0)::BIGINT AS total_visitors
 FROM analytics_site_stats
-    left join sources on analytics_site_stats.source_id = sources.id
-where sources.user_id = $1
+    LEFT JOIN sources ON analytics_site_stats.source_id = sources.id
+WHERE sources.user_id = $1
+    AND analytics_site_stats.analytics_type = 'ga'
 `
 
 func (q *Queries) GetTotalSiteStats(ctx context.Context, userID uuid.UUID) (int64, error) {

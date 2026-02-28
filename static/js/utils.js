@@ -1,3 +1,12 @@
+// Escape raw HTML tokens in marked output so external content cannot inject scripts.
+// Called once after marked loads (see header.html script onload or DOMContentLoaded).
+function configureMarkedSafe() {
+    if (window.marked) {
+        marked.use({ renderer: { html(token) { return token.text.replace(/</g, '&lt;').replace(/>/g, '&gt;'); } } });
+    }
+}
+document.addEventListener('DOMContentLoaded', configureMarkedSafe);
+
 function toggleDropdown(id) {
     document.querySelectorAll('.dropdown-content').forEach(d => {
         if (d.id !== id) d.classList.add('hidden');
@@ -75,7 +84,10 @@ function showReleaseNotes(version, lastSeenVersion, limit) {
         .then(res => res.json())
         .then(data => {
             if (data.error) {
-                bodyDiv.innerHTML = `<div class="text-danger">Failed to load notes: ${data.error}</div>`;
+                const errDiv = document.createElement('div');
+                errDiv.className = 'text-danger';
+                errDiv.textContent = `Failed to load notes: ${data.error}`;
+                bodyDiv.replaceChildren(errDiv);
                 return;
             }
 

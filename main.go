@@ -248,6 +248,8 @@ func main() {
 	authorized.GET("/analytics/data/networks", h.AnalyticsNetworkEfficiencyHandler)
 	authorized.GET("/analytics/data/pages", h.AnalyticsTopPagesHandler)
 	authorized.GET("/analytics/data/site", h.AnalyticsSiteStatsHandler)
+	authorized.GET("/analytics/data/gsc/site", h.AnalyticsGSCSiteStatsHandler)
+	authorized.GET("/analytics/data/gsc/pages", h.AnalyticsGSCTopPagesHandler)
 	authorized.GET("/analytics/data/consistency", h.AnalyticsPostingConsistencyHandler)
 	authorized.GET("/analytics/data/engagement-rate", h.AnalyticsEngagementRateHandler)
 	authorized.GET("/analytics/data/follow-ratio", h.AnalyticsFollowRatioHandler)

@@ -57,8 +57,9 @@ type threadsInsightValue struct {
 }
 
 type threadsInsightMetric struct {
-	Name   string                `json:"name"`
-	Values []threadsInsightValue `json:"values"`
+	Name       string                `json:"name"`
+	Values     []threadsInsightValue `json:"values"`
+	TotalValue *threadsInsightValue  `json:"total_value"`
 }
 
 type threadsInsightsResponse struct {
@@ -73,13 +74,9 @@ func parseThreadsTime(s string) (time.Time, error) {
 }
 
 func fetchThreadsFollowers(c *common.Client, accessToken string) (int, error) {
-	now := time.Now().UTC()
-	since := now.Truncate(24 * time.Hour).Unix()
-	until := since + 86400
 
 	url := fmt.Sprintf(
-		"https://graph.threads.net/v1.0/me/threads_insights?metric=followers_count&period=day&since=%d&until=%d&access_token=%s",
-		since, until, accessToken,
+		"https://graph.threads.net/v1.0/me/threads_insights?metric=followers_count&access_token=%s", accessToken,
 	)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -110,7 +107,13 @@ func fetchThreadsFollowers(c *common.Client, accessToken string) (int, error) {
 	}
 
 	for _, metric := range insightsResp.Data {
-		if metric.Name == "followers_count" && len(metric.Values) > 0 {
+		if metric.Name != "followers_count" {
+			continue
+		}
+		if metric.TotalValue != nil {
+			return metric.TotalValue.Value, nil
+		}
+		if len(metric.Values) > 0 {
 			return metric.Values[len(metric.Values)-1].Value, nil
 		}
 	}
