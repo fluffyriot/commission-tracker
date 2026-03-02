@@ -73,6 +73,60 @@ func (q *Queries) GetGSCSiteStatsOverTime(ctx context.Context, userID uuid.UUID)
 	return items, nil
 }
 
+const getGSCSiteStatsOverTimeFiltered = `-- name: GetGSCSiteStatsOverTimeFiltered :many
+SELECT date_str, total_clicks, total_impressions
+FROM (
+        SELECT TO_CHAR(DATE_TRUNC('week', date), 'IYYY-"W"IW') as date_str,
+            COALESCE(SUM(visitors), 0)::BIGINT as total_clicks,
+            COALESCE(SUM(impressions), 0)::BIGINT as total_impressions
+        FROM analytics_site_stats ass
+            JOIN sources s ON ass.source_id = s.id
+        WHERE s.user_id = $1
+            AND ass.analytics_type = 'gsc'
+            AND ($2::date IS NULL OR ass.date >= $2::date)
+            AND ($3::date IS NULL OR ass.date <= $3::date)
+        GROUP BY DATE_TRUNC('week', date)
+        ORDER BY DATE_TRUNC('week', date) DESC
+        LIMIT 52
+    ) recent_weeks
+ORDER BY date_str ASC
+`
+
+type GetGSCSiteStatsOverTimeFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+}
+
+type GetGSCSiteStatsOverTimeFilteredRow struct {
+	DateStr          string `json:"date_str"`
+	TotalClicks      int64  `json:"total_clicks"`
+	TotalImpressions int64  `json:"total_impressions"`
+}
+
+func (q *Queries) GetGSCSiteStatsOverTimeFiltered(ctx context.Context, arg GetGSCSiteStatsOverTimeFilteredParams) ([]GetGSCSiteStatsOverTimeFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGSCSiteStatsOverTimeFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGSCSiteStatsOverTimeFilteredRow
+	for rows.Next() {
+		var i GetGSCSiteStatsOverTimeFilteredRow
+		if err := rows.Scan(&i.DateStr, &i.TotalClicks, &i.TotalImpressions); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getGSCTopPagesByClicks = `-- name: GetGSCTopPagesByClicks :many
 SELECT url_path,
     COALESCE(SUM(views), 0)::BIGINT as total_clicks,
@@ -101,6 +155,56 @@ func (q *Queries) GetGSCTopPagesByClicks(ctx context.Context, userID uuid.UUID) 
 	var items []GetGSCTopPagesByClicksRow
 	for rows.Next() {
 		var i GetGSCTopPagesByClicksRow
+		if err := rows.Scan(&i.UrlPath, &i.TotalClicks, &i.TotalImpressions); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGSCTopPagesByClicksFiltered = `-- name: GetGSCTopPagesByClicksFiltered :many
+SELECT url_path,
+    COALESCE(SUM(views), 0)::BIGINT as total_clicks,
+    COALESCE(SUM(impressions), 0)::BIGINT as total_impressions
+FROM analytics_page_stats aps
+    JOIN sources s ON aps.source_id = s.id
+WHERE s.user_id = $1
+    AND aps.analytics_type = 'gsc'
+    AND ($2::date IS NULL OR aps.date >= $2::date)
+    AND ($3::date IS NULL OR aps.date <= $3::date)
+GROUP BY url_path
+ORDER BY total_clicks DESC
+LIMIT 50
+`
+
+type GetGSCTopPagesByClicksFilteredParams struct {
+	UserID    uuid.UUID    `json:"user_id"`
+	StartDate sql.NullTime `json:"start_date"`
+	EndDate   sql.NullTime `json:"end_date"`
+}
+
+type GetGSCTopPagesByClicksFilteredRow struct {
+	UrlPath          string `json:"url_path"`
+	TotalClicks      int64  `json:"total_clicks"`
+	TotalImpressions int64  `json:"total_impressions"`
+}
+
+func (q *Queries) GetGSCTopPagesByClicksFiltered(ctx context.Context, arg GetGSCTopPagesByClicksFilteredParams) ([]GetGSCTopPagesByClicksFilteredRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGSCTopPagesByClicksFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGSCTopPagesByClicksFilteredRow
+	for rows.Next() {
+		var i GetGSCTopPagesByClicksFilteredRow
 		if err := rows.Scan(&i.UrlPath, &i.TotalClicks, &i.TotalImpressions); err != nil {
 			return nil, err
 		}

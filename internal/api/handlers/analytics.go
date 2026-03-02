@@ -433,7 +433,18 @@ func (h *Handler) AnalyticsGSCSiteStatsHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetGSCSiteStatsOverTime(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter && (f.StartDate.Valid || f.EndDate.Valid) {
+		data, err = h.DB.GetGSCSiteStatsOverTimeFiltered(c.Request.Context(), database.GetGSCSiteStatsOverTimeFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+		})
+	} else {
+		data, err = h.DB.GetGSCSiteStatsOverTime(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting GSC site stats: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -449,7 +460,18 @@ func (h *Handler) AnalyticsGSCTopPagesHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetGSCTopPagesByClicks(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter && (f.StartDate.Valid || f.EndDate.Valid) {
+		data, err = h.DB.GetGSCTopPagesByClicksFiltered(c.Request.Context(), database.GetGSCTopPagesByClicksFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+		})
+	} else {
+		data, err = h.DB.GetGSCTopPagesByClicks(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting GSC top pages: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

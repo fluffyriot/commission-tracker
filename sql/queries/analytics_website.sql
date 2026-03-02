@@ -93,6 +93,24 @@ FROM (
     ) recent_weeks
 ORDER BY date_str ASC;
 
+-- name: GetGSCSiteStatsOverTimeFiltered :many
+SELECT *
+FROM (
+        SELECT TO_CHAR(DATE_TRUNC('week', date), 'IYYY-"W"IW') as date_str,
+            COALESCE(SUM(visitors), 0)::BIGINT as total_clicks,
+            COALESCE(SUM(impressions), 0)::BIGINT as total_impressions
+        FROM analytics_site_stats ass
+            JOIN sources s ON ass.source_id = s.id
+        WHERE s.user_id = @user_id
+            AND ass.analytics_type = 'gsc'
+            AND (sqlc.narg('start_date')::date IS NULL OR ass.date >= sqlc.narg('start_date')::date)
+            AND (sqlc.narg('end_date')::date IS NULL OR ass.date <= sqlc.narg('end_date')::date)
+        GROUP BY DATE_TRUNC('week', date)
+        ORDER BY DATE_TRUNC('week', date) DESC
+        LIMIT 52
+    ) recent_weeks
+ORDER BY date_str ASC;
+
 -- name: GetGSCTopPagesByClicks :many
 SELECT url_path,
     COALESCE(SUM(views), 0)::BIGINT as total_clicks,
@@ -101,6 +119,20 @@ FROM analytics_page_stats aps
     JOIN sources s ON aps.source_id = s.id
 WHERE s.user_id = $1
     AND aps.analytics_type = 'gsc'
+GROUP BY url_path
+ORDER BY total_clicks DESC
+LIMIT 50;
+
+-- name: GetGSCTopPagesByClicksFiltered :many
+SELECT url_path,
+    COALESCE(SUM(views), 0)::BIGINT as total_clicks,
+    COALESCE(SUM(impressions), 0)::BIGINT as total_impressions
+FROM analytics_page_stats aps
+    JOIN sources s ON aps.source_id = s.id
+WHERE s.user_id = @user_id
+    AND aps.analytics_type = 'gsc'
+    AND (sqlc.narg('start_date')::date IS NULL OR aps.date >= sqlc.narg('start_date')::date)
+    AND (sqlc.narg('end_date')::date IS NULL OR aps.date <= sqlc.narg('end_date')::date)
 GROUP BY url_path
 ORDER BY total_clicks DESC
 LIMIT 50;
