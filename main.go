@@ -173,6 +173,7 @@ func main() {
 
 	authorized.GET("/", h.RootHandler)
 	authorized.POST("/logs/dismiss", h.DismissLogHandler)
+	authorized.POST("/logs/dismiss-all", h.DismissAllLogsHandler)
 
 	authorized.GET("/settings/2fa/setup", h.TwoFASetupViewHandler)
 	authorized.POST("/settings/2fa/verify", h.TwoFASetupSubmitHandler)

@@ -613,6 +613,12 @@ a:hover {
   color: var(--color-text-main);
 }
 
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

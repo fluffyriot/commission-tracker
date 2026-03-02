@@ -34,6 +34,16 @@ LIMIT 20;
 -- name: DismissLog :exec
 UPDATE logs SET is_dismissed = TRUE WHERE id = $1;
 
+-- name: DismissAllLogs :exec
+UPDATE logs SET is_dismissed = TRUE
+WHERE id IN (
+    SELECT l.id FROM logs l
+    LEFT JOIN sources s ON l.source_id = s.id
+    LEFT JOIN targets t ON l.target_id = t.id
+    WHERE (s.user_id = $1 OR t.user_id = $1)
+    AND l.is_dismissed = FALSE
+);
+
 -- name: GetSyncErrorsCountLast30Days :one
 SELECT COUNT(*)
 FROM

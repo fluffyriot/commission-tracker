@@ -178,7 +178,14 @@
 </div>
 
 <div class="card" id="recent-logs">
-  <div class="card-header">Recent Sync Errors</div>
+  <div class="card-header card-header-row">
+    Recent Sync Errors
+    <form method="POST" action="/logs/dismiss-all" class="m-0">
+      <button type="submit" class="btn btn-ghost btn-icon" title="Clear all errors">
+        <i data-lucide="trash-2"></i>
+      </button>
+    </form>
+  </div>
   {{if not .recent_logs}}
   <div class="text-center p-8 text-muted">
     <i data-lucide="check-circle" class="icon-xl opacity-50 text-success"></i>
