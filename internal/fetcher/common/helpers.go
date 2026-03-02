@@ -23,9 +23,10 @@ func StripHTMLToText(input string) string {
 
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
-		if n.Type == html.TextNode {
+		switch n.Type {
+		case html.TextNode:
 			b.WriteString(n.Data)
-		} else if n.Type == html.ElementNode {
+		case html.ElementNode:
 			switch n.Data {
 			case "p", "div", "br", "h1", "h2", "h3", "h4", "h5", "h6", "li":
 				if b.Len() > 0 && !strings.HasSuffix(b.String(), " ") && !strings.HasSuffix(b.String(), "\n") {
