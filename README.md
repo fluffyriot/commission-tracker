@@ -21,6 +21,7 @@
 | Instagram | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Meta App Setup |
 | Threads | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Meta App Setup & manual token refresh every 60 days |
 | TikTok | ❌ | ❌ | ✅ | ✅ | ✅ | Requires "Login with QR" |
+| Twitter | ❌ | ❌ | ✅ | ✅ | ✅ | Requires Cookie-Editor browser extension |
 | Youtube | ✅ | ❌ | ❌ | ✅ | ✅ | Requires Google API Access |
 | Bluesky | ✅ | ❌ | ❌ | ✅ | ✅ | |
 | Mastodon | ✅ | ❌ | ❌ | ✅ | ✅ | |
@@ -278,6 +279,34 @@ docker compose up -d
 
 ### TikTok Sync (Cloud/Public deployment)
 Due to TikTok limitations, to enable TikTok sync you need to deploy the app locally first, connect TikTok as a source, and then use the app to export the cookies JSON file. Then, you can import the cookies JSON file into the cloud deployment.
+
+---
+
+### Twitter Sync
+
+Twitter does not offer a free API for reading posts. RPSync accesses your account using your browser session cookies, which are exported via the **Cookie-Editor** browser extension. This is the same approach used for TikTok — no credentials are stored, only the session cookies you provide.
+
+> **Note**: Cookies expire after several months. When your sync starts failing, simply export fresh cookies and update them using the key icon on the source card.
+
+#### Steps
+
+1. **Install the Cookie-Editor extension** for your browser [here](https://cookie-editor.com/)
+
+2. **Log in to [twitter.com](https://twitter.com)** in your browser. Make sure you are fully logged in.
+
+3. **Open Cookie-Editor** by clicking its icon in the browser toolbar while on the `twitter.com` tab.
+
+4. Click **Export → Export as JSON**. The full cookie list is now copied to your clipboard.
+
+5. In RPSync, go to **Sources → Add New Source**:
+   - Select **Twitter** as the network
+   - Enter your Twitter username (without @)
+   - Paste the copied JSON into the **Cookie JSON** field
+   - Click **Add Source**
+
+#### Renewing Cookies
+
+When sync fails with a session error, export fresh cookies using the same steps above, then click the **key icon** on your Twitter source card and paste the new JSON.
 
 ---
 

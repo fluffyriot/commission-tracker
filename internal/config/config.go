@@ -5,9 +5,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fluffyriot/rpsync/internal/authhelp"
@@ -253,6 +256,30 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		return "", "", fmt.Errorf("Access Token is required for Threads")
 	}
 
+	if params.Network == "Twitter" && params.FieldLong == "" {
+		return "", "", fmt.Errorf("Cookie JSON is required for Twitter")
+	}
+
+	if params.Network == "Twitter" {
+		var rawCookies []struct {
+			Name  string `json:"name"`
+			Value string `json:"value"`
+		}
+		if err := json.Unmarshal([]byte(params.FieldLong), &rawCookies); err != nil {
+			return "", "", fmt.Errorf("Invalid cookie JSON for Twitter: %v", err)
+		}
+		hasAuthToken := false
+		for _, c := range rawCookies {
+			if c.Name == "auth_token" {
+				hasAuthToken = true
+				break
+			}
+		}
+		if !hasAuthToken {
+			return "", "", fmt.Errorf("Cookie JSON must contain an auth_token cookie")
+		}
+	}
+
 	s, err := dbQueries.CreateSource(context.Background(), database.CreateSourceParams{
 		ID:           uuid.New(),
 		CreatedAt:    time.Now(),
@@ -297,7 +324,6 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
 
 	case "DeviantArt":
-		// token=clientSecret, profileId=clientId
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field2, params.Field1, nil, params.EncryptionKey)
 
 	case "Weasyl":
@@ -308,6 +334,23 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 
 	case "Threads":
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)
+
+	case "Twitter":
+		profileID := ""
+		var rawCookies []struct {
+			Name  string `json:"name"`
+			Value string `json:"value"`
+		}
+		if jsonErr := json.Unmarshal([]byte(params.FieldLong), &rawCookies); jsonErr == nil {
+			for _, c := range rawCookies {
+				if c.Name == "twid" {
+					decoded, _ := url.QueryUnescape(c.Value)
+					profileID = strings.TrimPrefix(decoded, "u=")
+					break
+				}
+			}
+		}
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, profileID, nil, params.EncryptionKey)
 	}
 
 	if err != nil {
