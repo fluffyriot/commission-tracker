@@ -743,7 +743,7 @@
             const label1 = document.createElement('span');
             label1.className = 'source-stat-label';
             let labelParts = [];
-            if (source.EngagementSupported) labelParts.push('Engag.');
+            if (source.EngagementSupported) labelParts.push(source.ViewsSupported ? 'Engag.' : 'Engagement');
             if (source.ViewsSupported) labelParts.push('Views');
             label1.textContent = labelParts.join(' / ');
             stat1.appendChild(label1);
