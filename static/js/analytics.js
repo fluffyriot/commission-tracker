@@ -652,8 +652,8 @@ document.addEventListener("DOMContentLoaded", function () {
         Promise.all([
             fetch(getFilteredUrl('/analytics/data/site')).then(r => r.json()),
             fetch(getFilteredUrl('/analytics/data/pages')).then(r => r.json()),
-            fetch('/analytics/data/gsc/site').then(r => r.json()),
-            fetch('/analytics/data/gsc/pages').then(r => r.json())
+            fetch(getFilteredUrl('/analytics/data/gsc/site')).then(r => r.json()),
+            fetch(getFilteredUrl('/analytics/data/gsc/pages')).then(r => r.json())
         ]).then(([siteData, pagesData, gscSiteData, gscPagesData]) => {
             if (!siteData || !Array.isArray(siteData) || siteData.length === 0) {
                 emptyChartState('siteStatsChart');
