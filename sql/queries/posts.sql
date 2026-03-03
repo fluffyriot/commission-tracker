@@ -77,6 +77,7 @@ WHERE
 
 -- name: GetRecentPostsForUser :many
 SELECT
+    p.id,
     p.created_at,
     p.network_internal_id,
     p.content,

@@ -82,6 +82,7 @@
     <button class="tab-btn" data-tab="timing">Timing</button>
     <button class="tab-btn" data-tab="wordcloud">Word Cloud</button>
     <button class="tab-btn" data-tab="website">Website</button>
+    <button class="tab-btn" data-tab="tags">Tags</button>
 </div>
 
 <div id="content-tab" class="tab-content active">
@@ -269,6 +270,43 @@
                         <canvas id="gscPagesChart"></canvas>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tags-tab" class="tab-content hidden">
+    <div class="grid-dashboard">
+        <div class="card col-span-full">
+            <div class="card-header">Tag Performance (Avg Engagement)</div>
+            <div class="chart-container h-500">
+                <canvas id="tagPerformanceChart"></canvas>
+            </div>
+        </div>
+        <div class="card col-span-full">
+            <div class="card-header">Classification Overview</div>
+            <div class="chart-container">
+                <canvas id="classificationChart"></canvas>
+            </div>
+        </div>
+        <div class="card col-span-full">
+            <div class="card-header">Tag Breakdown</div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="tagAnalyticsTable">
+                    <thead>
+                        <tr>
+                            <th class="p-2 border-b border-white/10">Tag</th>
+                            <th class="p-2 border-b border-white/10">Classification</th>
+                            <th class="p-2 border-b border-white/10">Posts</th>
+                            <th class="p-2 border-b border-white/10">Avg Likes</th>
+                            <th class="p-2 border-b border-white/10">Avg Reposts</th>
+                            <th class="p-2 border-b border-white/10">Avg Views</th>
+                            <th class="p-2 border-b border-white/10">Total Likes</th>
+                            <th class="p-2 border-b border-white/10">Total Views</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>

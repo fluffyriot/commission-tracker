@@ -303,6 +303,7 @@ func (q *Queries) GetPostBySourceAndNetworkId(ctx context.Context, arg GetPostBy
 
 const getRecentPostsForUser = `-- name: GetRecentPostsForUser :many
 SELECT
+    p.id,
     p.created_at,
     p.network_internal_id,
     p.content,
@@ -334,6 +335,7 @@ LIMIT 10000
 `
 
 type GetRecentPostsForUserRow struct {
+	ID                uuid.UUID      `json:"id"`
 	CreatedAt         time.Time      `json:"created_at"`
 	NetworkInternalID string         `json:"network_internal_id"`
 	Content           sql.NullString `json:"content"`
@@ -358,6 +360,7 @@ func (q *Queries) GetRecentPostsForUser(ctx context.Context, userID uuid.UUID) (
 	for rows.Next() {
 		var i GetRecentPostsForUserRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.CreatedAt,
 			&i.NetworkInternalID,
 			&i.Content,

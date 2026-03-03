@@ -1,0 +1,533 @@
+{{ template "header.html" . }}
+
+<div class="flex justify-between items-center mb-4">
+    <div>
+        <h1>Tags</h1>
+    </div>
+</div>
+
+<div class="tabs mb-6">
+    <button class="tab-btn active" data-tab="manage-tags">Tags</button>
+    <button class="tab-btn" data-tab="classifications">Classifications</button>
+</div>
+
+<div id="manage-tags-tab" class="tab-content active">
+    <div class="grid-list-sidebar">
+        <div>
+            <div class="card">
+                <div class="card-header" id="tagFormHeader">Add Tag</div>
+                <form id="addTagForm" onsubmit="handleTagFormSubmit(event)">
+                    <input type="hidden" id="tag_edit_id" value="">
+                    <div class="form-group mb-sm">
+                        <label for="tag_name" class="form-label-bold">Name</label>
+                        <input type="text" name="name" id="tag_name" class="form-select w-full" required
+                            placeholder="e.g., Character A, Landscape..." autocapitalize="off" maxlength="40">
+                    </div>
+
+                    <div class="form-group mb-md">
+                        <label for="tag_classification_id" class="form-label-bold">Classification (optional)</label>
+                        <select name="classification_id" id="tag_classification_id" class="form-select w-full">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="tagFormSubmitBtn" class="btn btn-primary w-full">
+                        <i data-lucide="plus"></i> Add Tag
+                    </button>
+                    <button type="button" id="tagFormCancelBtn" class="btn btn-secondary w-full mt-2 hidden" onclick="cancelEditTag()">
+                        Cancel
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header">Tags</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Tags can be assigned to individual posts for filtering and analytics.
+                    </p>
+
+                    <div class="exclusion-controls">
+                        <div class="exclusion-search-container">
+                            <input type="text" id="tagSearch" class="form-select" placeholder="Search tags..."
+                                autocapitalize="off">
+                        </div>
+                    </div>
+
+                    <div id="tags-list">
+                        <p class="text-muted exclusion-list-empty text-md">Loading tags...</p>
+                    </div>
+
+                    <div id="tag-pagination-controls" class="pagination-controls">
+                        <button id="tagPrevBtn" class="btn btn-secondary btn-icon" onclick="changeTagPage(-1)" disabled
+                            title="Previous Page">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                        <span id="tagPageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of 1</span>
+                        <button id="tagNextBtn" class="btn btn-secondary btn-icon" onclick="changeTagPage(1)" disabled
+                            title="Next Page">
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="classifications-tab" class="tab-content hidden">
+    <div class="grid-list-sidebar">
+        <div>
+            <div class="card">
+                <div class="card-header">Add Classification</div>
+                <form id="addClassificationForm" onsubmit="handleAddClassification(event)">
+                    <div class="form-group mb-md">
+                        <label for="classification_name" class="form-label-bold">Name</label>
+                        <input type="text" name="name" id="classification_name" class="form-select w-full" required
+                            placeholder="e.g., Characters, Series, Themes..." autocapitalize="off" maxlength="40">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full">
+                        <i data-lucide="plus"></i> Add Classification
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header">Classifications</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Classifications are optional groups for organizing tags (e.g., "Characters", "Series").
+                        Deleting a classification will not delete its tags.
+                    </p>
+
+                    <div class="exclusion-controls">
+                        <div class="exclusion-search-container">
+                            <input type="text" id="classificationSearch" class="form-select"
+                                placeholder="Search classifications..." autocapitalize="off">
+                        </div>
+                    </div>
+
+                    <div id="classifications-list">
+                        <p class="text-muted exclusion-list-empty text-md">Loading classifications...</p>
+                    </div>
+
+                    <div id="classification-pagination-controls" class="pagination-controls">
+                        <button id="classificationPrevBtn" class="btn btn-secondary btn-icon"
+                            onclick="changeClassificationPage(-1)" disabled title="Previous Page">
+                            <i data-lucide="chevron-left"></i>
+                        </button>
+                        <span id="classificationPageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of
+                            1</span>
+                        <button id="classificationNextBtn" class="btn btn-secondary btn-icon"
+                            onclick="changeClassificationPage(1)" disabled title="Next Page">
+                            <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ template "footer.html" . }}
+
+<script>
+    let allTags = [];
+    let filteredTags = [];
+    let currentTagPage = 1;
+
+    let allClassifications = [];
+    let filteredClassifications = [];
+    let currentClassificationPage = 1;
+
+    const tagsPerPage = 10;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initTabManagement('manage-tags');
+        loadClassifications();
+        loadTags();
+
+        document.getElementById('tagSearch').addEventListener('input', applyTagFilters);
+        document.getElementById('classificationSearch').addEventListener('input', applyClassificationFilters);
+    });
+
+    async function loadClassifications() {
+        try {
+            const response = await fetch('/api/tags/classifications');
+            if (!response.ok) throw new Error('Failed to load classifications');
+            allClassifications = await response.json();
+            applyClassificationFilters();
+            populateClassificationDropdown();
+        } catch (error) {
+            console.error('Error loading classifications:', error);
+            document.getElementById('classifications-list').innerHTML =
+                '<p class="exclusion-list-error">Error loading classifications</p>';
+        }
+    }
+
+    function populateClassificationDropdown() {
+        const select = document.getElementById('tag_classification_id');
+        select.innerHTML = '<option value="">None</option>';
+        allClassifications.forEach(cl => {
+            const option = document.createElement('option');
+            option.value = cl.id;
+            option.textContent = cl.name;
+            select.appendChild(option);
+        });
+    }
+
+    function applyClassificationFilters() {
+        const query = document.getElementById('classificationSearch').value.toLowerCase();
+        if (query) {
+            filteredClassifications = allClassifications.filter(cl =>
+                cl.name.toLowerCase().includes(query)
+            );
+        } else {
+            filteredClassifications = [...allClassifications];
+        }
+        currentClassificationPage = 1;
+        renderClassifications();
+    }
+
+    function renderClassifications() {
+        const container = document.getElementById('classifications-list');
+        const paginationContainer = document.getElementById('classification-pagination-controls');
+
+        if (filteredClassifications.length === 0) {
+            container.innerHTML = '<p class="text-muted exclusion-list-empty">No classifications found</p>';
+            paginationContainer.style.display = 'none';
+            return;
+        }
+
+        const startIndex = (currentClassificationPage - 1) * tagsPerPage;
+        const endIndex = startIndex + tagsPerPage;
+        const pageItems = filteredClassifications.slice(startIndex, endIndex);
+
+        const fragment = document.createDocumentFragment();
+        pageItems.forEach(cl => {
+            const card = document.createElement('div');
+            card.className = 'card exclusion-item';
+
+            const infoDiv = document.createElement('div');
+            const strong = document.createElement('strong');
+            strong.textContent = cl.name;
+            infoDiv.appendChild(strong);
+
+            const tagCount = allTags.filter(t => t.classification_id === cl.id).length;
+            if (tagCount > 0) {
+                infoDiv.appendChild(document.createElement('br'));
+                const span = document.createElement('span');
+                span.className = 'text-muted text-xs';
+                span.textContent = `${tagCount} tag${tagCount !== 1 ? 's' : ''}`;
+                infoDiv.appendChild(span);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'flex gap-2';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn btn-secondary btn-icon';
+            editBtn.title = 'Rename';
+            editBtn.addEventListener('click', () => renameClassification(cl.id, cl.name));
+            const editIcon = document.createElement('i');
+            editIcon.setAttribute('data-lucide', 'pencil');
+            editBtn.appendChild(editIcon);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger btn-icon';
+            deleteBtn.title = 'Delete';
+            deleteBtn.addEventListener('click', () => deleteClassification(cl.id));
+            const deleteIcon = document.createElement('i');
+            deleteIcon.setAttribute('data-lucide', 'trash-2');
+            deleteBtn.appendChild(deleteIcon);
+
+            actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
+
+            card.appendChild(infoDiv);
+            card.appendChild(actions);
+            fragment.appendChild(card);
+        });
+        container.replaceChildren(fragment);
+        renderClassificationPagination();
+        lucide.createIcons();
+    }
+
+    function renderClassificationPagination() {
+        const paginationContainer = document.getElementById('classification-pagination-controls');
+        const totalPages = Math.ceil(filteredClassifications.length / tagsPerPage);
+
+        if (totalPages <= 1) {
+            paginationContainer.style.display = 'none';
+            return;
+        }
+        paginationContainer.style.display = 'flex';
+        document.getElementById('classificationPageInfo').textContent = `Page ${currentClassificationPage} of ${totalPages}`;
+        document.getElementById('classificationPrevBtn').disabled = currentClassificationPage === 1;
+        document.getElementById('classificationNextBtn').disabled = currentClassificationPage === totalPages;
+    }
+
+    function changeClassificationPage(delta) {
+        currentClassificationPage += delta;
+        renderClassifications();
+    }
+
+    async function handleAddClassification(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+
+        try {
+            const response = await fetch('/api/tags/classifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: formData.get('name') })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to add classification');
+            }
+
+            event.target.reset();
+            await loadClassifications();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function renameClassification(id, currentName) {
+        const newName = prompt('Rename classification (max 40 chars):', currentName);
+        if (!newName || newName === currentName) return;
+        if (newName.length > 40) { alert('Classification name must be 40 characters or less'); return; }
+
+        try {
+            const response = await fetch(`/api/tags/classifications/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to rename classification');
+            }
+
+            await loadClassifications();
+            await loadTags();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function deleteClassification(id) {
+        if (!confirm('Are you sure you want to delete this classification? Tags within it will become unclassified (not deleted).')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/tags/classifications/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to delete classification');
+            }
+
+            await loadClassifications();
+            await loadTags();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function loadTags() {
+        try {
+            const response = await fetch('/api/tags');
+            if (!response.ok) throw new Error('Failed to load tags');
+            allTags = await response.json();
+            applyTagFilters();
+        } catch (error) {
+            console.error('Error loading tags:', error);
+            document.getElementById('tags-list').innerHTML =
+                '<p class="exclusion-list-error">Error loading tags</p>';
+        }
+    }
+
+    function applyTagFilters() {
+        const query = document.getElementById('tagSearch').value.toLowerCase();
+        if (query) {
+            filteredTags = allTags.filter(t =>
+                t.name.toLowerCase().includes(query) ||
+                (t.classification_name && t.classification_name.toLowerCase().includes(query))
+            );
+        } else {
+            filteredTags = [...allTags];
+        }
+        currentTagPage = 1;
+        renderTags();
+    }
+
+    function renderTags() {
+        const container = document.getElementById('tags-list');
+        const paginationContainer = document.getElementById('tag-pagination-controls');
+
+        if (filteredTags.length === 0) {
+            container.innerHTML = '<p class="text-muted exclusion-list-empty">No tags found</p>';
+            paginationContainer.style.display = 'none';
+            return;
+        }
+
+        const startIndex = (currentTagPage - 1) * tagsPerPage;
+        const endIndex = startIndex + tagsPerPage;
+        const pageItems = filteredTags.slice(startIndex, endIndex);
+
+        const fragment = document.createDocumentFragment();
+        pageItems.forEach(t => {
+            const card = document.createElement('div');
+            card.className = 'card exclusion-item';
+
+            const infoDiv = document.createElement('div');
+            const strong = document.createElement('strong');
+            strong.textContent = t.name;
+            infoDiv.appendChild(strong);
+
+            if (t.classification_name) {
+                infoDiv.appendChild(document.createTextNode(' '));
+                const badge = document.createElement('span');
+                badge.className = 'badge badge-neutral';
+                badge.textContent = t.classification_name;
+                infoDiv.appendChild(badge);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'flex gap-2';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn btn-secondary btn-icon';
+            editBtn.title = 'Edit';
+            editBtn.addEventListener('click', () => editTag(t));
+            const editIcon = document.createElement('i');
+            editIcon.setAttribute('data-lucide', 'pencil');
+            editBtn.appendChild(editIcon);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger btn-icon';
+            deleteBtn.title = 'Delete';
+            deleteBtn.addEventListener('click', () => deleteTag(t.id));
+            const deleteIcon = document.createElement('i');
+            deleteIcon.setAttribute('data-lucide', 'trash-2');
+            deleteBtn.appendChild(deleteIcon);
+
+            actions.appendChild(editBtn);
+            actions.appendChild(deleteBtn);
+
+            card.appendChild(infoDiv);
+            card.appendChild(actions);
+            fragment.appendChild(card);
+        });
+        container.replaceChildren(fragment);
+        renderTagPagination();
+        lucide.createIcons();
+    }
+
+    function renderTagPagination() {
+        const paginationContainer = document.getElementById('tag-pagination-controls');
+        const totalPages = Math.ceil(filteredTags.length / tagsPerPage);
+
+        if (totalPages <= 1) {
+            paginationContainer.style.display = 'none';
+            return;
+        }
+        paginationContainer.style.display = 'flex';
+        document.getElementById('tagPageInfo').textContent = `Page ${currentTagPage} of ${totalPages}`;
+        document.getElementById('tagPrevBtn').disabled = currentTagPage === 1;
+        document.getElementById('tagNextBtn').disabled = currentTagPage === totalPages;
+    }
+
+    function changeTagPage(delta) {
+        currentTagPage += delta;
+        renderTags();
+    }
+
+    function editTag(tag) {
+        document.getElementById('tag_edit_id').value = tag.id;
+        document.getElementById('tag_name').value = tag.name;
+        document.getElementById('tag_classification_id').value = tag.classification_id || '';
+        document.getElementById('tagFormHeader').textContent = 'Edit Tag';
+        document.getElementById('tagFormSubmitBtn').innerHTML = '<i data-lucide="check"></i> Save';
+        document.getElementById('tagFormCancelBtn').classList.remove('hidden');
+        document.getElementById('tag_name').focus();
+        lucide.createIcons();
+    }
+
+    function cancelEditTag() {
+        document.getElementById('tag_edit_id').value = '';
+        document.getElementById('addTagForm').reset();
+        document.getElementById('tagFormHeader').textContent = 'Add Tag';
+        document.getElementById('tagFormSubmitBtn').innerHTML = '<i data-lucide="plus"></i> Add Tag';
+        document.getElementById('tagFormCancelBtn').classList.add('hidden');
+        lucide.createIcons();
+    }
+
+    async function handleTagFormSubmit(event) {
+        event.preventDefault();
+        const editId = document.getElementById('tag_edit_id').value;
+        const name = document.getElementById('tag_name').value.trim();
+        const classificationId = document.getElementById('tag_classification_id').value;
+
+        if (!name) return;
+        if (name.length > 40) { alert('Tag name must be 40 characters or less'); return; }
+
+        const data = { name };
+        if (classificationId) {
+            data.classification_id = classificationId;
+        }
+
+        try {
+            const url = editId ? `/api/tags/${editId}` : '/api/tags';
+            const method = editId ? 'PUT' : 'POST';
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || (editId ? 'Failed to update tag' : 'Failed to add tag'));
+            }
+
+            cancelEditTag();
+            await loadTags();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    async function deleteTag(id) {
+        if (!confirm('Are you sure you want to delete this tag? It will be removed from all posts.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/tags/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to delete tag');
+            }
+
+            await loadTags();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+</script>

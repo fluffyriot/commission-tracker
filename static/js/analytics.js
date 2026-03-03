@@ -75,6 +75,9 @@ document.addEventListener("DOMContentLoaded", function () {
             case 'website':
                 loadWebsiteStats();
                 break;
+            case 'tags':
+                loadTagAnalytics();
+                break;
         }
     }
 
@@ -1309,4 +1312,85 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         closeAllFilterDropdowns();
     });
+
+    function loadTagAnalytics() {
+        const metricLabel = isViewsMode() ? 'Avg Views' : 'Avg Likes';
+
+        fetch(getFilteredUrl('/analytics/data/tags'))
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    emptyChartState('tagPerformanceChart');
+                    const emptyTbody = document.querySelector('#tagAnalyticsTable tbody');
+                    emptyTbody.innerHTML = '';
+                    const emptyRow = document.createElement('tr');
+                    const emptyCell = document.createElement('td');
+                    emptyCell.colSpan = 8;
+                    emptyCell.className = 'p-4 text-center text-muted';
+                    emptyCell.textContent = 'No tag data available. Assign tags to posts to see analytics.';
+                    emptyRow.appendChild(emptyCell);
+                    emptyTbody.appendChild(emptyRow);
+                    return;
+                }
+
+                const metricKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const tagColors = data.map((_, i) => colors.highContrast[i % colors.highContrast.length]);
+
+                createChart('tagPerformanceChart', 'bar', {
+                    labels: data.map(d => d.tag_name),
+                    datasets: [{
+                        label: metricLabel,
+                        data: data.map(d => d[metricKey]),
+                        backgroundColor: tagColors
+                    }]
+                }, {
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } }
+                });
+
+                const tbody = document.querySelector('#tagAnalyticsTable tbody');
+                tbody.innerHTML = '';
+                const cellClass = 'p-2 border-b border-white/5';
+                data.forEach(d => {
+                    const tr = document.createElement('tr');
+                    const values = [
+                        d.tag_name, d.classification_name || '-',
+                        d.post_count, d.avg_likes, d.avg_reposts,
+                        d.avg_views, d.total_likes, d.total_views
+                    ];
+                    values.forEach(v => {
+                        const td = document.createElement('td');
+                        td.className = cellClass;
+                        td.textContent = v;
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => console.error('Error loading tag analytics:', err));
+
+        fetch(getFilteredUrl('/analytics/data/tags/classifications'))
+            .then(res => res.json())
+            .then(data => {
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    emptyChartState('classificationChart');
+                    return;
+                }
+
+                const metricKey = isViewsMode() ? 'total_views' : 'total_likes';
+                createChart('classificationChart', 'doughnut', {
+                    labels: data.map(d => d.classification_name),
+                    datasets: [{
+                        data: data.map(d => d[metricKey]),
+                        backgroundColor: colors.highContrast
+                    }]
+                }, {
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                });
+            })
+            .catch(err => console.error('Error loading classification analytics:', err));
+    }
+
 });

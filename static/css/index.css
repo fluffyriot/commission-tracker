@@ -1493,7 +1493,7 @@ a:hover {
   gap: 1rem;
 }
 
-.exclusion-item>div {
+.exclusion-item>div:first-child {
   flex: 1;
   min-width: 0;
 }
@@ -1742,6 +1742,11 @@ table.dataTable thead>tr>td.dt-orderable-desc:hover {
 
 .filter-dropdown.show {
   display: block;
+}
+
+.tag-filter-dropdown {
+  min-width: 220px;
+  max-height: 400px;
 }
 
 .filter-option {
@@ -2070,4 +2075,50 @@ tr.shown .details-control:before {
     justify-content: center;
     gap: 0.75rem;
   }
+}
+
+.tag-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  background-color: rgba(145, 103, 228, 0.2);
+  color: #c4b5fd;
+  white-space: nowrap;
+}
+
+.tag-badge-removable {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.tag-badge-removable:hover {
+  background-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.tag-filter-group {
+  margin-bottom: 0.5rem;
+}
+
+.tag-filter-group-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.child-row-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.tags-cell {
+  max-width: 200px;
 }

@@ -261,6 +261,27 @@ func main() {
 
 	authorized.GET("/posts", h.PostsHandler)
 
+	authorized.GET("/tags", h.TagsHandler)
+
+	authorized.GET("/api/tags/classifications", h.HandleGetClassifications)
+	authorized.POST("/api/tags/classifications", h.HandleCreateClassification)
+	authorized.PUT("/api/tags/classifications/:id", h.HandleUpdateClassification)
+	authorized.DELETE("/api/tags/classifications/:id", h.HandleDeleteClassification)
+
+	authorized.GET("/api/tags", h.HandleGetTags)
+	authorized.POST("/api/tags", h.HandleCreateTag)
+	authorized.PUT("/api/tags/:id", h.HandleUpdateTag)
+	authorized.DELETE("/api/tags/:id", h.HandleDeleteTag)
+
+	authorized.GET("/api/posts/:post_id/tags", h.HandleGetPostTags)
+	authorized.PUT("/api/posts/:post_id/tags", h.HandleSetPostTags)
+	authorized.POST("/api/posts/:post_id/tags", h.HandleAddTagToPost)
+	authorized.DELETE("/api/posts/:post_id/tags/:tag_id", h.HandleRemoveTagFromPost)
+	authorized.GET("/api/posts/tags/bulk", h.HandleGetAllPostTagsBulk)
+
+	authorized.GET("/analytics/data/tags", h.AnalyticsTagsHandler)
+	authorized.GET("/analytics/data/tags/classifications", h.AnalyticsClassificationsHandler)
+
 	authorized.GET("/api/sources", h.HandleGetSourcesAPI)
 	authorized.GET("/api/exclusions", h.HandleGetExclusions)
 	authorized.POST("/api/exclusions", h.HandleCreateExclusion)

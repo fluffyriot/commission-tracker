@@ -102,6 +102,13 @@ type Post struct {
 	Content           sql.NullString `json:"content"`
 }
 
+type PostTag struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	PostID    uuid.UUID `json:"post_id"`
+	TagID     uuid.UUID `json:"tag_id"`
+}
+
 type PostsOnTarget struct {
 	ID            uuid.UUID     `json:"id"`
 	FirstSyncedAt time.Time     `json:"first_synced_at"`
@@ -174,6 +181,23 @@ type TableMapping struct {
 	TargetTableName string         `json:"target_table_name"`
 	TargetTableCode sql.NullString `json:"target_table_code"`
 	TargetID        uuid.UUID      `json:"target_id"`
+}
+
+type Tag struct {
+	ID               uuid.UUID     `json:"id"`
+	CreatedAt        time.Time     `json:"created_at"`
+	UpdatedAt        time.Time     `json:"updated_at"`
+	UserID           uuid.UUID     `json:"user_id"`
+	ClassificationID uuid.NullUUID `json:"classification_id"`
+	Name             string        `json:"name"`
+}
+
+type TagClassification struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UserID    uuid.UUID `json:"user_id"`
+	Name      string    `json:"name"`
 }
 
 type Target struct {
