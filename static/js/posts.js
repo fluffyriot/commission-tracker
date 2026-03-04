@@ -20,6 +20,7 @@ async function loadPostTags() {
       });
     }
     renderTagBadgesInTable();
+    if (!$('#tagFilterOptions').length) buildInlineTagFilter();
     buildTagFilterOptions();
   } catch (e) {
     console.error('Error loading tags:', e);
@@ -42,6 +43,7 @@ function renderTagBadgesInTable() {
 
 function buildTagFilterOptions() {
   const $container = $('#tagFilterOptions');
+  if (!$container.length) return;
   $container.empty();
 
   const grouped = {};
@@ -80,6 +82,118 @@ function buildTagFilterOptions() {
     });
     $container.append($group);
   }
+}
+
+function buildInlineTagFilter() {
+  const table = $('#postsTable').DataTable();
+  const column = table.column(6);
+  const header = $(column.header());
+  const title = header.text();
+
+  const headerContent = $('<div class="filter-header-content"></div>');
+  const triggerIcon = $('<span class="filter-trigger"><i data-lucide="filter"></i></span>');
+  const titleSpan = $('<span></span>').text(title);
+
+  headerContent.append(triggerIcon).append(titleSpan);
+  header.empty().append(headerContent);
+
+  const dropdown = $('<div class="filter-dropdown tag-filter-dropdown"></div>');
+  const actionRow = $('<div class="filter-actions"></div>');
+  const selectAllBtn = $('<span class="filter-action-btn" id="tagSelectAll">Select All</span>');
+  const clearBtn = $('<span class="filter-action-btn" id="tagSelectNone">Clear</span>');
+  actionRow.append(selectAllBtn).append(clearBtn);
+  dropdown.append(actionRow);
+
+  dropdown.append($('<div id="tagFilterOptions"></div>'));
+
+  dropdown.append($('<div class="border-t pt-2 mt-2"><label class="filter-option"><input type="checkbox" id="tagFilterNoTags"> No Tags</label></div>'));
+
+  const buttonRow = $('<div class="flex justify-between pt-2 mt-2 border-t"></div>');
+  buttonRow.append($('<button class="btn btn-sm btn-ghost" id="clearTagFilter">Reset</button>'));
+  buttonRow.append($('<button class="btn btn-sm btn-primary" id="applyTagFilter">Apply</button>'));
+  dropdown.append(buttonRow);
+
+  header.find('.filter-header-content').append(dropdown);
+
+  const trigger = header.find('.filter-trigger');
+
+  trigger.on('click', function (e) {
+    e.stopPropagation();
+    $('.filter-dropdown').not(dropdown).removeClass('show');
+    $('.filter-trigger').not(trigger).removeClass('active');
+
+    if (dropdown.hasClass('show')) {
+      dropdown.removeClass('show');
+      trigger.removeClass('active');
+    } else {
+      const rect = this.getBoundingClientRect();
+      dropdown.css({
+        'position': 'fixed',
+        'top': (rect.bottom + 5) + 'px',
+        'left': rect.left + 'px',
+        'width': 'auto',
+        'min-width': '200px',
+        'max-width': '300px',
+        'z-index': 10001
+      });
+      dropdown.addClass('show');
+      trigger.addClass('active');
+    }
+  });
+
+  dropdown.on('click', function (e) {
+    e.stopPropagation();
+  });
+
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('.filter-header-content, .filter-dropdown').length) {
+      dropdown.removeClass('show');
+      trigger.removeClass('active');
+    }
+  });
+
+  $('#applyTagFilter').on('click', function () {
+    const checked = [];
+    $('#tagFilterOptions input:checked').each(function () {
+      checked.push($(this).val());
+    });
+    const allChecked = $('#tagFilterOptions input').length === checked.length;
+    filterNoTags = $('#tagFilterNoTags').is(':checked');
+
+    if (allChecked && !filterNoTags) {
+      tagFilterActive = false;
+      trigger.removeClass('has-filter');
+    } else {
+      tagFilterActive = true;
+      selectedTagIds = new Set(checked);
+      trigger.addClass('has-filter');
+    }
+    table.draw();
+    dropdown.removeClass('show');
+    trigger.removeClass('active');
+  });
+
+  $('#clearTagFilter').on('click', function () {
+    $('#tagFilterOptions input').prop('checked', true);
+    $('#tagFilterNoTags').prop('checked', false);
+    tagFilterActive = false;
+    filterNoTags = false;
+    selectedTagIds.clear();
+    trigger.removeClass('has-filter');
+    table.draw();
+    dropdown.removeClass('show');
+    trigger.removeClass('active');
+  });
+
+  $('#tagSelectAll').on('click', function () {
+    $('#tagFilterOptions input').prop('checked', true);
+  });
+
+  $('#tagSelectNone').on('click', function () {
+    $('#tagFilterOptions input').prop('checked', false);
+  });
+
+  lucide.createIcons();
 }
 
 async function addTagToPost(postId, tagId, tr) {
@@ -624,60 +738,6 @@ $(document).ready(function () {
     if (isFiltering) return;
     $('.filter-dropdown.show').removeClass('show');
     $('.filter-trigger.active').removeClass('active');
-  });
-
-  $('#tagFilterBtn').on('click', function (e) {
-    e.stopPropagation();
-    $('#tagFilterDropdown .filter-dropdown').toggleClass('show');
-  });
-
-  $('#tagFilterDropdown .filter-dropdown').on('click', function (e) {
-    e.stopPropagation();
-  });
-
-  $(document).on('click', function (e) {
-    if (!$(e.target).closest('#tagFilterDropdown').length) {
-      $('#tagFilterDropdown .filter-dropdown').removeClass('show');
-    }
-  });
-
-  $('#applyTagFilter').on('click', function () {
-    const checked = [];
-    $('#tagFilterOptions input:checked').each(function () {
-      checked.push($(this).val());
-    });
-    const allChecked = $('#tagFilterOptions input').length === checked.length;
-    filterNoTags = $('#tagFilterNoTags').is(':checked');
-
-    if (allChecked && !filterNoTags) {
-      tagFilterActive = false;
-      $('#tagFilterBtn').removeClass('btn-primary').addClass('btn-secondary');
-    } else {
-      tagFilterActive = true;
-      selectedTagIds = new Set(checked);
-      $('#tagFilterBtn').removeClass('btn-secondary').addClass('btn-primary');
-    }
-    table.draw();
-    $('#tagFilterDropdown .filter-dropdown').removeClass('show');
-  });
-
-  $('#clearTagFilter').on('click', function () {
-    $('#tagFilterOptions input').prop('checked', true);
-    $('#tagFilterNoTags').prop('checked', false);
-    tagFilterActive = false;
-    filterNoTags = false;
-    selectedTagIds.clear();
-    $('#tagFilterBtn').removeClass('btn-primary').addClass('btn-secondary');
-    table.draw();
-    $('#tagFilterDropdown .filter-dropdown').removeClass('show');
-  });
-
-  $('#tagSelectAll').on('click', function () {
-    $('#tagFilterOptions input').prop('checked', true);
-  });
-
-  $('#tagSelectNone').on('click', function () {
-    $('#tagFilterOptions input').prop('checked', false);
   });
 
   loadPostTags();

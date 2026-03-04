@@ -41,27 +41,6 @@
         </div>
       </div>
     </div>
-    <div class="dropdown" id="tagFilterDropdown">
-      <button class="btn btn-secondary btn-icon" id="tagFilterBtn" type="button">
-        <i data-lucide="tag"></i> Tags <i data-lucide="chevron-down" class="icon-chevron-down"></i>
-      </button>
-      <div class="filter-dropdown tag-filter-dropdown p-3">
-        <div class="filter-actions">
-          <span class="filter-action-btn" id="tagSelectAll">Select All</span>
-          <span class="filter-action-btn" id="tagSelectNone">Clear</span>
-        </div>
-        <div id="tagFilterOptions"></div>
-        <div class="border-t pt-2 mt-2">
-          <label class="filter-option">
-            <input type="checkbox" id="tagFilterNoTags"> No Tags
-          </label>
-        </div>
-        <div class="flex justify-between pt-2 mt-2 border-t">
-          <button class="btn btn-sm btn-ghost" id="clearTagFilter">Reset</button>
-          <button class="btn btn-sm btn-primary" id="applyTagFilter">Apply</button>
-        </div>
-      </div>
-    </div>
     <form method="GET" action="/posts">
       <button class="btn btn-secondary btn-icon" title="Refresh">
         <i data-lucide="refresh-cw"></i> Refresh
@@ -89,10 +68,10 @@
           <th></th>
           <th>Date</th>
           <th class="th-filterable">Source</th>
-          <th>Likes & Reposts</th>
+          <th>Engag.</th>
           <th>Views</th>
           <th class="th-filterable">Post Type</th>
-          <th>Tags</th>
+          <th class="th-filterable">Tags</th>
           <th>Link</th>
           <th>Content</th>
         </tr>

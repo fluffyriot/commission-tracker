@@ -127,9 +127,15 @@ a:hover {
 }
 
 .container {
-  max-width: 950px;
+  max-width: 85%;
   margin: 0 auto;
   padding: 2rem 1rem 1rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+  }
 }
 
 .hidden {
