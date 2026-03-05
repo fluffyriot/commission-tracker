@@ -40,80 +40,6 @@ func (q *Queries) GetActiveTargetsCount(ctx context.Context, userID uuid.UUID) (
 	return count, err
 }
 
-const getRestTopSources = `-- name: GetRestTopSources :many
-SELECT s.id,
-    s.user_name,
-    s.network,
-    SUM(
-        COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)
-    )::BIGINT AS total_interactions,
-    SUM(COALESCE(prh.views, 0))::BIGINT AS total_views,
-    COALESCE(
-        (
-            SELECT ss.followers_count
-            FROM sources_stats ss
-            WHERE ss.source_id = s.id
-            ORDER BY ss.date DESC
-            LIMIT 1
-        ), 0
-    )::BIGINT AS followers_count
-FROM sources s
-    LEFT JOIN posts p ON s.id = p.source_id
-    LEFT JOIN (
-        SELECT DISTINCT ON (post_id) post_id,
-            likes,
-            reposts,
-            views
-        FROM posts_reactions_history
-        ORDER BY post_id,
-            synced_at DESC
-    ) prh ON p.id = prh.post_id
-WHERE s.user_id = $1
-    AND s.is_active = TRUE
-    AND NOT s.network in ('Google Analytics', 'Google Search Console')
-GROUP BY s.id
-ORDER BY total_interactions DESC OFFSET 3
-`
-
-type GetRestTopSourcesRow struct {
-	ID                uuid.UUID `json:"id"`
-	UserName          string    `json:"user_name"`
-	Network           string    `json:"network"`
-	TotalInteractions int64     `json:"total_interactions"`
-	TotalViews        int64     `json:"total_views"`
-	FollowersCount    int64     `json:"followers_count"`
-}
-
-func (q *Queries) GetRestTopSources(ctx context.Context, userID uuid.UUID) ([]GetRestTopSourcesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getRestTopSources, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetRestTopSourcesRow
-	for rows.Next() {
-		var i GetRestTopSourcesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserName,
-			&i.Network,
-			&i.TotalInteractions,
-			&i.TotalViews,
-			&i.FollowersCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getTopSources = `-- name: GetTopSources :many
 SELECT s.id,
     s.user_name,
@@ -147,7 +73,6 @@ WHERE s.user_id = $1
     AND NOT s.network in ('Google Analytics', 'Google Search Console')
 GROUP BY s.id
 ORDER BY total_interactions DESC
-LIMIT 3
 `
 
 type GetTopSourcesRow struct {

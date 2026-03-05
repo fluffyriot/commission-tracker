@@ -113,56 +113,6 @@ func (h *Handler) AnalyticsDashboardSummaryHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
-func (h *Handler) AnalyticsTopSourcesHandler(c *gin.Context) {
-	if h.Config.DBInitErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": h.Config.DBInitErr.Error()})
-		return
-	}
-
-	user, loggedIn := h.GetAuthenticatedUser(c)
-	if !loggedIn {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	topSourcesDB, err := h.DB.GetRestTopSources(c.Request.Context(), user.ID)
-	if err != nil {
-		log.Printf("Error getting rest of top sources: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	var topSources []TopSourceViewModel
-	for _, src := range topSourcesDB {
-		caps := helpers.GetSourceByName(src.Network)
-		if caps != nil && !caps.EngagementSupported && !caps.ViewsSupported && !caps.FollowersTracked {
-			continue
-		}
-		profileURL, _ := helpers.ConvNetworkToURL(src.Network, src.UserName)
-		vm := TopSourceViewModel{
-			ID:                src.ID,
-			UserName:          src.UserName,
-			Network:           src.Network,
-			TotalInteractions: int64(src.TotalInteractions),
-			TotalViews:        int64(src.TotalViews),
-			FollowersCount:    int64(src.FollowersCount),
-			ProfileURL:        profileURL,
-		}
-		if caps != nil {
-			vm.EngagementSupported = caps.EngagementSupported
-			vm.ViewsSupported = caps.ViewsSupported
-			vm.FollowersTracked = caps.FollowersTracked
-		}
-		topSources = append(topSources, vm)
-	}
-
-	if topSources == nil {
-		topSources = []TopSourceViewModel{}
-	}
-
-	c.JSON(http.StatusOK, topSources)
-}
-
 func (h *Handler) AnalyticsHandler(c *gin.Context) {
 	user, loggedIn := h.GetAuthenticatedUser(c)
 	if !loggedIn {
