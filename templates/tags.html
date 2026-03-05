@@ -9,6 +9,7 @@
 <div class="tabs mb-6">
     <button class="tab-btn active" data-tab="manage-tags">Tags</button>
     <button class="tab-btn" data-tab="classifications">Classifications</button>
+    <button class="tab-btn" data-tab="bulk-tagging">Bulk Tagging</button>
 </div>
 
 <div id="manage-tags-tab" class="tab-content active">
@@ -127,6 +128,50 @@
                             onclick="changeClassificationPage(1)" disabled title="Next Page">
                             <i data-lucide="chevron-right"></i>
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="bulk-tagging-tab" class="tab-content hidden">
+    <div class="grid-list-sidebar">
+        <div>
+            <div class="card">
+                <div class="card-header">Download Template</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Download a CSV file with all your posts. The file includes post ID, network, URL, content
+                        preview, and a tags column. Fill in the tags column with comma-separated tag names, then upload
+                        it back.
+                    </p>
+                    <a href="/api/tags/csv" class="btn btn-primary w-full">
+                        <i data-lucide="download"></i> Download CSV Template
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header">Upload Tagged CSV</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Upload a CSV file with the tags column filled in. Tags will be created automatically if they
+                        don't exist yet. Each post can have up to 5 tags. Rows without tags will be skipped.
+                    </p>
+                    <form id="uploadTagsForm" onsubmit="handleUploadTagsCSV(event)">
+                        <div class="form-group mb-md">
+                            <input type="file" name="file" id="tags_csv_file" accept=".csv"
+                                class="form-select w-full" required>
+                        </div>
+                        <button type="submit" id="uploadTagsBtn" class="btn btn-primary w-full">
+                            <i data-lucide="upload"></i> Upload & Apply Tags
+                        </button>
+                    </form>
+                    <div id="upload-result" class="mt-4 hidden">
+                        <div id="upload-result-content"></div>
                     </div>
                 </div>
             </div>
@@ -507,6 +552,66 @@
             await loadTags();
         } catch (error) {
             alert('Error: ' + error.message);
+        }
+    }
+
+    async function handleUploadTagsCSV(event) {
+        event.preventDefault();
+        const fileInput = document.getElementById('tags_csv_file');
+        const btn = document.getElementById('uploadTagsBtn');
+        const resultDiv = document.getElementById('upload-result');
+        const resultContent = document.getElementById('upload-result-content');
+
+        if (!fileInput.files.length) return;
+
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        try {
+            const response = await fetch('/api/tags/csv', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Upload failed');
+            }
+
+            resultContent.replaceChildren();
+            const summary = document.createElement('p');
+            summary.className = 'text-success text-md';
+            const strong = document.createElement('strong');
+            strong.textContent = data.message;
+            summary.appendChild(strong);
+            resultContent.appendChild(summary);
+            if (data.errors && data.errors.length > 0) {
+                const ul = document.createElement('ul');
+                ul.className = 'text-muted text-sm mt-2';
+                data.errors.forEach(e => {
+                    const li = document.createElement('li');
+                    li.textContent = e;
+                    ul.appendChild(li);
+                });
+                resultContent.appendChild(ul);
+            }
+            resultDiv.classList.remove('hidden');
+
+            await loadTags();
+        } catch (error) {
+            resultContent.replaceChildren();
+            const errP = document.createElement('p');
+            errP.className = 'text-danger text-md';
+            errP.textContent = error.message;
+            resultContent.appendChild(errP);
+            resultDiv.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Upload & Apply Tags';
         }
     }
 

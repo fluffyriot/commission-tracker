@@ -277,6 +277,8 @@ func main() {
 	authorized.POST("/api/posts/:post_id/tags", h.HandleAddTagToPost)
 	authorized.DELETE("/api/posts/:post_id/tags/:tag_id", h.HandleRemoveTagFromPost)
 	authorized.GET("/api/posts/tags/bulk", h.HandleGetAllPostTagsBulk)
+	authorized.GET("/api/tags/csv", h.HandleDownloadTagsCSV)
+	authorized.POST("/api/tags/csv", h.HandleUploadTagsCSV)
 
 	authorized.GET("/analytics/data/tags", h.AnalyticsTagsHandler)
 	authorized.GET("/analytics/data/tags/classifications", h.AnalyticsClassificationsHandler)
