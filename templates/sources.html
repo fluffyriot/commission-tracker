@@ -130,13 +130,6 @@
                     </div>
 
                     <div class="source-actions">
-                        <form method="POST" action="/sources/sync" onsubmit="return submitWithConfirm(this);">
-                            <input type="hidden" name="source_id" value="{{.ID}}">
-                            <button type="submit" class="btn btn-secondary btn-icon" {{if not .IsActive}}disabled{{end}}
-                                title="Sync Now">
-                                <i data-lucide="cloud-sync"></i>
-                            </button>
-                        </form>
 
                         {{if eq .Network "TikTok"}}
                         <div class="dropdown">
@@ -228,6 +221,14 @@
                             <i data-lucide="hash"></i>
                         </button>
                         {{end}}
+
+                        <form method="POST" action="/sources/sync" onsubmit="return submitWithConfirm(this);">
+                            <input type="hidden" name="source_id" value="{{.ID}}">
+                            <button type="submit" class="btn btn-secondary btn-icon" {{if not .IsActive}}disabled{{end}}
+                                title="Sync Now">
+                                <i data-lucide="cloud-sync"></i>
+                            </button>
+                        </form>
 
                         <div class="dropdown">
                             <button type="button" class="btn btn-secondary btn-icon" title="Actions"
