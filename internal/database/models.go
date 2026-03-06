@@ -48,6 +48,14 @@ type AnalyticsSiteStatsOnTarget struct {
 	TargetRecordID string        `json:"target_record_id"`
 }
 
+type ApiToken struct {
+	ID         uuid.UUID    `json:"id"`
+	CreatedAt  time.Time    `json:"created_at"`
+	UserID     uuid.UUID    `json:"user_id"`
+	TokenHash  string       `json:"token_hash"`
+	LastUsedAt sql.NullTime `json:"last_used_at"`
+}
+
 type AppConfig struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`

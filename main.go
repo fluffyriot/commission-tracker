@@ -296,6 +296,16 @@ func main() {
 	authorized.POST("/api/user/ack-version", h.UpdateLastSeenVersionHandler)
 	authorized.POST("/api/user/intro-completed", h.UpdateUserIntroCompletedHandler)
 
+	authorized.GET("/api/tokens", h.HandleGetApiTokens)
+	authorized.POST("/api/tokens", h.HandleCreateApiToken)
+	authorized.DELETE("/api/tokens/:id", h.HandleDeleteApiToken)
+
+	extAPI := r.Group("/ext/v1")
+	extAPI.Use(middleware.BearerTokenMiddleware(dbQueries))
+	extAPI.GET("/followers", h.ExternalAPIFollowersHandler)
+	extAPI.GET("/stats", h.ExternalAPIStatsHandler)
+	extAPI.GET("/status", h.ExternalAPIStatusHandler)
+
 	srv := &http.Server{
 		Addr:    ":" + cfg.AppPort,
 		Handler: r,

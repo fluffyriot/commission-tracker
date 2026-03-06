@@ -12,6 +12,7 @@
     <button class="tab-btn" data-tab="syncer-control">Syncer</button>
     <button class="tab-btn" data-tab="post-exclusions">Exclusions</button>
     <button class="tab-btn" data-tab="page-redirects">Redirects</button>
+    <button class="tab-btn" data-tab="api-tokens">API</button>
 </div>
 
 <div id="user-security-tab" class="tab-content active">
@@ -345,10 +346,84 @@
     </div>
 </div>
 
+<div id="api-tokens-tab" class="tab-content hidden">
+    <div class="grid-list-sidebar">
+        <div>
+            <div class="card">
+                <div class="card-header">Generate API Token</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Create a bearer token for external API access. The token will only be shown once.
+                    </p>
+                    <button class="btn btn-primary w-full" onclick="handleCreateApiToken()">
+                        <i data-lucide="plus"></i> Generate New Token
+                    </button>
+                </div>
+            </div>
+            <div id="new-token-display" class="card hidden" style="margin-top: 1rem;">
+                <div class="card-header" style="color: var(--color-success);">New Token Created</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Copy this token now. It will not be shown again.
+                    </p>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-token-value" class="form-input" readonly
+                            style="font-family: monospace; font-size: 0.85rem; margin-bottom: 0;">
+                        <button class="btn btn-secondary" onclick="copyApiToken()" title="Copy">
+                            <i data-lucide="copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header">API Tokens</div>
+                <div>
+                    <div id="api-tokens-list">
+                        <p class="text-muted exclusion-list-empty text-md">Loading tokens...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 1rem;">
+                <div class="card-header">API Endpoints</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Use <code style="font-size: 0.85rem;">Authorization: Bearer &lt;token&gt;</code> header with these endpoints:
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div class="card exclusion-item" style="padding: 0.75rem;">
+                            <div>
+                                <strong style="font-family: monospace; font-size: 0.85rem;">GET /ext/v1/followers</strong>
+                                <br><span class="text-muted text-xs">Current followers count and 7-day delta</span>
+                            </div>
+                        </div>
+                        <div class="card exclusion-item" style="padding: 0.75rem;">
+                            <div>
+                                <strong style="font-family: monospace; font-size: 0.85rem;">GET /ext/v1/stats</strong>
+                                <br><span class="text-muted text-xs">Likes, reposts, engagement, views with 7-day deltas</span>
+                            </div>
+                        </div>
+                        <div class="card exclusion-item" style="padding: 0.75rem;">
+                            <div>
+                                <strong style="font-family: monospace; font-size: 0.85rem;">GET /ext/v1/status</strong>
+                                <br><span class="text-muted text-xs">Source and target health status counts</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         initTabManagement('user-security');
         loadSources();
+        loadApiTokens();
     });
 </script>
 
@@ -1029,6 +1104,107 @@
             }
         } catch (error) {
             alert("Request failed: " + error.message);
+        }
+    }
+</script>
+
+<script>
+    async function loadApiTokens() {
+        try {
+            const response = await fetch('/api/tokens');
+            if (!response.ok) throw new Error('Failed to load tokens');
+            const tokens = await response.json();
+            renderApiTokens(tokens);
+        } catch (error) {
+            console.error('Error loading API tokens:', error);
+            document.getElementById('api-tokens-list').innerHTML = '<p class="exclusion-list-error">Error loading tokens</p>';
+        }
+    }
+
+    function renderApiTokens(tokens) {
+        const container = document.getElementById('api-tokens-list');
+
+        if (!tokens || tokens.length === 0) {
+            container.innerHTML = '<p class="text-muted exclusion-list-empty text-md">No API tokens created yet</p>';
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        tokens.forEach(token => {
+            const card = document.createElement('div');
+            card.className = 'card exclusion-item';
+
+            const infoDiv = document.createElement('div');
+            const strong = document.createElement('strong');
+            strong.className = 'text-sm';
+            strong.textContent = 'Token •••' + token.id.slice(-6);
+            infoDiv.appendChild(strong);
+            infoDiv.appendChild(document.createElement('br'));
+            const span = document.createElement('span');
+            span.className = 'text-muted text-xs';
+            const created = new Date(token.created_at).toLocaleDateString();
+            const lastUsed = token.last_used_at ? new Date(token.last_used_at).toLocaleDateString() : 'Never';
+            span.textContent = `Created: ${created} · Last used: ${lastUsed}`;
+            infoDiv.appendChild(span);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-danger btn-icon';
+            btn.title = 'Revoke';
+            btn.addEventListener('click', () => deleteApiToken(token.id));
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'trash-2');
+            btn.appendChild(icon);
+
+            card.appendChild(infoDiv);
+            card.appendChild(btn);
+            fragment.appendChild(card);
+        });
+        container.replaceChildren(fragment);
+        lucide.createIcons();
+    }
+
+    async function handleCreateApiToken() {
+        try {
+            const response = await fetch('/api/tokens', { method: 'POST' });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to create token');
+            }
+
+            const data = await response.json();
+            const display = document.getElementById('new-token-display');
+            document.getElementById('new-token-value').value = data.token;
+            display.classList.remove('hidden');
+
+            await loadApiTokens();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    function copyApiToken() {
+        const input = document.getElementById('new-token-value');
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert('Token copied to clipboard');
+        }).catch(() => {
+            input.select();
+            document.execCommand('copy');
+            alert('Token copied to clipboard');
+        });
+    }
+
+    async function deleteApiToken(id) {
+        if (!confirm('Revoke this API token? Any integrations using it will stop working.')) return;
+
+        try {
+            const response = await fetch(`/api/tokens/${id}`, { method: 'DELETE' });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to delete token');
+            }
+            await loadApiTokens();
+        } catch (error) {
+            alert('Error: ' + error.message);
         }
     }
 </script>
