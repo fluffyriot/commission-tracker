@@ -1,6 +1,6 @@
 module github.com/fluffyriot/rpsync
 
-go 1.25.7
+go 1.26.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.11.0
