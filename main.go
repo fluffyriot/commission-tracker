@@ -302,8 +302,7 @@ func main() {
 
 	extAPI := r.Group("/ext/v1")
 	extAPI.Use(middleware.BearerTokenMiddleware(dbQueries))
-	extAPI.GET("/followers", h.ExternalAPIFollowersHandler)
-	extAPI.GET("/stats", h.ExternalAPIStatsHandler)
+	extAPI.POST("/stats", h.ExternalAPIStatsHandler)
 	extAPI.GET("/status", h.ExternalAPIStatusHandler)
 
 	srv := &http.Server{

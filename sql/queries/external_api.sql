@@ -63,13 +63,27 @@ FROM (
 -- name: GetSourceStatusCounts :one
 SELECT
     COUNT(*) FILTER (WHERE is_active = TRUE AND sync_status NOT IN ('Failed', 'Deactivated'))::BIGINT AS healthy_count,
-    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count
+    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count,
+    COUNT(*) FILTER (WHERE is_active = FALSE)::BIGINT AS disabled_count
 FROM sources
 WHERE user_id = $1;
 
 -- name: GetTargetStatusCounts :one
 SELECT
     COUNT(*) FILTER (WHERE is_active = TRUE AND sync_status NOT IN ('Failed', 'Deactivated'))::BIGINT AS healthy_count,
-    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count
+    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count,
+    COUNT(*) FILTER (WHERE is_active = FALSE)::BIGINT AS disabled_count
 FROM targets
 WHERE user_id = $1;
+
+-- name: GetCurrentWebsiteStats :one
+SELECT
+    COALESCE((SELECT SUM(views) FROM analytics_page_stats aps JOIN sources s ON aps.source_id = s.id WHERE s.user_id = $1 AND aps.analytics_type = 'ga'), 0)::BIGINT AS total_page_views,
+    COALESCE((SELECT SUM(visitors) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'ga'), 0)::BIGINT AS total_visitors,
+    COALESCE((SELECT SUM(impressions) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'gsc'), 0)::BIGINT AS total_impressions;
+
+-- name: GetWebsiteStatsAtDate :one
+SELECT
+    COALESCE((SELECT SUM(views) FROM analytics_page_stats aps JOIN sources s ON aps.source_id = s.id WHERE s.user_id = $1 AND aps.analytics_type = 'ga' AND aps.date <= $2), 0)::BIGINT AS total_page_views,
+    COALESCE((SELECT SUM(visitors) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'ga' AND ass.date <= $2), 0)::BIGINT AS total_visitors,
+    COALESCE((SELECT SUM(impressions) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'gsc' AND ass.date <= $2), 0)::BIGINT AS total_impressions;

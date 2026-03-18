@@ -64,43 +64,67 @@ func (q *Queries) GetCurrentTotalStats(ctx context.Context, userID uuid.UUID) (G
 	return i, err
 }
 
+const getCurrentWebsiteStats = `-- name: GetCurrentWebsiteStats :one
+SELECT
+    COALESCE((SELECT SUM(views) FROM analytics_page_stats aps JOIN sources s ON aps.source_id = s.id WHERE s.user_id = $1 AND aps.analytics_type = 'ga'), 0)::BIGINT AS total_page_views,
+    COALESCE((SELECT SUM(visitors) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'ga'), 0)::BIGINT AS total_visitors,
+    COALESCE((SELECT SUM(impressions) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'gsc'), 0)::BIGINT AS total_impressions
+`
+
+type GetCurrentWebsiteStatsRow struct {
+	TotalPageViews   int64 `json:"total_page_views"`
+	TotalVisitors    int64 `json:"total_visitors"`
+	TotalImpressions int64 `json:"total_impressions"`
+}
+
+func (q *Queries) GetCurrentWebsiteStats(ctx context.Context, userID uuid.UUID) (GetCurrentWebsiteStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getCurrentWebsiteStats, userID)
+	var i GetCurrentWebsiteStatsRow
+	err := row.Scan(&i.TotalPageViews, &i.TotalVisitors, &i.TotalImpressions)
+	return i, err
+}
+
 const getSourceStatusCounts = `-- name: GetSourceStatusCounts :one
 SELECT
     COUNT(*) FILTER (WHERE is_active = TRUE AND sync_status NOT IN ('Failed', 'Deactivated'))::BIGINT AS healthy_count,
-    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count
+    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count,
+    COUNT(*) FILTER (WHERE is_active = FALSE)::BIGINT AS disabled_count
 FROM sources
 WHERE user_id = $1
 `
 
 type GetSourceStatusCountsRow struct {
-	HealthyCount int64 `json:"healthy_count"`
-	EnabledCount int64 `json:"enabled_count"`
+	HealthyCount  int64 `json:"healthy_count"`
+	EnabledCount  int64 `json:"enabled_count"`
+	DisabledCount int64 `json:"disabled_count"`
 }
 
 func (q *Queries) GetSourceStatusCounts(ctx context.Context, userID uuid.UUID) (GetSourceStatusCountsRow, error) {
 	row := q.db.QueryRowContext(ctx, getSourceStatusCounts, userID)
 	var i GetSourceStatusCountsRow
-	err := row.Scan(&i.HealthyCount, &i.EnabledCount)
+	err := row.Scan(&i.HealthyCount, &i.EnabledCount, &i.DisabledCount)
 	return i, err
 }
 
 const getTargetStatusCounts = `-- name: GetTargetStatusCounts :one
 SELECT
     COUNT(*) FILTER (WHERE is_active = TRUE AND sync_status NOT IN ('Failed', 'Deactivated'))::BIGINT AS healthy_count,
-    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count
+    COUNT(*) FILTER (WHERE is_active = TRUE)::BIGINT AS enabled_count,
+    COUNT(*) FILTER (WHERE is_active = FALSE)::BIGINT AS disabled_count
 FROM targets
 WHERE user_id = $1
 `
 
 type GetTargetStatusCountsRow struct {
-	HealthyCount int64 `json:"healthy_count"`
-	EnabledCount int64 `json:"enabled_count"`
+	HealthyCount  int64 `json:"healthy_count"`
+	EnabledCount  int64 `json:"enabled_count"`
+	DisabledCount int64 `json:"disabled_count"`
 }
 
 func (q *Queries) GetTargetStatusCounts(ctx context.Context, userID uuid.UUID) (GetTargetStatusCountsRow, error) {
 	row := q.db.QueryRowContext(ctx, getTargetStatusCounts, userID)
 	var i GetTargetStatusCountsRow
-	err := row.Scan(&i.HealthyCount, &i.EnabledCount)
+	err := row.Scan(&i.HealthyCount, &i.EnabledCount, &i.DisabledCount)
 	return i, err
 }
 
@@ -165,5 +189,30 @@ func (q *Queries) GetTotalStatsAtDate(ctx context.Context, arg GetTotalStatsAtDa
 	row := q.db.QueryRowContext(ctx, getTotalStatsAtDate, arg.UserID, arg.SyncedAt)
 	var i GetTotalStatsAtDateRow
 	err := row.Scan(&i.TotalLikes, &i.TotalReposts, &i.TotalViews)
+	return i, err
+}
+
+const getWebsiteStatsAtDate = `-- name: GetWebsiteStatsAtDate :one
+SELECT
+    COALESCE((SELECT SUM(views) FROM analytics_page_stats aps JOIN sources s ON aps.source_id = s.id WHERE s.user_id = $1 AND aps.analytics_type = 'ga' AND aps.date <= $2), 0)::BIGINT AS total_page_views,
+    COALESCE((SELECT SUM(visitors) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'ga' AND ass.date <= $2), 0)::BIGINT AS total_visitors,
+    COALESCE((SELECT SUM(impressions) FROM analytics_site_stats ass JOIN sources s ON ass.source_id = s.id WHERE s.user_id = $1 AND ass.analytics_type = 'gsc' AND ass.date <= $2), 0)::BIGINT AS total_impressions
+`
+
+type GetWebsiteStatsAtDateParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Date   time.Time `json:"date"`
+}
+
+type GetWebsiteStatsAtDateRow struct {
+	TotalPageViews   int64 `json:"total_page_views"`
+	TotalVisitors    int64 `json:"total_visitors"`
+	TotalImpressions int64 `json:"total_impressions"`
+}
+
+func (q *Queries) GetWebsiteStatsAtDate(ctx context.Context, arg GetWebsiteStatsAtDateParams) (GetWebsiteStatsAtDateRow, error) {
+	row := q.db.QueryRowContext(ctx, getWebsiteStatsAtDate, arg.UserID, arg.Date)
+	var i GetWebsiteStatsAtDateRow
+	err := row.Scan(&i.TotalPageViews, &i.TotalVisitors, &i.TotalImpressions)
 	return i, err
 }

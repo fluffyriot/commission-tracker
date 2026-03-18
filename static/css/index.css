@@ -2128,3 +2128,26 @@ tr.shown .details-control:before {
 .tags-cell {
   max-width: 200px;
 }
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.fw-500 {
+  font-weight: 500;
+}
+
+.font-mono-sm {
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.btn-2fa-enabled {
+  opacity: 1;
+  cursor: default;
+  border-color: var(--color-success);
+}
+
+.card-header-success {
+  color: var(--color-success);
+}
