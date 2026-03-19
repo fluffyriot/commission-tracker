@@ -82,7 +82,7 @@ func (h *Handler) ExternalAPIStatsHandler(c *gin.Context) {
 	if compareDate != nil {
 		previousStats, err := h.DB.GetTotalStatsAtDate(ctx, database.GetTotalStatsAtDateParams{
 			UserID:   userID,
-			SyncedAt: *compareDate,
+			SyncedAt: compareDate.Add(24*time.Hour - time.Nanosecond),
 		})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get historical stats"})
