@@ -247,31 +247,35 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *common.Client, uid uuid.UU
 	}
 
 	var followersCount *int
+	var followingCount *int
 	err = chromedp.Run(ctx,
-		chromedp.Navigate("https://www.tiktok.com/tiktokstudio/analytics/followers"),
+		chromedp.Navigate(fmt.Sprintf("https://www.tiktok.com/@%s", username)),
 		chromedp.Sleep(3*time.Second),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var followerText string
 			err := chromedp.Evaluate(`
 				(function() {
-					const cards = document.querySelectorAll('div[data-tt="components_AnalyticsCard_CardWrapper"]');
-					for (const card of cards) {
-						const text = card.innerText;
-						if (text.includes('Total followers')) {
-							const valueSpan = card.querySelector('span.absolute-value');
-							if (valueSpan) {
-								return valueSpan.innerText;
-							}
-						}
-					}
-					return '';
+					const el = document.querySelector('strong[data-e2e="followers-count"]');
+					return el ? el.innerText : '';
 				})()
 			`, &followerText).Do(ctx)
-
 			if err == nil && followerText != "" {
 				count := parseCount(followerText)
 				followersCount = &count
 			}
+
+			var followingText string
+			err = chromedp.Evaluate(`
+				(function() {
+					const el = document.querySelector('strong[data-e2e="following-count"]');
+					return el ? el.innerText : '';
+				})()
+			`, &followingText).Do(ctx)
+			if err == nil && followingText != "" {
+				count := parseCount(followingText)
+				followingCount = &count
+			}
+
 			return nil
 		}),
 	)
@@ -285,6 +289,7 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *common.Client, uid uuid.UU
 
 	if err := common.UpdateSourceStats(context.Background(), dbQueries, sourceId, func(s *common.ProfileStats) {
 		s.FollowersCount = followersCount
+		s.FollowingCount = followingCount
 	}); err != nil {
 		log.Printf("TikTok: Failed to update stats for source %s: %v", sourceId, err)
 	}
