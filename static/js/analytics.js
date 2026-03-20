@@ -1321,6 +1321,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) {
                     emptyChartState('tagPerformanceChart');
+                    emptyChartState('tagPostCountChart');
                     const emptyTbody = document.querySelector('#tagAnalyticsTable tbody');
                     emptyTbody.innerHTML = '';
                     const emptyRow = document.createElement('tr');
@@ -1354,7 +1355,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 data.forEach(d => {
                     const tr = document.createElement('tr');
                     const values = [
-                        d.tag_name, d.classification_name || '-',
+                        d.tag_name, (d.classification_name && d.classification_name.Valid ? d.classification_name.String : '-'),
                         d.post_count, d.avg_likes, d.avg_reposts,
                         d.avg_views, d.total_likes, d.total_views
                     ];
@@ -1366,6 +1367,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                     tbody.appendChild(tr);
                 });
+
+                createChart('tagPostCountChart', 'doughnut', {
+                    labels: data.map(d => d.tag_name),
+                    datasets: [{
+                        data: data.map(d => d.post_count),
+                        backgroundColor: tagColors
+                    }]
+                }, {
+                    plugins: { legend: { display: false } }
+                });
             })
             .catch(err => console.error('Error loading tag analytics:', err));
 
@@ -1374,20 +1385,34 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(data => {
                 if (!data || !Array.isArray(data) || data.length === 0) {
                     emptyChartState('classificationChart');
+                    emptyChartState('classificationPostCountChart');
                     return;
                 }
 
-                const metricKey = isViewsMode() ? 'total_views' : 'total_likes';
-                createChart('classificationChart', 'doughnut', {
+                const classMetricKey = isViewsMode() ? 'avg_views' : 'avg_likes';
+                const classMetricLabel = isViewsMode() ? 'Avg Views' : 'Avg Likes';
+                const classColors = data.map((_, i) => colors.highContrast[i % colors.highContrast.length]);
+
+                createChart('classificationChart', 'bar', {
                     labels: data.map(d => d.classification_name),
                     datasets: [{
-                        data: data.map(d => d[metricKey]),
-                        backgroundColor: colors.highContrast
+                        label: classMetricLabel,
+                        data: data.map(d => d[classMetricKey]),
+                        backgroundColor: classColors
                     }]
                 }, {
-                    plugins: {
-                        legend: { position: 'right' }
-                    }
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } }
+                });
+
+                createChart('classificationPostCountChart', 'doughnut', {
+                    labels: data.map(d => d.classification_name),
+                    datasets: [{
+                        data: data.map(d => d.post_count),
+                        backgroundColor: classColors
+                    }]
+                }, {
+                    plugins: { legend: { position: 'right' } }
                 });
             })
             .catch(err => console.error('Error loading classification analytics:', err));
