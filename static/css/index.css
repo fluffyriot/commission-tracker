@@ -309,8 +309,8 @@ a:hover {
   height: 400px !important;
 }
 
-.h-500 {
-  height: 500px !important;
+.h-600 {
+  height: 600px !important;
 }
 
 .h-600 {
@@ -1913,7 +1913,7 @@ tr.shown .details-control:before {
 
 .grid-dashboard {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
   gap: 1.5rem;
 }
 
@@ -1963,7 +1963,7 @@ tr.shown .details-control:before {
 .chart-container {
   position: relative;
   width: 100%;
-  height: 400px;
+  height: 500px;
 }
 
 .chart-empty-state {
