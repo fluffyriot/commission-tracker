@@ -58,6 +58,7 @@ WHERE s.user_id = @user_id
     AND (sqlc.narg('start_date')::date IS NULL OR p.created_at >= sqlc.narg('start_date')::date)
     AND (sqlc.narg('end_date')::date IS NULL OR p.created_at < sqlc.narg('end_date')::date + INTERVAL '1 day')
     AND (array_length(@post_types::text[], 1) IS NULL OR p.post_type = ANY(@post_types::text[]))
+    AND (array_length(@tag_ids::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY(@tag_ids::uuid[])))
 GROUP BY day_of_week,
     hour_of_day
 ORDER BY day_of_week,
@@ -72,5 +73,6 @@ WHERE s.user_id = @user_id
     AND (sqlc.narg('start_date')::date IS NULL OR p.created_at >= sqlc.narg('start_date')::date)
     AND (sqlc.narg('end_date')::date IS NULL OR p.created_at < sqlc.narg('end_date')::date + INTERVAL '1 day')
     AND (array_length(@post_types::text[], 1) IS NULL OR p.post_type = ANY(@post_types::text[]))
+    AND (array_length(@tag_ids::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY(@tag_ids::uuid[])))
 GROUP BY date_str
 ORDER BY date_str;

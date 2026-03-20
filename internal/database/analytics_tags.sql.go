@@ -111,6 +111,7 @@ WHERE tc.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR pt.tag_id = ANY($5::uuid[]))
 GROUP BY tc.id, tc.name
 ORDER BY avg_likes DESC
 `
@@ -120,6 +121,7 @@ type GetClassificationAnalyticsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetClassificationAnalyticsFilteredRow struct {
@@ -139,6 +141,7 @@ func (q *Queries) GetClassificationAnalyticsFiltered(ctx context.Context, arg Ge
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -272,6 +275,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR pt.tag_id = ANY($5::uuid[]))
 GROUP BY t.id, t.name, tc.name
 ORDER BY avg_likes DESC
 `
@@ -281,6 +285,7 @@ type GetTagAnalyticsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetTagAnalyticsFilteredRow struct {
@@ -301,6 +306,7 @@ func (q *Queries) GetTagAnalyticsFiltered(ctx context.Context, arg GetTagAnalyti
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err

@@ -661,6 +661,7 @@ func (h *Handler) AnalyticsTagsHandler(c *gin.Context) {
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
 			PostTypes: f.PostTypes,
+			TagIds:    f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetTagAnalytics(c.Request.Context(), user.ID)
@@ -689,6 +690,7 @@ func (h *Handler) AnalyticsClassificationsHandler(c *gin.Context) {
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
 			PostTypes: f.PostTypes,
+			TagIds:    f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetClassificationAnalytics(c.Request.Context(), user.ID)

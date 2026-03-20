@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const loadedTabs = new Set();
     const chartInstances = {};
-    const filterState = { startDate: '', endDate: '', postTypes: null, mode: 'likes' };
+    const filterState = { startDate: '', endDate: '', postTypes: null, mode: 'likes', tagIds: null };
 
     function isViewsMode() { return filterState.mode === 'views'; }
     function engagementLabel() { return isViewsMode() ? 'Avg Views' : 'Avg Likes'; }
@@ -26,6 +26,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (filterState.endDate) params.set('end_date', filterState.endDate);
         if (filterState.postTypes !== null && filterState.postTypes.length > 0) {
             params.set('post_types', filterState.postTypes.join(','));
+        }
+        if (filterState.tagIds !== null && filterState.tagIds.length > 0) {
+            params.set('tag_ids', filterState.tagIds.join(','));
         }
         if (filterState.mode === 'views') params.set('mode', 'views');
         return params;
@@ -1218,37 +1221,50 @@ document.addEventListener("DOMContentLoaded", function () {
     const ptMenu = document.getElementById('analyticsPostTypesMenu');
     const modeBtn = document.getElementById('analyticsModeBtn');
     const modeMenu = document.getElementById('analyticsModeMenu');
+    const tagsBtn = document.getElementById('analyticsTagsBtn');
+    const tagsMenu = document.getElementById('analyticsTagsMenu');
 
     function closeAllFilterDropdowns() {
         dateMenu && dateMenu.classList.remove('show');
         ptMenu && ptMenu.classList.remove('show');
         modeMenu && modeMenu.classList.remove('show');
+        tagsMenu && tagsMenu.classList.remove('show');
+    }
+
+    function closeOtherDropdowns(except) {
+        [dateMenu, ptMenu, modeMenu, tagsMenu].forEach(m => {
+            if (m && m !== except) m.classList.remove('show');
+        });
     }
 
     dateBtn && dateBtn.addEventListener('click', e => {
         e.stopPropagation();
-        ptMenu && ptMenu.classList.remove('show');
-        modeMenu && modeMenu.classList.remove('show');
+        closeOtherDropdowns(dateMenu);
         dateMenu && dateMenu.classList.toggle('show');
     });
 
     ptBtn && ptBtn.addEventListener('click', e => {
         e.stopPropagation();
-        dateMenu && dateMenu.classList.remove('show');
-        modeMenu && modeMenu.classList.remove('show');
+        closeOtherDropdowns(ptMenu);
         ptMenu && ptMenu.classList.toggle('show');
     });
 
     modeBtn && modeBtn.addEventListener('click', e => {
         e.stopPropagation();
-        dateMenu && dateMenu.classList.remove('show');
-        ptMenu && ptMenu.classList.remove('show');
+        closeOtherDropdowns(modeMenu);
         modeMenu && modeMenu.classList.toggle('show');
+    });
+
+    tagsBtn && tagsBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        closeOtherDropdowns(tagsMenu);
+        tagsMenu && tagsMenu.classList.toggle('show');
     });
 
     dateMenu && dateMenu.addEventListener('click', e => e.stopPropagation());
     ptMenu && ptMenu.addEventListener('click', e => e.stopPropagation());
     modeMenu && modeMenu.addEventListener('click', e => e.stopPropagation());
+    tagsMenu && tagsMenu.addEventListener('click', e => e.stopPropagation());
 
     document.addEventListener('click', closeAllFilterDropdowns);
 
@@ -1312,6 +1328,107 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         closeAllFilterDropdowns();
     });
+
+    let allTagsData = [];
+
+    function initTagsFilter() {
+        fetch('/api/tags').then(r => r.json()).then(tags => {
+            allTagsData = tags || [];
+            buildTagFilterOptions();
+        }).catch(err => console.error('Error loading tags for filter:', err));
+    }
+
+    function buildTagFilterOptions() {
+        const container = document.getElementById('analyticsTagsOptions');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (allTagsData.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'text-sm text-muted p-2 text-center';
+            empty.textContent = 'No tags defined yet.';
+            container.appendChild(empty);
+            return;
+        }
+
+        const grouped = {};
+        const ungrouped = [];
+        allTagsData.forEach(t => {
+            if (t.classification_name) {
+                if (!grouped[t.classification_name]) grouped[t.classification_name] = [];
+                grouped[t.classification_name].push(t);
+            } else {
+                ungrouped.push(t);
+            }
+        });
+
+        Object.keys(grouped).sort().forEach(clName => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'tag-filter-group';
+            const groupLabel = document.createElement('div');
+            groupLabel.className = 'tag-filter-group-label';
+            groupLabel.textContent = clName;
+            groupDiv.appendChild(groupLabel);
+            grouped[clName].forEach(t => appendTagCheckbox(groupDiv, t));
+            container.appendChild(groupDiv);
+        });
+
+        if (ungrouped.length > 0) {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'tag-filter-group';
+            if (Object.keys(grouped).length > 0) {
+                const label = document.createElement('div');
+                label.className = 'tag-filter-group-label';
+                label.textContent = 'Uncategorized';
+                groupDiv.appendChild(label);
+            }
+            ungrouped.forEach(t => appendTagCheckbox(groupDiv, t));
+            container.appendChild(groupDiv);
+        }
+    }
+
+    function appendTagCheckbox(container, tag) {
+        const label = document.createElement('label');
+        label.className = 'filter-option';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'analytics-tag-check';
+        cb.value = tag.id;
+        cb.checked = true;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(' ' + tag.name));
+        container.appendChild(label);
+    }
+
+    function updateTagsBtnState() {
+        if (!tagsBtn) return;
+        const active = filterState.tagIds !== null;
+        tagsBtn.classList.toggle('btn-primary', active);
+        tagsBtn.classList.toggle('btn-secondary', !active);
+    }
+
+    function resolveSelectedTagIds() {
+        const checkedTags = [...document.querySelectorAll('.analytics-tag-check:checked')].map(cb => cb.value);
+        const allTags = [...document.querySelectorAll('.analytics-tag-check')];
+        return checkedTags.length === allTags.length ? null : checkedTags;
+    }
+
+    document.getElementById('analyticsTagsSelectAll') && document.getElementById('analyticsTagsSelectAll').addEventListener('click', () => {
+        document.querySelectorAll('.analytics-tag-check').forEach(cb => cb.checked = true);
+    });
+
+    document.getElementById('analyticsTagsClear') && document.getElementById('analyticsTagsClear').addEventListener('click', () => {
+        document.querySelectorAll('.analytics-tag-check').forEach(cb => cb.checked = false);
+    });
+
+    document.getElementById('analyticsApplyTags') && document.getElementById('analyticsApplyTags').addEventListener('click', () => {
+        filterState.tagIds = resolveSelectedTagIds();
+        closeAllFilterDropdowns();
+        updateTagsBtnState();
+        applyGlobalFilters();
+    });
+
+    initTagsFilter();
 
     function loadTagAnalytics() {
         const metricLabel = isViewsMode() ? 'Avg Views' : 'Avg Likes';
@@ -1412,7 +1529,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         backgroundColor: classColors
                     }]
                 }, {
-                    plugins: { legend: { position: 'right' } }
+                    plugins: { legend: { display: false } }
                 });
             })
             .catch(err => console.error('Error loading classification analytics:', err));

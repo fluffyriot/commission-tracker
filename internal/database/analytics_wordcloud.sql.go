@@ -101,6 +101,7 @@ WITH word_stats AS (
         AND ($2::date IS NULL OR p.created_at >= $2::date)
         AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
         AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+        AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 )
 SELECT cleaned_word as word,
     COUNT(*) as usage_count
@@ -137,6 +138,7 @@ type GetWordCloudDataFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetWordCloudDataFilteredRow struct {
@@ -150,6 +152,7 @@ func (q *Queries) GetWordCloudDataFiltered(ctx context.Context, arg GetWordCloud
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -288,6 +291,7 @@ WITH post_engagement AS (
         AND ($2::date IS NULL OR p.created_at >= $2::date)
         AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
         AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+        AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 ),
 word_stats AS (
     SELECT regexp_replace(
@@ -337,6 +341,7 @@ type GetWordCloudEngagementDataFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetWordCloudEngagementDataFilteredRow struct {
@@ -352,6 +357,7 @@ func (q *Queries) GetWordCloudEngagementDataFiltered(ctx context.Context, arg Ge
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -493,6 +499,7 @@ WITH post_engagement AS (
         AND ($2::date IS NULL OR p.created_at >= $2::date)
         AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
         AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+        AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 ),
 word_stats AS (
     SELECT regexp_replace(
@@ -542,6 +549,7 @@ type GetWordCloudEngagementDataViewsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetWordCloudEngagementDataViewsFilteredRow struct {
@@ -557,6 +565,7 @@ func (q *Queries) GetWordCloudEngagementDataViewsFiltered(ctx context.Context, a
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
