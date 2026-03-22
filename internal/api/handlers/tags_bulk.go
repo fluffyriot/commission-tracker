@@ -54,10 +54,10 @@ func (h *Handler) HandleDownloadTagsCSV(c *gin.Context) {
 
 	_ = writer.Write([]string{
 		"post_id",
+		"tags",
 		"network",
 		"post_url",
 		"content",
-		"tags",
 	})
 
 	for _, p := range posts {
@@ -86,10 +86,10 @@ func (h *Handler) HandleDownloadTagsCSV(c *gin.Context) {
 
 		_ = writer.Write([]string{
 			p.ID.String(),
+			existingTags,
 			network,
 			url,
 			content,
-			existingTags,
 		})
 	}
 }
