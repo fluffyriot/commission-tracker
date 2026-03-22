@@ -1472,9 +1472,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 data.forEach(d => {
                     const tr = document.createElement('tr');
                     const values = [
-                        d.tag_name, (d.classification_name && d.classification_name.Valid ? d.classification_name.String : '-'),
-                        d.post_count, d.avg_likes, d.avg_reposts,
-                        d.avg_views, d.total_likes, d.total_views
+                        d.tag_name + ' / ' + (d.classification_name && d.classification_name.Valid ? d.classification_name.String : '-'), d.post_count, d.avg_likes + d.avg_reposts, d.avg_views
                     ];
                     values.forEach(v => {
                         const td = document.createElement('td');
