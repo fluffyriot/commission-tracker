@@ -139,9 +139,9 @@ func (h *Handler) BackupImportHandler(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("backup_import_success", "true", 3600, "/", "", false, true)
+	c.SetCookie("backup_import_success", "true", 3600, "/", "", true, true)
 	if result.GeneratedUsername != "" {
-		c.SetCookie("generated_username", result.GeneratedUsername, 3600, "/", "", false, true)
+		c.SetCookie("generated_username", result.GeneratedUsername, 3600, "/", "", true, true)
 	}
 	c.Redirect(http.StatusSeeOther, "/settings/sync")
 }

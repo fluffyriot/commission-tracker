@@ -80,7 +80,7 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 	cookie, err := c.Cookie("backup_import_success")
 	if err == nil && cookie == "true" {
 		importSuccess = true
-		c.SetCookie("backup_import_success", "", -1, "/", "", false, true)
+		c.SetCookie("backup_import_success", "", -1, "/", "", true, true)
 	}
 
 	c.HTML(http.StatusOK, "sync-settings.html", h.CommonData(c, gin.H{
