@@ -21,15 +21,10 @@ import (
 )
 
 type VideoObjectLD struct {
-	Type                 string   `json:"@type"`
-	Name                 string   `json:"name"`
-	Description          string   `json:"description"`
-	UploadDate           string   `json:"uploadDate"`
-	Genre                []string `json:"genre"`
-	Keywords             string   `json:"keywords"`
-	InteractionStatistic struct {
-		UserInteractionCount int `json:"userInteractionCount"`
-	} `json:"interactionStatistic"`
+	Type        string `json:"@type"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	UploadDate  string `json:"uploadDate"`
 }
 
 func buildHashtags(genres []string, keywords string) string {
@@ -164,6 +159,7 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cli
 	})
 
 	linkPattern := regexp.MustCompile(`^https?://[^/]+/lite/video/[^/]+$`)
+	viewsRe := regexp.MustCompile(`([\d,]+)\s+views`)
 
 	doc.Find("a").Each(func(_ int, s *goquery.Selection) {
 		href, exists := s.Attr("href")
@@ -217,7 +213,21 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cli
 			uploadTime = time.Now()
 		}
 
-		hashtags := buildHashtags(videoLD.Genre, videoLD.Keywords)
+		var categories []string
+		videoDoc.Find("div.post-categories a.taxonomy-label").Each(func(_ int, s *goquery.Selection) {
+			if t := strings.TrimSpace(s.Text()); t != "" {
+				categories = append(categories, t)
+			}
+		})
+
+		var tags []string
+		videoDoc.Find("div.post-tags a.taxonomy-label").Each(func(_ int, s *goquery.Selection) {
+			if t := strings.TrimSpace(s.Text()); t != "" {
+				tags = append(tags, t)
+			}
+		})
+
+		hashtags := buildHashtags(categories, strings.Join(tags, ","))
 		content := fmt.Sprintf("%s\n\n%s", title, description)
 		if hashtags != "" {
 			content += "\n\n" + hashtags
@@ -259,7 +269,14 @@ func FetchBadpupsPosts(uid uuid.UUID, dbQueries *database.Queries, c *common.Cli
 
 		videoLikes := likes - dislikes
 
-		videoViews := videoLD.InteractionStatistic.UserInteractionCount
+		videoViews := 0
+		videoDoc.Find("div span").EachWithBreak(func(_ int, s *goquery.Selection) bool {
+			if m := viewsRe.FindStringSubmatch(s.Text()); m != nil {
+				videoViews, _ = strconv.Atoi(strings.ReplaceAll(m[1], ",", ""))
+				return false
+			}
+			return true
+		})
 
 		_, err = dbQueries.SyncReactions(context.Background(), database.SyncReactionsParams{
 			ID:       uuid.New(),

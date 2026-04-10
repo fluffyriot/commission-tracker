@@ -55,6 +55,21 @@
                 </div>
             </div>
         </div>
+        <div class="dropdown" id="analyticsTagsDropdown">
+            <button class="btn btn-secondary btn-icon" id="analyticsTagsBtn" type="button">
+                <i data-lucide="tag"></i> <span class="filter-btn-label" id="analyticsTagsLabel">Tags</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
+            </button>
+            <div class="filter-dropdown p-3" id="analyticsTagsMenu" style="min-width: 220px; max-height: 400px; overflow-y: auto">
+                <div class="flex justify-between mb-2">
+                    <button class="btn btn-sm btn-ghost" id="analyticsTagsSelectAll">All</button>
+                    <button class="btn btn-sm btn-ghost" id="analyticsTagsClear">None</button>
+                </div>
+                <div id="analyticsTagsOptions"></div>
+                <div class="flex justify-end mt-2">
+                    <button class="btn btn-sm btn-primary" id="analyticsApplyTags">Apply</button>
+                </div>
+            </div>
+        </div>
         <div class="dropdown" id="analyticsModeDropdown">
             <button class="btn btn-secondary btn-icon" id="analyticsModeBtn" type="button">
                 <i data-lucide="gauge"></i> <span class="filter-btn-label" id="analyticsModeLabel">Mode: Likes</span> <i data-lucide="chevron-down" class="icon-chevron-down"></i>
@@ -82,6 +97,7 @@
     <button class="tab-btn" data-tab="timing">Timing</button>
     <button class="tab-btn" data-tab="wordcloud">Word Cloud</button>
     <button class="tab-btn" data-tab="website">Website</button>
+    <button class="tab-btn" data-tab="tags">Tags</button>
 </div>
 
 <div id="content-tab" class="tab-content active">
@@ -248,7 +264,7 @@
                 </div>
                 <div class="card col-span-full">
                     <div class="card-header">Top Viewed Pages</div>
-                    <div class="chart-container h-500">
+                    <div class="chart-container h-600">
                         <canvas id="topPagesChart"></canvas>
                     </div>
                 </div>
@@ -265,10 +281,55 @@
                 </div>
                 <div class="card col-span-full">
                     <div class="card-header">Top Pages by Search Clicks</div>
-                    <div class="chart-container h-500">
+                    <div class="chart-container h-600">
                         <canvas id="gscPagesChart"></canvas>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tags-tab" class="tab-content hidden">
+    <div class="grid-dashboard">
+        <div class="card">
+            <div class="card-header">Tag Performance</div>
+            <div class="chart-container h-600">
+                <canvas id="tagPerformanceChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Classification Performance</div>
+            <div class="chart-container h-600">
+                <canvas id="classificationChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Posts per Tag</div>
+            <div class="chart-container h-600">
+                <canvas id="tagPostCountChart"></canvas>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Posts per Classification</div>
+            <div class="chart-container h-600">
+                <canvas id="classificationPostCountChart"></canvas>
+            </div>
+        </div>
+        <div class="card col-span-full">
+            <div class="card-header">Tag Breakdown</div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="tagAnalyticsTable">
+                    <thead>
+                        <tr>
+                            <th class="p-2 border-b border-white/10">Tag / Classification</th>
+                            <th class="p-2 border-b border-white/10">Posts</th>
+                            <th class="p-2 border-b border-white/10">Avg Engmnt</th>
+                            <th class="p-2 border-b border-white/10">Avg Views</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>

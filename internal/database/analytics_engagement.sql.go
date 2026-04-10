@@ -91,6 +91,7 @@ FROM (
             AND p.author != ''
             AND ($2::date IS NULL OR p.created_at >= $2::date)
             AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+            AND (array_length($4::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($4::uuid[])))
     ) combined_collaborations
 GROUP BY collaborator
 ORDER BY avg_likes DESC
@@ -101,6 +102,7 @@ type GetCollaborationsDataFilteredParams struct {
 	UserID    uuid.UUID    `json:"user_id"`
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetCollaborationsDataFilteredRow struct {
@@ -110,7 +112,12 @@ type GetCollaborationsDataFilteredRow struct {
 }
 
 func (q *Queries) GetCollaborationsDataFiltered(ctx context.Context, arg GetCollaborationsDataFilteredParams) ([]GetCollaborationsDataFilteredRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCollaborationsDataFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	rows, err := q.db.QueryContext(ctx, getCollaborationsDataFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.TagIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +216,7 @@ FROM (
             AND p.author != ''
             AND ($2::date IS NULL OR p.created_at >= $2::date)
             AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
+            AND (array_length($4::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($4::uuid[])))
     ) combined_collaborations
 GROUP BY collaborator
 ORDER BY avg_views DESC
@@ -219,6 +227,7 @@ type GetCollaborationsDataViewsFilteredParams struct {
 	UserID    uuid.UUID    `json:"user_id"`
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetCollaborationsDataViewsFilteredRow struct {
@@ -228,7 +237,12 @@ type GetCollaborationsDataViewsFilteredRow struct {
 }
 
 func (q *Queries) GetCollaborationsDataViewsFiltered(ctx context.Context, arg GetCollaborationsDataViewsFilteredParams) ([]GetCollaborationsDataViewsFilteredRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCollaborationsDataViewsFiltered, arg.UserID, arg.StartDate, arg.EndDate)
+	rows, err := q.db.QueryContext(ctx, getCollaborationsDataViewsFiltered,
+		arg.UserID,
+		arg.StartDate,
+		arg.EndDate,
+		pq.Array(arg.TagIds),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -358,6 +372,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 `
 
 type GetEngagementRateDataFilteredParams struct {
@@ -365,6 +380,7 @@ type GetEngagementRateDataFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetEngagementRateDataFilteredRow struct {
@@ -384,6 +400,7 @@ func (q *Queries) GetEngagementRateDataFiltered(ctx context.Context, arg GetEnga
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -543,6 +560,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 GROUP BY post_type
 ORDER BY avg_likes DESC
 `
@@ -552,6 +570,7 @@ type GetGlobalPostTypeAnalyticsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetGlobalPostTypeAnalyticsFilteredRow struct {
@@ -567,6 +586,7 @@ func (q *Queries) GetGlobalPostTypeAnalyticsFiltered(ctx context.Context, arg Ge
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -689,6 +709,7 @@ FROM (
             AND ($2::date IS NULL OR posts.created_at >= $2::date)
             AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
             AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+            AND (array_length($5::uuid[], 1) IS NULL OR posts.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
@@ -719,6 +740,7 @@ type GetMentionsAnalyticsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetMentionsAnalyticsFilteredRow struct {
@@ -733,6 +755,7 @@ func (q *Queries) GetMentionsAnalyticsFiltered(ctx context.Context, arg GetMenti
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -850,6 +873,7 @@ FROM (
             AND ($2::date IS NULL OR posts.created_at >= $2::date)
             AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
             AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+            AND (array_length($5::uuid[], 1) IS NULL OR posts.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
@@ -880,6 +904,7 @@ type GetMentionsAnalyticsViewsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetMentionsAnalyticsViewsFilteredRow struct {
@@ -894,6 +919,7 @@ func (q *Queries) GetMentionsAnalyticsViewsFiltered(ctx context.Context, arg Get
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -996,6 +1022,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 GROUP BY s.network
 ORDER BY avg_likes DESC
 `
@@ -1005,6 +1032,7 @@ type GetNetworkEfficiencyFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetNetworkEfficiencyFilteredRow struct {
@@ -1021,6 +1049,7 @@ func (q *Queries) GetNetworkEfficiencyFiltered(ctx context.Context, arg GetNetwo
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err

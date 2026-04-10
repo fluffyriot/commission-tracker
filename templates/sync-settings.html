@@ -12,6 +12,7 @@
     <button class="tab-btn" data-tab="syncer-control">Syncer</button>
     <button class="tab-btn" data-tab="post-exclusions">Exclusions</button>
     <button class="tab-btn" data-tab="page-redirects">Redirects</button>
+    <button class="tab-btn" data-tab="api-tokens">API</button>
 </div>
 
 <div id="user-security-tab" class="tab-content active">
@@ -50,8 +51,8 @@
                     <div class="form-group">
                         <label for="username_input" class="form-label-bold">Username</label>
                         <div class="flex gap-2">
-                            <input type="text" id="username_input" name="username" class="form-input"
-                                value="{{ .username }}" required style="margin-bottom: 0;" autocapitalize="off">
+                            <input type="text" id="username_input" name="username" class="form-input mb-0"
+                                value="{{ .username }}" required autocapitalize="off">
                             <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Update</button>
                         </div>
                     </div>
@@ -67,9 +68,8 @@
                 </p>
                 <div class="flex gap-2 flex-wrap">
                     {{ if .is_2fa_enabled }}
-                    <button class="btn btn-secondary" disabled
-                        style="opacity: 1; cursor: default; border-color: var(--color-success);">
-                        <i data-lucide="check-circle" style="color: var(--color-success)"></i> 2FA Enabled
+                    <button class="btn btn-secondary btn-2fa-enabled" disabled>
+                        <i data-lucide="check-circle" class="text-success"></i> 2FA Enabled
                     </button>
                     {{ else }}
                     <a href="/settings/2fa/setup" class="btn btn-primary">
@@ -108,7 +108,7 @@
                 <label class="checkbox-label">
                     <input type="checkbox" name="allow_new_user_creation" id="allow_new_user_creation" {{if
                         .allow_new_user_creation}}checked{{end}} class="checkbox-input">
-                    <span class="text-md" style="font-weight: 500;">Allow new user creation</span>
+                    <span class="text-md fw-500">Allow new user creation</span>
                 </label>
                 <p class="text-muted helper-text indent">
                     If disabled, new users cannot register from login page.
@@ -119,7 +119,7 @@
                 <label class="checkbox-label">
                     <input type="checkbox" name="enabled_on_startup" id="enabled_on_startup" {{if
                         .enable_worker_on_startup}}checked{{end}} class="checkbox-input">
-                    <span class="text-md" style="font-weight: 500;">Enable worker on startup</span>
+                    <span class="text-md fw-500">Enable worker on startup</span>
                 </label>
                 <p class="text-muted helper-text indent">
                     When enabled, the worker will automatically start when the application launches.
@@ -264,7 +264,7 @@
                             title="Previous Page">
                             <i data-lucide="chevron-left"></i>
                         </button>
-                        <span id="pageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of 1</span>
+                        <span id="pageInfo" class="text-muted text-sm fw-500">Page 1 of 1</span>
                         <button id="nextBtn" class="btn btn-secondary btn-icon" onclick="changePage(1)" disabled
                             title="Next Page">
                             <i data-lucide="chevron-right"></i>
@@ -312,7 +312,7 @@
             <div class="card">
                 <div class="card-header">Page Redirects</div>
                 <div>
-                    <p class="text-muted text-md" style="margin-bottom: 1rem;">
+                    <p class="text-muted text-md mb-4">
                         Configure page path redirects. Stats for the "From Path" will be merged into the "To Path".
                     </p>
 
@@ -332,7 +332,7 @@
                             disabled title="Previous Page">
                             <i data-lucide="chevron-left"></i>
                         </button>
-                        <span id="redirectPageInfo" class="text-muted text-sm" style="font-weight: 500;">Page 1 of
+                        <span id="redirectPageInfo" class="text-muted text-sm fw-500">Page 1 of
                             1</span>
                         <button id="nextRedirectBtn" class="btn btn-secondary btn-icon" onclick="changeRedirectPage(1)"
                             disabled title="Next Page">
@@ -345,10 +345,77 @@
     </div>
 </div>
 
+<div id="api-tokens-tab" class="tab-content hidden">
+    <div class="grid-list-sidebar">
+        <div>
+            <div class="card">
+                <div class="card-header">Generate API Token</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Create a bearer token for external API access. The token will only be shown once.
+                    </p>
+                    <button class="btn btn-primary w-full" onclick="handleCreateApiToken()">
+                        <i data-lucide="plus"></i> Generate New Token
+                    </button>
+                </div>
+            </div>
+            <div id="new-token-display" class="card hidden mt-4">
+                <div class="card-header card-header-success">New Token Created</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Copy this token now. It will not be shown again.
+                    </p>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-token-value" class="form-input font-mono-sm mb-0" readonly>
+                        <button class="btn btn-secondary" onclick="copyApiToken()" title="Copy">
+                            <i data-lucide="copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="card-header">API Tokens</div>
+                <div>
+                    <div id="api-tokens-list">
+                        <p class="text-muted exclusion-list-empty text-md">Loading tokens...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">API Endpoints</div>
+                <div>
+                    <p class="text-muted mb-4 text-md">
+                        Use <code class="font-mono-sm">Authorization: Bearer &lt;token&gt;</code> header with these endpoints:
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <div class="card exclusion-item p-3">
+                            <div>
+                                <strong class="font-mono-sm">POST /ext/v1/stats</strong>
+                                <br><span class="text-muted text-xs">Followers, likes, reposts, engagement, post views, website views/visitors/impressions.<br>Optional body: {"compare_date": "YYYY-MM-DD"} for delta comparison.</span>
+                            </div>
+                        </div>
+                        <div class="card exclusion-item p-3">
+                            <div>
+                                <strong class="font-mono-sm">GET /ext/v1/status</strong>
+                                <br><span class="text-muted text-xs">Source/target health, enabled and disabled counts, user info and worker status</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         initTabManagement('user-security');
         loadSources();
+        loadApiTokens();
     });
 </script>
 
@@ -1029,6 +1096,107 @@
             }
         } catch (error) {
             alert("Request failed: " + error.message);
+        }
+    }
+</script>
+
+<script>
+    async function loadApiTokens() {
+        try {
+            const response = await fetch('/api/tokens');
+            if (!response.ok) throw new Error('Failed to load tokens');
+            const tokens = await response.json();
+            renderApiTokens(tokens);
+        } catch (error) {
+            console.error('Error loading API tokens:', error);
+            document.getElementById('api-tokens-list').innerHTML = '<p class="exclusion-list-error">Error loading tokens</p>';
+        }
+    }
+
+    function renderApiTokens(tokens) {
+        const container = document.getElementById('api-tokens-list');
+
+        if (!tokens || tokens.length === 0) {
+            container.innerHTML = '<p class="text-muted exclusion-list-empty text-md">No API tokens created yet</p>';
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        tokens.forEach(token => {
+            const card = document.createElement('div');
+            card.className = 'card exclusion-item';
+
+            const infoDiv = document.createElement('div');
+            const strong = document.createElement('strong');
+            strong.className = 'text-sm';
+            strong.textContent = 'Token •••' + token.id.slice(-6);
+            infoDiv.appendChild(strong);
+            infoDiv.appendChild(document.createElement('br'));
+            const span = document.createElement('span');
+            span.className = 'text-muted text-xs';
+            const created = new Date(token.created_at).toLocaleDateString();
+            const lastUsed = token.last_used_at ? new Date(token.last_used_at).toLocaleDateString() : 'Never';
+            span.textContent = `Created: ${created} · Last used: ${lastUsed}`;
+            infoDiv.appendChild(span);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-danger btn-icon';
+            btn.title = 'Revoke';
+            btn.addEventListener('click', () => deleteApiToken(token.id));
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'trash-2');
+            btn.appendChild(icon);
+
+            card.appendChild(infoDiv);
+            card.appendChild(btn);
+            fragment.appendChild(card);
+        });
+        container.replaceChildren(fragment);
+        lucide.createIcons();
+    }
+
+    async function handleCreateApiToken() {
+        try {
+            const response = await fetch('/api/tokens', { method: 'POST' });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to create token');
+            }
+
+            const data = await response.json();
+            const display = document.getElementById('new-token-display');
+            document.getElementById('new-token-value').value = data.token;
+            display.classList.remove('hidden');
+
+            await loadApiTokens();
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    function copyApiToken() {
+        const input = document.getElementById('new-token-value');
+        navigator.clipboard.writeText(input.value).then(() => {
+            alert('Token copied to clipboard');
+        }).catch(() => {
+            input.select();
+            document.execCommand('copy');
+            alert('Token copied to clipboard');
+        });
+    }
+
+    async function deleteApiToken(id) {
+        if (!confirm('Revoke this API token? Any integrations using it will stop working.')) return;
+
+        try {
+            const response = await fetch(`/api/tokens/${id}`, { method: 'DELETE' });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to delete token');
+            }
+            await loadApiTokens();
+        } catch (error) {
+            alert('Error: ' + error.message);
         }
     }
 </script>

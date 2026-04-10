@@ -21,12 +21,13 @@ type TargetNetwork struct {
 
 var AvailableSources = []SourceNetwork{
 	{Name: "Instagram", Color: "#ff0076", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
+	{Name: "Twitter", Color: "#1d9bf0", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
 	{Name: "Threads", Color: "#000000", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
 	{Name: "Bluesky", Color: "#1185fe", EngagementSupported: true, ViewsSupported: false, FollowersTracked: true},
 	{Name: "YouTube", Color: "#ff0033", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
 	{Name: "TikTok", Color: "#fe2c55", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
 	{Name: "Twitch", Color: "#9146ff", EngagementSupported: false, ViewsSupported: true, FollowersTracked: true},
-	{Name: "Reddit", Color: "#ff4500", EngagementSupported: true, ViewsSupported: false, FollowersTracked: false},
+	{Name: "Reddit", Color: "#ff4500", EngagementSupported: true, ViewsSupported: false, FollowersTracked: true},
 	{Name: "Mastodon", Color: "#563acc", EngagementSupported: true, ViewsSupported: false, FollowersTracked: true},
 	{Name: "Discord", Color: "#5662f6", EngagementSupported: true, ViewsSupported: false, FollowersTracked: true},
 	{Name: "Telegram", Color: "#26a4e3", EngagementSupported: true, ViewsSupported: true, FollowersTracked: true},
@@ -88,6 +89,8 @@ func ConvNetworkToURL(network, username string) (string, error) {
 		return "https://reddit.com/user/" + username, nil
 	case "Twitch":
 		return "https://twitch.tv/" + username, nil
+	case "Twitter":
+		return "https://twitter.com/" + username, nil
 	case "Threads":
 		return "https://www.threads.net/@" + username, nil
 	case "DeviantArt":
@@ -146,6 +149,8 @@ func ConvPostToURL(network, author, networkId string) (string, error) {
 			return "https://www.twitch.tv/videos/" + networkId, nil
 		}
 		return "https://www.twitch.tv/" + author + "/clip/" + networkId, nil
+	case "Twitter":
+		return "https://twitter.com/" + author + "/status/" + networkId, nil
 	case "Threads":
 		return "https://www.threads.net/@" + author + "/post/" + networkId, nil
 	case "DeviantArt":

@@ -116,6 +116,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 ORDER BY prh.post_id,
     prh.synced_at ASC
 `
@@ -125,6 +126,7 @@ type GetEngagementVelocityDataFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetEngagementVelocityDataFilteredRow struct {
@@ -146,6 +148,7 @@ func (q *Queries) GetEngagementVelocityDataFiltered(ctx context.Context, arg Get
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -246,6 +249,7 @@ FROM (
             AND ($2::date IS NULL OR posts.created_at >= $2::date)
             AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
             AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+            AND (array_length($5::uuid[], 1) IS NULL OR posts.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
@@ -264,6 +268,7 @@ type GetHashtagAnalyticsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetHashtagAnalyticsFilteredRow struct {
@@ -278,6 +283,7 @@ func (q *Queries) GetHashtagAnalyticsFiltered(ctx context.Context, arg GetHashta
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -367,6 +373,7 @@ FROM (
             AND ($2::date IS NULL OR posts.created_at >= $2::date)
             AND ($3::date IS NULL OR posts.created_at < $3::date + INTERVAL '1 day')
             AND (array_length($4::text[], 1) IS NULL OR posts.post_type = ANY($4::text[]))
+            AND (array_length($5::uuid[], 1) IS NULL OR posts.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
     ) t
     LEFT JOIN (
         SELECT DISTINCT ON (post_id) post_id,
@@ -385,6 +392,7 @@ type GetHashtagAnalyticsViewsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetHashtagAnalyticsViewsFilteredRow struct {
@@ -399,6 +407,7 @@ func (q *Queries) GetHashtagAnalyticsViewsFiltered(ctx context.Context, arg GetH
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -588,6 +597,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 ORDER BY (
         (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
             sa.avg_engagement * LEAST(
@@ -604,6 +614,7 @@ type GetPerformanceDeviationNegativeFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetPerformanceDeviationNegativeFilteredRow struct {
@@ -624,6 +635,7 @@ func (q *Queries) GetPerformanceDeviationNegativeFiltered(ctx context.Context, a
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -811,6 +823,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 ORDER BY (
         COALESCE(prh.views, 0) - (
             sa.avg_engagement * LEAST(
@@ -827,6 +840,7 @@ type GetPerformanceDeviationNegativeViewsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetPerformanceDeviationNegativeViewsFilteredRow struct {
@@ -846,6 +860,7 @@ func (q *Queries) GetPerformanceDeviationNegativeViewsFiltered(ctx context.Conte
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -1044,6 +1059,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 ORDER BY (
         (COALESCE(prh.likes, 0) + COALESCE(prh.reposts, 0)) - (
             sa.avg_engagement * LEAST(
@@ -1060,6 +1076,7 @@ type GetPerformanceDeviationPositiveFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetPerformanceDeviationPositiveFilteredRow struct {
@@ -1080,6 +1097,7 @@ func (q *Queries) GetPerformanceDeviationPositiveFiltered(ctx context.Context, a
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -1267,6 +1285,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 ORDER BY (
         COALESCE(prh.views, 0) - (
             sa.avg_engagement * LEAST(
@@ -1283,6 +1302,7 @@ type GetPerformanceDeviationPositiveViewsFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetPerformanceDeviationPositiveViewsFilteredRow struct {
@@ -1302,6 +1322,7 @@ func (q *Queries) GetPerformanceDeviationPositiveViewsFiltered(ctx context.Conte
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err

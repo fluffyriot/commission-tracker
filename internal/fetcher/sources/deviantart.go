@@ -116,8 +116,6 @@ func fetchWatcherCount(c *common.Client, accessToken, username string) (int, err
 			return total, err
 		}
 
-		log.Printf("DeviantArt: watchers response (offset %d): %s", offset, string(body))
-
 		if resp.StatusCode == 429 {
 			log.Printf("DeviantArt: Rate limited on watchers, waiting...")
 			time.Sleep(5 * time.Second)
@@ -184,8 +182,6 @@ func fetchDeviationMetadata(c *common.Client, accessToken string, ids []string) 
 	if err != nil {
 		return nil, err
 	}
-
-	log.Printf("DeviantArt: metadata response body: %s", string(body))
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("DeviantArt metadata API returned status %d: %s", resp.StatusCode, string(body))
@@ -292,8 +288,6 @@ func FetchDeviantArtPosts(dbQueries *database.Queries, encryptionKey []byte, sou
 		if err != nil {
 			return err
 		}
-
-		log.Printf("DeviantArt: gallery response body: %s", string(body))
 
 		if resp.StatusCode == 429 {
 			log.Printf("DeviantArt: Rate limited, waiting...")

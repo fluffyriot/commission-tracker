@@ -62,6 +62,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 GROUP BY date_str
 ORDER BY date_str
 `
@@ -71,6 +72,7 @@ type GetPostingConsistencyFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetPostingConsistencyFilteredRow struct {
@@ -84,6 +86,7 @@ func (q *Queries) GetPostingConsistencyFiltered(ctx context.Context, arg GetPost
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err
@@ -194,6 +197,7 @@ WHERE s.user_id = $1
     AND ($2::date IS NULL OR p.created_at >= $2::date)
     AND ($3::date IS NULL OR p.created_at < $3::date + INTERVAL '1 day')
     AND (array_length($4::text[], 1) IS NULL OR p.post_type = ANY($4::text[]))
+    AND (array_length($5::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY($5::uuid[])))
 GROUP BY day_of_week,
     hour_of_day
 ORDER BY day_of_week,
@@ -205,6 +209,7 @@ type GetTimePerformanceFilteredParams struct {
 	StartDate sql.NullTime `json:"start_date"`
 	EndDate   sql.NullTime `json:"end_date"`
 	PostTypes []string     `json:"post_types"`
+	TagIds    []uuid.UUID  `json:"tag_ids"`
 }
 
 type GetTimePerformanceFilteredRow struct {
@@ -220,6 +225,7 @@ func (q *Queries) GetTimePerformanceFiltered(ctx context.Context, arg GetTimePer
 		arg.StartDate,
 		arg.EndDate,
 		pq.Array(arg.PostTypes),
+		pq.Array(arg.TagIds),
 	)
 	if err != nil {
 		return nil, err

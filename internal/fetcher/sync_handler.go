@@ -134,6 +134,9 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *common.Client, 
 		case "Threads":
 			return sources.FetchThreadsPosts(dbQueries, encryptionKey, source.ID, c)
 
+		case "Twitter":
+			return sources.FetchTwitterPosts(dbQueries, c, source.UserName, source.ID, encryptionKey)
+
 		default:
 			return nil
 		}

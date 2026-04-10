@@ -20,6 +20,7 @@ type analyticsFilters struct {
 	StartDate sql.NullTime
 	EndDate   sql.NullTime
 	PostTypes []string
+	TagIDs    []uuid.UUID
 	HasFilter bool
 }
 
@@ -41,6 +42,16 @@ func parseAnalyticsFilters(c *gin.Context, userID uuid.UUID) analyticsFilters {
 	if pt := c.Query("post_types"); pt != "" {
 		f.PostTypes = strings.Split(pt, ",")
 		f.HasFilter = true
+	}
+	if ti := c.Query("tag_ids"); ti != "" {
+		for _, id := range strings.Split(ti, ",") {
+			if uid, err := uuid.Parse(strings.TrimSpace(id)); err == nil {
+				f.TagIDs = append(f.TagIDs, uid)
+			}
+		}
+		if len(f.TagIDs) > 0 {
+			f.HasFilter = true
+		}
 	}
 
 	return f
@@ -113,56 +124,6 @@ func (h *Handler) AnalyticsDashboardSummaryHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, summary)
 }
 
-func (h *Handler) AnalyticsTopSourcesHandler(c *gin.Context) {
-	if h.Config.DBInitErr != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": h.Config.DBInitErr.Error()})
-		return
-	}
-
-	user, loggedIn := h.GetAuthenticatedUser(c)
-	if !loggedIn {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	topSourcesDB, err := h.DB.GetRestTopSources(c.Request.Context(), user.ID)
-	if err != nil {
-		log.Printf("Error getting rest of top sources: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	var topSources []TopSourceViewModel
-	for _, src := range topSourcesDB {
-		caps := helpers.GetSourceByName(src.Network)
-		if caps != nil && !caps.EngagementSupported && !caps.ViewsSupported && !caps.FollowersTracked {
-			continue
-		}
-		profileURL, _ := helpers.ConvNetworkToURL(src.Network, src.UserName)
-		vm := TopSourceViewModel{
-			ID:                src.ID,
-			UserName:          src.UserName,
-			Network:           src.Network,
-			TotalInteractions: int64(src.TotalInteractions),
-			TotalViews:        int64(src.TotalViews),
-			FollowersCount:    int64(src.FollowersCount),
-			ProfileURL:        profileURL,
-		}
-		if caps != nil {
-			vm.EngagementSupported = caps.EngagementSupported
-			vm.ViewsSupported = caps.ViewsSupported
-			vm.FollowersTracked = caps.FollowersTracked
-		}
-		topSources = append(topSources, vm)
-	}
-
-	if topSources == nil {
-		topSources = []TopSourceViewModel{}
-	}
-
-	c.JSON(http.StatusOK, topSources)
-}
-
 func (h *Handler) AnalyticsHandler(c *gin.Context) {
 	user, loggedIn := h.GetAuthenticatedUser(c)
 	if !loggedIn {
@@ -191,7 +152,7 @@ func (h *Handler) AnalyticsWordCloudHandler(c *gin.Context) {
 			UserID:    f.UserID,
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
+			PostTypes: f.PostTypes, TagIds: f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetWordCloudData(c.Request.Context(), user.ID)
@@ -221,14 +182,14 @@ func (h *Handler) AnalyticsHashtagsHandler(c *gin.Context) {
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
-				PostTypes: f.PostTypes,
+				PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 		} else {
 			data, err = h.DB.GetHashtagAnalyticsFiltered(c.Request.Context(), database.GetHashtagAnalyticsFilteredParams{
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
-				PostTypes: f.PostTypes,
+				PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 		}
 	} else {
@@ -263,14 +224,14 @@ func (h *Handler) AnalyticsMentionsHandler(c *gin.Context) {
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
-				PostTypes: f.PostTypes,
+				PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 		} else {
 			data, err = h.DB.GetMentionsAnalyticsFiltered(c.Request.Context(), database.GetMentionsAnalyticsFilteredParams{
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
-				PostTypes: f.PostTypes,
+				PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 		}
 	} else {
@@ -303,7 +264,7 @@ func (h *Handler) AnalyticsTimeHandler(c *gin.Context) {
 			UserID:    f.UserID,
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
+			PostTypes: f.PostTypes, TagIds: f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetTimePerformance(c.Request.Context(), user.ID)
@@ -331,7 +292,7 @@ func (h *Handler) AnalyticsPostTypesHandler(c *gin.Context) {
 			UserID:    f.UserID,
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
+			PostTypes: f.PostTypes, TagIds: f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetGlobalPostTypeAnalytics(c.Request.Context(), user.ID)
@@ -359,7 +320,7 @@ func (h *Handler) AnalyticsNetworkEfficiencyHandler(c *gin.Context) {
 			UserID:    f.UserID,
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
+			PostTypes: f.PostTypes, TagIds: f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetNetworkEfficiency(c.Request.Context(), user.ID)
@@ -433,7 +394,18 @@ func (h *Handler) AnalyticsGSCSiteStatsHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetGSCSiteStatsOverTime(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter && (f.StartDate.Valid || f.EndDate.Valid) {
+		data, err = h.DB.GetGSCSiteStatsOverTimeFiltered(c.Request.Context(), database.GetGSCSiteStatsOverTimeFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+		})
+	} else {
+		data, err = h.DB.GetGSCSiteStatsOverTime(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting GSC site stats: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -449,7 +421,18 @@ func (h *Handler) AnalyticsGSCTopPagesHandler(c *gin.Context) {
 		return
 	}
 
-	data, err := h.DB.GetGSCTopPagesByClicks(c.Request.Context(), user.ID)
+	f := parseAnalyticsFilters(c, user.ID)
+	var data interface{}
+	var err error
+	if f.HasFilter && (f.StartDate.Valid || f.EndDate.Valid) {
+		data, err = h.DB.GetGSCTopPagesByClicksFiltered(c.Request.Context(), database.GetGSCTopPagesByClicksFilteredParams{
+			UserID:    f.UserID,
+			StartDate: f.StartDate,
+			EndDate:   f.EndDate,
+		})
+	} else {
+		data, err = h.DB.GetGSCTopPagesByClicks(c.Request.Context(), user.ID)
+	}
 	if err != nil {
 		log.Printf("Error getting GSC top pages: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -473,7 +456,7 @@ func (h *Handler) AnalyticsPostingConsistencyHandler(c *gin.Context) {
 			UserID:    f.UserID,
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
+			PostTypes: f.PostTypes, TagIds: f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetPostingConsistency(c.Request.Context(), user.ID)
@@ -501,7 +484,7 @@ func (h *Handler) AnalyticsEngagementRateHandler(c *gin.Context) {
 			UserID:    f.UserID,
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
+			PostTypes: f.PostTypes, TagIds: f.TagIDs,
 		})
 	} else {
 		data, err = h.DB.GetEngagementRateData(c.Request.Context(), user.ID)
@@ -571,7 +554,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 	if viewsMode {
 		if f.HasFilter {
 			params := database.GetPerformanceDeviationPositiveViewsFilteredParams{
-				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			}
 			rows, e := h.DB.GetPerformanceDeviationPositiveViewsFiltered(c.Request.Context(), params)
 			if e != nil {
@@ -589,7 +572,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 				})
 			}
 			paramN := database.GetPerformanceDeviationNegativeViewsFilteredParams{
-				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			}
 			rowsN, e := h.DB.GetPerformanceDeviationNegativeViewsFiltered(c.Request.Context(), paramN)
 			if e != nil {
@@ -641,7 +624,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 	} else {
 		if f.HasFilter {
 			rawPos, e := h.DB.GetPerformanceDeviationPositiveFiltered(c.Request.Context(), database.GetPerformanceDeviationPositiveFilteredParams{
-				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 			if e != nil {
 				log.Printf("Error getting performance deviation positive data: %v", e)
@@ -658,7 +641,7 @@ func (h *Handler) AnalyticsPerformanceDeviationHandler(c *gin.Context) {
 				})
 			}
 			rawNeg, e := h.DB.GetPerformanceDeviationNegativeFiltered(c.Request.Context(), database.GetPerformanceDeviationNegativeFilteredParams{
-				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes,
+				UserID: f.UserID, StartDate: f.StartDate, EndDate: f.EndDate, PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 			if e != nil {
 				log.Printf("Error getting performance deviation negative data: %v", e)
@@ -744,7 +727,7 @@ func (h *Handler) AnalyticsVelocityHandler(c *gin.Context) {
 			UserID:    f.UserID,
 			StartDate: f.StartDate,
 			EndDate:   f.EndDate,
-			PostTypes: f.PostTypes,
+			PostTypes: f.PostTypes, TagIds: f.TagIDs,
 		})
 		if err != nil {
 			log.Printf("Error getting engagement velocity data: %v", err)
@@ -796,12 +779,14 @@ func (h *Handler) AnalyticsCollaborationsHandler(c *gin.Context) {
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
+				TagIds:    f.TagIDs,
 			})
 		} else {
 			data, err = h.DB.GetCollaborationsDataFiltered(c.Request.Context(), database.GetCollaborationsDataFilteredParams{
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
+				TagIds:    f.TagIDs,
 			})
 		}
 	} else {
@@ -836,7 +821,7 @@ func (h *Handler) AnalyticsWordCloudEngagementHandler(c *gin.Context) {
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
-				PostTypes: f.PostTypes,
+				PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 			if d == nil {
 				d = []database.GetWordCloudEngagementDataViewsFilteredRow{}
@@ -847,7 +832,7 @@ func (h *Handler) AnalyticsWordCloudEngagementHandler(c *gin.Context) {
 				UserID:    f.UserID,
 				StartDate: f.StartDate,
 				EndDate:   f.EndDate,
-				PostTypes: f.PostTypes,
+				PostTypes: f.PostTypes, TagIds: f.TagIDs,
 			})
 			if d == nil {
 				d = []database.GetWordCloudEngagementDataFilteredRow{}

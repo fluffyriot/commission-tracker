@@ -199,6 +199,16 @@ func (h *Handler) RootHandler(c *gin.Context) {
 	}))
 }
 
+func (h *Handler) DismissAllLogsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	_ = h.DB.DismissAllLogs(c.Request.Context(), user.ID)
+	c.Redirect(http.StatusFound, "/#recent-logs")
+}
+
 func (h *Handler) DismissLogHandler(c *gin.Context) {
 	idStr := c.PostForm("id")
 	if idStr == "" {

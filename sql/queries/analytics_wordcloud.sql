@@ -177,6 +177,7 @@ WITH post_engagement AS (
         AND (sqlc.narg('start_date')::date IS NULL OR p.created_at >= sqlc.narg('start_date')::date)
         AND (sqlc.narg('end_date')::date IS NULL OR p.created_at < sqlc.narg('end_date')::date + INTERVAL '1 day')
         AND (array_length(@post_types::text[], 1) IS NULL OR p.post_type = ANY(@post_types::text[]))
+        AND (array_length(@tag_ids::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY(@tag_ids::uuid[])))
 ),
 word_stats AS (
     SELECT regexp_replace(
@@ -238,6 +239,7 @@ WITH post_engagement AS (
         AND (sqlc.narg('start_date')::date IS NULL OR p.created_at >= sqlc.narg('start_date')::date)
         AND (sqlc.narg('end_date')::date IS NULL OR p.created_at < sqlc.narg('end_date')::date + INTERVAL '1 day')
         AND (array_length(@post_types::text[], 1) IS NULL OR p.post_type = ANY(@post_types::text[]))
+        AND (array_length(@tag_ids::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY(@tag_ids::uuid[])))
 ),
 word_stats AS (
     SELECT regexp_replace(
@@ -296,6 +298,7 @@ WITH word_stats AS (
         AND (sqlc.narg('start_date')::date IS NULL OR p.created_at >= sqlc.narg('start_date')::date)
         AND (sqlc.narg('end_date')::date IS NULL OR p.created_at < sqlc.narg('end_date')::date + INTERVAL '1 day')
         AND (array_length(@post_types::text[], 1) IS NULL OR p.post_type = ANY(@post_types::text[]))
+        AND (array_length(@tag_ids::uuid[], 1) IS NULL OR p.id IN (SELECT post_id FROM post_tags WHERE tag_id = ANY(@tag_ids::uuid[])))
 )
 SELECT cleaned_word as word,
     COUNT(*) as usage_count

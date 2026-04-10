@@ -173,6 +173,7 @@ func main() {
 
 	authorized.GET("/", h.RootHandler)
 	authorized.POST("/logs/dismiss", h.DismissLogHandler)
+	authorized.POST("/logs/dismiss-all", h.DismissAllLogsHandler)
 
 	authorized.GET("/settings/2fa/setup", h.TwoFASetupViewHandler)
 	authorized.POST("/settings/2fa/verify", h.TwoFASetupSubmitHandler)
@@ -237,7 +238,6 @@ func main() {
 	authorized.GET("/analytics/engagement", h.AnalyticsEngagementHandler)
 	authorized.GET("/analytics/website", h.AnalyticsWebsiteHandler)
 	authorized.GET("/analytics/summary", h.AnalyticsDashboardSummaryHandler)
-	authorized.GET("/analytics/top-sources", h.AnalyticsTopSourcesHandler)
 
 	authorized.GET("/analytics", h.AnalyticsHandler)
 	authorized.GET("/analytics/data/wordcloud", h.AnalyticsWordCloudHandler)
@@ -260,6 +260,29 @@ func main() {
 
 	authorized.GET("/posts", h.PostsHandler)
 
+	authorized.GET("/tags", h.TagsHandler)
+
+	authorized.GET("/api/tags/classifications", h.HandleGetClassifications)
+	authorized.POST("/api/tags/classifications", h.HandleCreateClassification)
+	authorized.PUT("/api/tags/classifications/:id", h.HandleUpdateClassification)
+	authorized.DELETE("/api/tags/classifications/:id", h.HandleDeleteClassification)
+
+	authorized.GET("/api/tags", h.HandleGetTags)
+	authorized.POST("/api/tags", h.HandleCreateTag)
+	authorized.PUT("/api/tags/:id", h.HandleUpdateTag)
+	authorized.DELETE("/api/tags/:id", h.HandleDeleteTag)
+
+	authorized.GET("/api/posts/:post_id/tags", h.HandleGetPostTags)
+	authorized.PUT("/api/posts/:post_id/tags", h.HandleSetPostTags)
+	authorized.POST("/api/posts/:post_id/tags", h.HandleAddTagToPost)
+	authorized.DELETE("/api/posts/:post_id/tags/:tag_id", h.HandleRemoveTagFromPost)
+	authorized.GET("/api/posts/tags/bulk", h.HandleGetAllPostTagsBulk)
+	authorized.GET("/api/tags/csv", h.HandleDownloadTagsCSV)
+	authorized.POST("/api/tags/csv", h.HandleUploadTagsCSV)
+
+	authorized.GET("/analytics/data/tags", h.AnalyticsTagsHandler)
+	authorized.GET("/analytics/data/tags/classifications", h.AnalyticsClassificationsHandler)
+
 	authorized.GET("/api/sources", h.HandleGetSourcesAPI)
 	authorized.GET("/api/exclusions", h.HandleGetExclusions)
 	authorized.POST("/api/exclusions", h.HandleCreateExclusion)
@@ -272,6 +295,15 @@ func main() {
 	authorized.GET("/api/updates/notes", h.GetReleaseNotesHandler)
 	authorized.POST("/api/user/ack-version", h.UpdateLastSeenVersionHandler)
 	authorized.POST("/api/user/intro-completed", h.UpdateUserIntroCompletedHandler)
+
+	authorized.GET("/api/tokens", h.HandleGetApiTokens)
+	authorized.POST("/api/tokens", h.HandleCreateApiToken)
+	authorized.DELETE("/api/tokens/:id", h.HandleDeleteApiToken)
+
+	extAPI := r.Group("/ext/v1")
+	extAPI.Use(middleware.BearerTokenMiddleware(dbQueries))
+	extAPI.POST("/stats", h.ExternalAPIStatsHandler)
+	extAPI.GET("/status", h.ExternalAPIStatusHandler)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.AppPort,
