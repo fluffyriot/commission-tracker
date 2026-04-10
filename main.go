@@ -164,6 +164,7 @@ func main() {
 
 	r.GET("/register", h.UserSetupViewHandler)
 	r.POST("/register", h.UserSetupHandler)
+	r.POST("/register/restore", h.BackupRestoreHandler)
 
 	authorized := r.Group("/")
 	authorized.Use(middleware.AuthMiddleware(dbQueries))
@@ -208,6 +209,9 @@ func main() {
 
 	authorized.GET("/exports", h.ExportsHandler)
 	authorized.POST("/exports/deleteAll", h.ExportDeleteAllHandler)
+
+	authorized.POST("/backup/export", h.BackupExportHandler)
+	authorized.POST("/backup/import", h.BackupImportHandler)
 
 	authorized.GET("/outputs/*filepath", h.DownloadExportHandler)
 

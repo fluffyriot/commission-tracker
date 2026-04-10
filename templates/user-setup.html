@@ -35,6 +35,20 @@
         <a href="/login" class="btn btn-secondary w-full text-center">Back to Login</a>
       </div>
     </form>
+
+    <div class="mt-md pt-md border-top">
+      <p class="text-muted text-md text-center mb-md">Or restore from a backup:</p>
+      <form method="POST" action="/register/restore" enctype="multipart/form-data">
+        <div class="form-group">
+          <label class="form-label" for="backup_file">Backup File (.zip)</label>
+          <input type="file" id="backup_file" name="backup_file" accept=".zip" class="form-input" required>
+        </div>
+        <button type="submit" class="btn btn-secondary w-full"
+          onclick="return confirm('This will create a new account from the backup file. Continue?');">
+          Restore from Backup
+        </button>
+      </form>
+    </div>
     {{end}}
   </div>
 </div>

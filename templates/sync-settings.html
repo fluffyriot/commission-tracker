@@ -13,6 +13,7 @@
     <button class="tab-btn" data-tab="post-exclusions">Exclusions</button>
     <button class="tab-btn" data-tab="page-redirects">Redirects</button>
     <button class="tab-btn" data-tab="api-tokens">API</button>
+    <button class="tab-btn" data-tab="backup">Backup (BETA)</button>
 </div>
 
 <div id="user-security-tab" class="tab-content active">
@@ -406,6 +407,95 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="backup-tab" class="tab-content hidden">
+    {{if .import_success}}
+    <div class="card mb-4 border-success">
+        <div class="card-header">Import Completed</div>
+        <div class="flex flex-col gap-1 p-md">
+            <p class="text-md mb-sm">Your backup was imported successfully:</p>
+            <div class="flex flex-col gap-1 text-sm">
+                {{with .import_result}}
+                <span>Sources: <strong>{{.Sources}}</strong></span>
+                <span>Targets: <strong>{{.Targets}}</strong></span>
+                <span>Posts: <strong>{{.Posts}}</strong></span>
+                <span>Reactions history: <strong>{{.Reactions}}</strong></span>
+                <span>Tags: <strong>{{.Tags}}</strong> (Classifications: <strong>{{.TagClassifications}}</strong>)</span>
+                <span>Post tags: <strong>{{.PostTags}}</strong></span>
+                <span>Exclusions: <strong>{{.Exclusions}}</strong></span>
+                <span>Redirects: <strong>{{.Redirects}}</strong></span>
+                <span>Source stats: <strong>{{.SourcesStats}}</strong></span>
+                <span>Analytics page stats: <strong>{{.PageStats}}</strong></span>
+                <span>Analytics site stats: <strong>{{.SiteStats}}</strong></span>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <div class="grid-responsive">
+        <div class="card">
+            <div class="card-header">Export Full Backup</div>
+            <div>
+                <p class="text-md text-muted mb-md">
+                    This feature is still in beta and might not work perfectly in all cases. We recommend importing your data only new instances and validate the data before deleting your old instance. <br><br>
+                    Download a complete backup of your data as a ZIP file. The backup includes all sources, targets,
+                    tokens, posts, reactions history, tags, exclusions, redirects, and analytics data. All files inside
+                    are human-readable JSON.
+                </p>
+                <form method="POST" action="/backup/export">
+                    <button type="submit" class="btn btn-primary btn-icon">
+                        <i data-lucide="download"></i> Create Backup
+                    </button>
+                </form>
+                <p class="text-muted text-xs mt-sm">
+                    The backup will appear on the <a href="/exports">Exports</a> page when ready.
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Import Backup</div>
+            <div>
+                <p class="text-md text-muted mb-md">
+                    Restore data from a previously exported RPSync backup ZIP file. Choose how you'd like to import:
+                </p>
+
+                <form method="POST" action="/backup/import" enctype="multipart/form-data">
+                    <div class="form-group mb-md">
+                        <label class="form-label" for="backup_file">Backup File</label>
+                        <input type="file" id="backup_file" name="backup_file" accept=".zip" class="form-input" required>
+                    </div>
+
+                    <div class="form-group mb-md">
+                        <label class="form-label">Import Mode</label>
+                        <div class="flex flex-col gap-2">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="mode" value="replace" required>
+                                <div>
+                                    <strong>Replace</strong>
+                                    <span class="text-muted text-sm"> — Delete all your current data and replace it with the backup</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="mode" value="new">
+                                <div>
+                                    <strong>New User</strong>
+                                    <span class="text-muted text-sm"> — Import the backup as a new separate user account</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-icon"
+                        onclick="return confirm('Are you sure? This will import data from the backup file using the selected mode.');">
+                        <i data-lucide="upload"></i> Import Backup
+                    </button>
+                </form>
             </div>
         </div>
     </div>
