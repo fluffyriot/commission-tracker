@@ -76,6 +76,13 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 	enableWorkerConfig, _ := h.DB.GetAppConfig(c.Request.Context(), "enable_worker_on_startup")
 	enableWorker := enableWorkerConfig == "true"
 
+	importSuccess := false
+	cookie, err := c.Cookie("backup_import_success")
+	if err == nil && cookie == "true" {
+		importSuccess = true
+		c.SetCookie("backup_import_success", "", -1, "/", "", true, true)
+	}
+
 	c.HTML(http.StatusOK, "sync-settings.html", h.CommonData(c, gin.H{
 		"sync_period":              user.SyncPeriod,
 		"allow_new_user_creation":  allowCreateUser,
@@ -86,6 +93,7 @@ func (h *Handler) SyncSettingsHandler(c *gin.Context) {
 		"is_webauthn_configured":   isWebauthnConfigured,
 		"is_secure_context":        isSecure,
 		"is_passkey_supported":     isPasskeySupported,
+		"import_success":           importSuccess,
 	}))
 }
 
