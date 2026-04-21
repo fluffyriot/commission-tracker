@@ -75,7 +75,7 @@ func getRedditDetails(ctx context.Context, dbQueries *database.Queries, encrypti
 }
 
 func fetchRedditFollowers(username, userAgent string) int {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.reddit.com/user/%s/", username), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.reddit.com/r/u_%s/", username), nil)
 	if err != nil {
 		log.Printf("Reddit: failed to build followers request: %v", err)
 		return 0
