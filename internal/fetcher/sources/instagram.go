@@ -21,6 +21,24 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type facebookAPIError struct {
+	Error struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    int    `json:"code"`
+		Subcode int    `json:"error_subcode"`
+	} `json:"error"`
+}
+
+func isFacebookSessionExpired(body []byte) bool {
+	var apiErr facebookAPIError
+	if err := json.Unmarshal(body, &apiErr); err != nil {
+		return false
+	}
+	return apiErr.Error.Type == "OAuthException" && apiErr.Error.Code == 190 &&
+		(apiErr.Error.Subcode == 463 || apiErr.Error.Subcode == 467)
+}
+
 type instagramFeed struct {
 	Data []struct {
 		ID        string `json:"id"`
@@ -184,6 +202,9 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 				log.Printf("Instagram: ignoring pre-business-account conversion error for source %s (Instagram API limitation)", sourceId)
 				break
 			}
+			if isFacebookSessionExpired(data) {
+				return fmt.Errorf("Facebook session has expired — please reconnect your Instagram account via Source Settings")
+			}
 			return fmt.Errorf("Failed to get a successfull response. Code: %v. Status: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 
@@ -304,6 +325,9 @@ func FetchInstagramTags(dbQueries *database.Queries, c *common.Client, sourceId 
 		}
 
 		if resp.StatusCode != 200 {
+			if isFacebookSessionExpired(data) {
+				return fmt.Errorf("Facebook session has expired — please reconnect your Instagram account via Source Settings")
+			}
 			return fmt.Errorf("Failed to get a successfull response. %v: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
 		}
 

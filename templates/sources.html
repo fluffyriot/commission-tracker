@@ -164,6 +164,16 @@
                         {{end}}
 
                         {{if eq .Network "Instagram"}}
+                        {{if and .StatusReason.Valid (contains .StatusReason.String "reconnect your Instagram")}}
+                        <form method="POST" action="/auth/facebook/relogin"
+                            onsubmit="return submitWithConfirm(this, 'Reconnect Facebook account for this source?');">
+                            <input type="hidden" name="source_id" value="{{.ID}}">
+                            <button type="submit" class="btn btn-danger btn-icon"
+                                title="Session expired — reconnect account">
+                                <i data-lucide="log-in"></i>
+                            </button>
+                        </form>
+                        {{else}}
                         <form method="POST" action="/auth/facebook/refresh"
                             onsubmit="return submitWithConfirm(this, 'Refresh access token for this?');">
                             <input type="hidden" name="source_id" value="{{.ID}}">
@@ -172,6 +182,7 @@
                                 <i data-lucide="key-round"></i>
                             </button>
                         </form>
+                        {{end}}
                         {{end}}
 
                         {{if eq .Network "Threads"}}
