@@ -41,14 +41,16 @@ func isFacebookSessionExpired(body []byte) bool {
 
 type instagramFeed struct {
 	Data []struct {
-		ID        string `json:"id"`
-		Caption   string `json:"caption"`
-		Shortcode string `json:"shortcode"`
-		LikeCount int    `json:"like_count"`
-		Timestamp string `json:"timestamp"`
-		MediaType string `json:"media_type"`
-		Username  string `json:"username"`
-		Insights  struct {
+		ID           string `json:"id"`
+		Caption      string `json:"caption"`
+		Shortcode    string `json:"shortcode"`
+		LikeCount    int    `json:"like_count"`
+		Timestamp    string `json:"timestamp"`
+		MediaType    string `json:"media_type"`
+		Username     string `json:"username"`
+		RepostsCount *int   `json:"reposts_count"`
+		SharesCount  *int   `json:"shares_count"`
+		Insights     struct {
 			Data []struct {
 				Values []struct {
 					Value int `json:"value"`
@@ -63,13 +65,32 @@ type instagramFeed struct {
 
 type instagramTagsFeed struct {
 	Data []struct {
-		ID        string `json:"id"`
-		Caption   string `json:"caption"`
-		LikeCount int    `json:"like_count"`
-		Timestamp string `json:"timestamp"`
-		MediaType string `json:"media_type"`
-		Username  string `json:"username"`
-		Permalink string `json:"permalink"`
+		ID           string `json:"id"`
+		Caption      string `json:"caption"`
+		LikeCount    int    `json:"like_count"`
+		Timestamp    string `json:"timestamp"`
+		MediaType    string `json:"media_type"`
+		Username     string `json:"username"`
+		Permalink    string `json:"permalink"`
+		RepostsCount *int   `json:"reposts_count"`
+		SharesCount  *int   `json:"shares_count"`
+	} `json:"data"`
+	Paging struct {
+		Next string `json:"next,omitempty"`
+	} `json:"paging"`
+}
+
+type instagramCollabsFeed struct {
+	Data []struct {
+		ID           string `json:"id"`
+		Caption      string `json:"caption"`
+		LikeCount    int    `json:"like_count"`
+		Timestamp    string `json:"timestamp"`
+		MediaType    string `json:"media_type"`
+		Username     string `json:"username"`
+		Permalink    string `json:"permalink"`
+		RepostsCount *int   `json:"reposts_count"`
+		SharesCount  *int   `json:"shares_count"`
 	} `json:"data"`
 	Paging struct {
 		Next string `json:"next,omitempty"`
@@ -81,6 +102,20 @@ type instagramProfile struct {
 	FollowersCount int `json:"followers_count"`
 }
 
+func calculateReposts(repostsCount, sharesCount *int) sql.NullInt64 {
+	if repostsCount == nil && sharesCount == nil {
+		return sql.NullInt64{Valid: false}
+	}
+	total := 0
+	if repostsCount != nil {
+		total += *repostsCount
+	}
+	if sharesCount != nil {
+		total += *sharesCount
+	}
+	return sql.NullInt64{Int64: int64(total), Valid: true}
+}
+
 func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte, noInsights bool) (string, string, string, string, error) {
 
 	token, pid, _, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
@@ -90,9 +125,9 @@ func getInstagramApiString(dbQueries *database.Queries, sid uuid.UUID, next stri
 
 	var apiString string
 	if noInsights {
-		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username&access_token=%v&limit=25", version, pid, token)
+		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,reposts_count,shares_count&access_token=%v&limit=25", version, pid, token)
 	} else {
-		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
+		apiString = fmt.Sprintf("https://graph.facebook.com/%v/%v/media?fields=id,caption,shortcode,like_count,timestamp,media_type,username,reposts_count,shares_count,insights.metric(views)&access_token=%v&limit=25", version, pid, token)
 	}
 
 	if next != "" {
@@ -110,7 +145,24 @@ func getInstagramTagstring(dbQueries *database.Queries, sid uuid.UUID, next stri
 		return "", err
 	}
 
-	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/tags?fields=id,caption,like_count,timestamp,media_type,username,permalink&access_token=%v&limit=25", version, pid, token)
+	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/tags?fields=id,caption,like_count,timestamp,media_type,username,permalink,reposts_count,shares_count&access_token=%v&limit=25", version, pid, token)
+
+	if next != "" {
+		apiString = next
+	}
+
+	return apiString, nil
+
+}
+
+func getInstagramCollabsString(dbQueries *database.Queries, sid uuid.UUID, next string, version string, encryptionKey []byte) (string, error) {
+
+	token, pid, _, _, err := authhelp.GetSourceToken(context.Background(), dbQueries, encryptionKey, sid)
+	if err != nil {
+		return "", err
+	}
+
+	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/collaborating_tagged_media?fields=id,caption,like_count,timestamp,media_type,username,permalink,reposts_count,shares_count&access_token=%v&limit=25", version, pid, token)
 
 	if next != "" {
 		apiString = next
@@ -251,7 +303,7 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 			err = common.ProcessScrapedPost(
 				context.Background(), dbQueries, sourceId, item.Shortcode, "Instagram", timeParse, post_type, item.Username, item.Caption,
 				sql.NullInt64{Int64: int64(item.LikeCount), Valid: true},
-				sql.NullInt64{Valid: false},
+				calculateReposts(item.RepostsCount, item.SharesCount),
 				viewsVal,
 			)
 			if err != nil {
@@ -282,6 +334,97 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 		}
 	}); err != nil {
 		log.Printf("Instagram: Failed to update stats for source %s: %v", sourceId, err)
+	}
+
+	return nil
+
+}
+
+func FetchInstagramCollabs(dbQueries *database.Queries, c *common.Client, sourceId uuid.UUID, version string, encryptionKey []byte) error {
+
+	exclusionMap, err := common.LoadExclusionMap(dbQueries, sourceId)
+	if err != nil {
+		return err
+	}
+
+	processedShortcodes := make(map[string]struct{})
+	var next string
+	const maxPages = 500
+
+	for page := 0; page < maxPages; page++ {
+
+		url, err := getInstagramCollabsString(dbQueries, sourceId, next, version, encryptionKey)
+		if err != nil {
+			return err
+		}
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return err
+		}
+
+		resp, err := c.HTTPClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		data, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode != 200 {
+			if isFacebookSessionExpired(data) {
+				return fmt.Errorf("Facebook session has expired — please reconnect your Instagram account via Source Settings")
+			}
+			return fmt.Errorf("Failed to get a successfull response. %v: %v. Body: %s", resp.StatusCode, resp.Status, string(data))
+		}
+
+		var feed instagramCollabsFeed
+		if err := json.Unmarshal(data, &feed); err != nil {
+			return err
+		}
+
+		if len(feed.Data) == 0 {
+			break
+		}
+
+		for _, item := range feed.Data {
+
+			shortcode := strings.TrimPrefix(item.Permalink, "https://www.instagram.com/p/")
+			shortcode = strings.TrimSuffix(shortcode, "/")
+
+			if _, exists := processedShortcodes[shortcode]; exists {
+				continue
+			}
+
+			processedShortcodes[shortcode] = struct{}{}
+
+			if exclusionMap[shortcode] {
+				continue
+			}
+
+			timeParse, _ := time.Parse("2006-01-02T15:04:05-0700", item.Timestamp)
+
+			err = common.ProcessScrapedPost(
+				context.Background(), dbQueries, sourceId, shortcode, "Instagram", timeParse, "collab", item.Username, item.Caption,
+				sql.NullInt64{Int64: int64(item.LikeCount), Valid: true},
+				calculateReposts(item.RepostsCount, item.SharesCount),
+				sql.NullInt64{Valid: false},
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+		if feed.Paging.Next == "" {
+			break
+		}
+
+		next = feed.Paging.Next
+
+		time.Sleep(300 * time.Millisecond)
 	}
 
 	return nil
@@ -360,7 +503,7 @@ func FetchInstagramTags(dbQueries *database.Queries, c *common.Client, sourceId 
 			err = common.ProcessScrapedPost(
 				context.Background(), dbQueries, sourceId, shortcode, "Instagram", timeParse, "tag", item.Username, item.Caption,
 				sql.NullInt64{Int64: int64(item.LikeCount), Valid: true},
-				sql.NullInt64{Valid: false},
+				calculateReposts(item.RepostsCount, item.SharesCount),
 				sql.NullInt64{Valid: false},
 			)
 			if err != nil {
