@@ -82,15 +82,16 @@ type instagramTagsFeed struct {
 
 type instagramCollabsFeed struct {
 	Data []struct {
-		ID           string `json:"id"`
-		Caption      string `json:"caption"`
-		LikeCount    int    `json:"like_count"`
-		Timestamp    string `json:"timestamp"`
-		MediaType    string `json:"media_type"`
-		Username     string `json:"username"`
-		Permalink    string `json:"permalink"`
-		RepostsCount *int   `json:"reposts_count"`
-		SharesCount  *int   `json:"shares_count"`
+		ID              string `json:"id"`
+		Caption         string `json:"caption"`
+		TotalLikeCount  int    `json:"total_like_count"`
+		TotalViewsCount *int   `json:"total_views_count"`
+		Timestamp       string `json:"timestamp"`
+		MediaType       string `json:"media_type"`
+		Username        string `json:"username"`
+		Permalink       string `json:"permalink"`
+		RepostsCount    *int   `json:"reposts_count"`
+		SharesCount     *int   `json:"shares_count"`
 	} `json:"data"`
 	Paging struct {
 		Next string `json:"next,omitempty"`
@@ -162,7 +163,7 @@ func getInstagramCollabsString(dbQueries *database.Queries, sid uuid.UUID, next 
 		return "", err
 	}
 
-	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/collaborating_tagged_media?fields=id,caption,like_count,timestamp,media_type,username,permalink,reposts_count,shares_count&access_token=%v&limit=25", version, pid, token)
+	apiString := fmt.Sprintf("https://graph.facebook.com/%v/%v/collaborative_media?fields=id,caption,total_like_count,timestamp,media_type,username,permalink,reposts_count,shares_count,total_views_count&access_token=%v&limit=25", version, pid, token)
 
 	if next != "" {
 		apiString = next
@@ -407,11 +408,16 @@ func FetchInstagramCollabs(dbQueries *database.Queries, c *common.Client, source
 
 			timeParse, _ := time.Parse("2006-01-02T15:04:05-0700", item.Timestamp)
 
+			var viewsVal sql.NullInt64
+			if item.TotalViewsCount != nil {
+				viewsVal = sql.NullInt64{Int64: int64(*item.TotalViewsCount), Valid: true}
+			}
+
 			err = common.ProcessScrapedPost(
 				context.Background(), dbQueries, sourceId, shortcode, "Instagram", timeParse, "collab", item.Username, item.Caption,
-				sql.NullInt64{Int64: int64(item.LikeCount), Valid: true},
+				sql.NullInt64{Int64: int64(item.TotalLikeCount), Valid: true},
 				calculateReposts(item.RepostsCount, item.SharesCount),
-				sql.NullInt64{Valid: false},
+				viewsVal,
 			)
 			if err != nil {
 				return err
