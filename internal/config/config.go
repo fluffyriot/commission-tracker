@@ -256,6 +256,29 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 		return "", "", fmt.Errorf("Access Token is required for Threads")
 	}
 
+	if params.Network == "Murrtube" && params.FieldLong == "" {
+		return "", "", fmt.Errorf("Cookie JSON is required for Murrtube")
+	}
+
+	if params.Network == "Murrtube" {
+		var rawCookies []struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal([]byte(params.FieldLong), &rawCookies); err != nil {
+			return "", "", fmt.Errorf("Invalid cookie JSON for Murrtube: %v", err)
+		}
+		hasSession := false
+		for _, c := range rawCookies {
+			if c.Name == "_murrtube_ultra_session" {
+				hasSession = true
+				break
+			}
+		}
+		if !hasSession {
+			return "", "", fmt.Errorf("Cookie JSON must contain a _murrtube_ultra_session cookie")
+		}
+	}
+
 	if params.Network == "Twitter" && params.FieldLong == "" {
 		return "", "", fmt.Errorf("Cookie JSON is required for Twitter")
 	}
@@ -334,6 +357,9 @@ func CreateSourceFromForm(dbQueries *database.Queries, params SourceCreationPara
 
 	case "Threads":
 		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.Field1, "", nil, params.EncryptionKey)
+
+	case "Murrtube":
+		err = authhelp.InsertSourceToken(context.Background(), dbQueries, s.ID, params.FieldLong, "", nil, params.EncryptionKey)
 
 	case "Twitter":
 		profileID := ""
