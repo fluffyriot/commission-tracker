@@ -1157,7 +1157,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
             });
     }
-    const ALL_POST_TYPES = ['post', 'image', 'video', 'broadcast', 'thread', 'album', 'quote', 'repost', 'tag'];
+    const ALL_POST_TYPES = ['post', 'image', 'video', 'broadcast', 'thread', 'album', 'quote', 'repost', 'tag', 'collab'];
 
     function updateDateBtnState() {
         const btn = document.getElementById('analyticsDateBtn');
