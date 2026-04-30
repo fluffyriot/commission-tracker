@@ -11,7 +11,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +25,7 @@ import (
 var redditHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
 	Transport: &http.Transport{
-		TLSNextProto:    make(map[string]func(string, *tls.Conn) http.RoundTripper),
+		TLSNextProto:      make(map[string]func(string, *tls.Conn) http.RoundTripper),
 		DisableKeepAlives: true,
 		TLSClientConfig: &tls.Config{
 			MinVersion: tls.VersionTLS12,
@@ -52,8 +51,6 @@ type redditListing struct {
 	} `json:"data"`
 }
 
-var redditFollowersRe = regexp.MustCompile(`([\d,]+)\s+followers`)
-
 func getRedditDetails(ctx context.Context, dbQueries *database.Queries, encryptionKey []byte, sid uuid.UUID) (username string, subreddits []string, err error) {
 	userSource, err := dbQueries.GetSourceById(ctx, sid)
 	if err != nil {
@@ -72,57 +69,6 @@ func getRedditDetails(ctx context.Context, dbQueries *database.Queries, encrypti
 	}
 
 	return username, subreddits, nil
-}
-
-func fetchRedditFollowers(username, userAgent string) int {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://www.reddit.com/r/u_%s/", username), nil)
-	if err != nil {
-		log.Printf("Reddit: failed to build followers request: %v", err)
-		return 0
-	}
-
-	req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-
-	resp, err := redditHTTPClient.Do(req)
-	if err != nil {
-		log.Printf("Reddit: failed to fetch profile page: %v", err)
-		return 0
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Reddit: failed to read profile page body: %v", err)
-		return 0
-	}
-
-	if resp.StatusCode != 200 {
-		log.Printf("Reddit: profile page returned status %d", resp.StatusCode)
-		return 0
-	}
-
-	idx := strings.Index(string(body), `data-testid="profile-followers-widget"`)
-	if idx == -1 {
-		log.Printf("Reddit: followers widget not found for user %s", username)
-		return 0
-	}
-
-	match := redditFollowersRe.FindStringSubmatch(string(body)[idx:])
-	if match == nil {
-		log.Printf("Reddit: followers count not found in widget for user %s", username)
-		return 0
-	}
-
-	numStr := strings.ReplaceAll(match[1], ",", "")
-	count, err := strconv.Atoi(numStr)
-	if err != nil {
-		log.Printf("Reddit: failed to parse followers count %q: %v", match[1], err)
-		return 0
-	}
-
-	return count
 }
 
 func handleSubredditChanges(ctx context.Context, dbQueries *database.Queries, sourceID uuid.UUID, newSubreddits []string) {
@@ -344,11 +290,6 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 	if err != nil {
 		log.Printf("Reddit: Failed to calculate average stats: %v", err)
 	} else {
-		followers := fetchRedditFollowers(username, userAgent)
-		if followers > 0 {
-			avgStats.FollowersCount = &followers
-		}
-
 		if err := common.SaveOrUpdateSourceStats(ctx, dbQueries, sourceId, avgStats); err != nil {
 			log.Printf("Reddit: Failed to save stats: %v", err)
 		}
