@@ -145,6 +145,15 @@ func CalculateAverageStats(ctx context.Context, dbQueries *database.Queries, sou
 	return stats, nil
 }
 
+func sanitizeText(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == 0 {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 func CreateOrUpdatePost(
 	ctx context.Context,
 	dbQueries *database.Queries,
@@ -156,7 +165,7 @@ func CreateOrUpdatePost(
 	author string,
 	content string,
 ) (uuid.UUID, error) {
-	content = html.UnescapeString(content)
+	content = sanitizeText(html.UnescapeString(content))
 
 	post, err := dbQueries.GetPostBySourceAndNetworkId(ctx, database.GetPostBySourceAndNetworkIdParams{
 		NetworkInternalID: networkInternalID,
@@ -179,6 +188,7 @@ func CreateOrUpdatePost(
 			},
 		})
 		if err != nil {
+			log.Printf("CreatePost failed: sourceID=%s networkInternalID=%q author=%q postType=%q contentLen=%d err=%v", sourceID, networkInternalID, author, postType, len(content), err)
 			return uuid.Nil, err
 		}
 		return newPost.ID, nil
@@ -196,6 +206,7 @@ func CreateOrUpdatePost(
 		Author:   author,
 	})
 	if err != nil {
+		log.Printf("UpdatePost failed: sourceID=%s networkInternalID=%q author=%q postType=%q contentLen=%d err=%v", sourceID, networkInternalID, author, postType, len(content), err)
 		return uuid.Nil, err
 	}
 
