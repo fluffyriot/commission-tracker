@@ -195,7 +195,7 @@ func FetchTikTokPosts(dbQueries *database.Queries, c *common.Client, uid uuid.UU
 					log.Printf("Scroll failed: %v", err)
 				}
 
-				time.Sleep(2 * time.Second)
+				time.Sleep(common.ScraperRateLimit)
 			}
 			return nil
 		}),

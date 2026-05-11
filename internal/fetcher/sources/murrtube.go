@@ -135,7 +135,7 @@ func FetchMurrtubePosts(dbQueries *database.Queries, c *common.Client, sourceID 
 		}
 		prevHeight = height
 		chromedp.Run(ctx, chromedp.Evaluate(`window.scrollTo(0, document.body.scrollHeight)`, nil)) //nolint:errcheck
-		time.Sleep(2 * time.Second)
+		time.Sleep(common.ScraperRateLimit)
 	}
 
 	var pageHTML string

@@ -146,7 +146,7 @@ func FetchRedditPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 	const maxPages = 500
 
 	for page := 0; page < maxPages; page++ {
-		time.Sleep(3 * time.Second)
+		time.Sleep(common.ScraperRateLimit)
 
 		apiURL := fmt.Sprintf("https://www.reddit.com/user/%s/submitted.json?limit=100&raw_json=1", username)
 		if after != "" {

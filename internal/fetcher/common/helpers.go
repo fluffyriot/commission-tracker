@@ -13,6 +13,12 @@ import (
 	"golang.org/x/net/html"
 )
 
+const (
+	APIRateLimit     = 50 * time.Millisecond
+	ScraperRateLimit = 3 * time.Second
+	RateLimitWait    = 30 * time.Second
+)
+
 func StripHTMLToText(input string) string {
 	doc, err := html.Parse(strings.NewReader(input))
 	if err != nil {

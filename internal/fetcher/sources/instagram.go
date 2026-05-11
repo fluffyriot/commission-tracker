@@ -318,7 +318,7 @@ func FetchInstagramPosts(dbQueries *database.Queries, c *common.Client, sourceId
 
 		next = feed.Paging.Next
 
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 	}
 
 	if len(processedLinks) == 0 {
@@ -430,7 +430,7 @@ func FetchInstagramCollabs(dbQueries *database.Queries, c *common.Client, source
 
 		next = feed.Paging.Next
 
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 	}
 
 	return nil
@@ -523,7 +523,7 @@ func FetchInstagramTags(dbQueries *database.Queries, c *common.Client, sourceId 
 
 		next = feed.Paging.Next
 
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 	}
 
 	if len(processedLinks) == 0 {

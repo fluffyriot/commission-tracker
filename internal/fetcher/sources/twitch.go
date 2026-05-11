@@ -215,7 +215,7 @@ func FetchTwitchPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 	var videoCursor string
 	const maxPages = 200
 	for page := 0; page < maxPages; page++ {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 
 		apiURL := fmt.Sprintf("https://api.twitch.tv/helix/videos?user_id=%s&first=100", userID)
 		if videoCursor != "" {
@@ -234,7 +234,7 @@ func FetchTwitchPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 
 		if status == 429 {
 			log.Printf("Twitch: rate limited on videos, waiting 30s")
-			time.Sleep(30 * time.Second)
+			time.Sleep(common.RateLimitWait)
 			continue
 		}
 
@@ -317,7 +317,7 @@ func FetchTwitchPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 
 	var clipCursor string
 	for page := 0; page < maxPages; page++ {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 
 		apiURL := fmt.Sprintf("https://api.twitch.tv/helix/clips?broadcaster_id=%s&first=100", userID)
 		if clipCursor != "" {
@@ -336,7 +336,7 @@ func FetchTwitchPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 
 		if status == 429 {
 			log.Printf("Twitch: rate limited on clips, waiting 30s")
-			time.Sleep(30 * time.Second)
+			time.Sleep(common.RateLimitWait)
 			continue
 		}
 

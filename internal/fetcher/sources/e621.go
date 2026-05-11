@@ -60,7 +60,7 @@ func FetchE621Posts(dbQueries *database.Queries, encryptionKey []byte, sourceId 
 	const maxPages = 500
 
 	for page <= maxPages {
-		time.Sleep(1 * time.Second)
+		time.Sleep(common.ScraperRateLimit)
 
 		url := fmt.Sprintf("https://e621.net/posts.json?tags=user:%s&page=%d", syncUsername, page)
 		req, err := http.NewRequest("GET", url, nil)
@@ -79,7 +79,7 @@ func FetchE621Posts(dbQueries *database.Queries, encryptionKey []byte, sourceId 
 
 		if resp.StatusCode == 503 {
 			log.Printf("E621: Rate limited (503), waiting longer...")
-			time.Sleep(5 * time.Second)
+			time.Sleep(common.RateLimitWait)
 			continue
 		}
 
@@ -159,14 +159,14 @@ func FetchE621Posts(dbQueries *database.Queries, encryptionKey []byte, sourceId 
 	if len(processedPosts) == 0 {
 		return fmt.Errorf("no content found")
 	}
-	
+
 	avgStats, err := common.CalculateAverageStats(context.Background(), dbQueries, sourceId)
 	if err != nil {
 		log.Printf("E621: Failed to calculate average stats: %v", err)
 	} else {
 		avgStats.FollowersCount = nil
 		avgStats.FollowingCount = nil
-		
+
 		if err := common.SaveOrUpdateSourceStats(context.Background(), dbQueries, sourceId, avgStats); err != nil {
 			log.Printf("E621: Failed to save stats: %v", err)
 		}
