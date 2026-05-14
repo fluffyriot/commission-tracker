@@ -141,9 +141,9 @@ func GetDashboardSummary(dbQueries *database.Queries, userID uuid.UUID) (*Dashbo
 	g.Go(func() error {
 		var err error
 		engStats, err = dbQueries.GetTotalDailyEngagementStats(ctx, database.GetTotalDailyEngagementStatsParams{
-			UserID:  userID,
-			Column2: startDate,
-			Column3: now,
+			UserID:   userID,
+			SyncedAt: startDate,
+			Column3:  now,
 		})
 		return err
 	})
