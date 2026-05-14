@@ -202,10 +202,10 @@ func processSubmission(dbQueries *database.Queries, c *common.Client, sourceId u
 		return err
 	}
 
-	viewsStr := strings.TrimSpace(doc.Find(".views .font-large").First().Text())
+	viewsStr := strings.TrimSpace(doc.Find(".submission-page-stats div[title='Views'] div").First().Text())
 	views, _ := strconv.Atoi(viewsStr)
 
-	favoritesStr := strings.TrimSpace(doc.Find(".favorites .font-large").First().Text())
+	favoritesStr := strings.TrimSpace(doc.Find(".submission-page-stats div[title='Favorites'] div").First().Text())
 	favorites, _ := strconv.Atoi(favoritesStr)
 
 	title := strings.TrimSpace(doc.Find(".submission-title h2 p").First().Text())
