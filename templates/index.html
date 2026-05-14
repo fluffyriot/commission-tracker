@@ -12,52 +12,14 @@
         <i data-lucide="refresh-cw"></i> Refresh
       </button>
     </form>
-
   </div>
 </div>
 
-{{if .top_sources}}
-<div class="top-sources-grid" id="top-sources-grid">
-  {{range .top_sources}}
-  <div class="source-tile">
-    <div class="source-tile-header">
-      <img src="/static/images/sources/{{.Network | lower}}_logo.svg" alt="{{.Network}}" class="source-logo"
-        onerror="this.style.display='none'; var ph=this.nextElementSibling; ph.style.display='flex'; ph.style.backgroundColor=ph.dataset.color;">
-      <div class="source-logo-placeholder hidden" data-color="{{index $.network_colors .Network}}">
-        {{slice .Network 0 1 | upper}}
-      </div>
-      <div class="min-w-0">
-        <a href="{{.ProfileURL}}" target="_blank" class="source-name" title="{{.UserName}}">{{.UserName | stripAt}}</a>
-        <div class="source-network">{{.Network}}</div>
-      </div>
-    </div>
-    <div class="source-stats">
-      {{if or .EngagementSupported .ViewsSupported}}
-      <div class="source-stat">
-        <span class="source-stat-value">
-          {{if .EngagementSupported}}<span class="formatted-metric">{{.TotalInteractions}}</span>{{end}}
-          {{if and .EngagementSupported .ViewsSupported}} / {{end}}
-          {{if .ViewsSupported}}<span class="formatted-metric">{{.TotalViews}}</span>{{end}}
-        </span>
-        <span class="source-stat-label">
-          {{if and .EngagementSupported .ViewsSupported}}Engag. / Views{{else if .EngagementSupported}}Engagement{{else if .ViewsSupported}}Views{{end}}
-        </span>
-      </div>
-      {{end}}
-      {{if .FollowersTracked}}
-      <div class="source-stat source-stat-right">
-        <span class="source-stat-value formatted-metric">{{.FollowersCount}}</span>
-        <span class="source-stat-label">Followers</span>
-      </div>
-      {{end}}
-    </div>
-  </div>
-  {{end}}
-  <button id="show-all-sources-btn" class="btn btn-secondary w-full col-span-full hidden">
-    <i data-lucide="chevrons-down"></i> Show All
-  </button>
+<div id="top-sources-container" class="top-sources-grid top-sources-loading">
+  <div class="source-tile skeleton-card"><div class="skeleton-shimmer"></div></div>
+  <div class="source-tile skeleton-card"><div class="skeleton-shimmer"></div></div>
+  <div class="source-tile skeleton-card"><div class="skeleton-shimmer"></div></div>
 </div>
-{{end}}
 
 <div class="dashboard-comparison-grid">
   <div class="card">
@@ -83,7 +45,6 @@
     <a href="/settings/sync?tab=syncer-control" class="stat-link">Manage Settings &rarr;</a>
   </div>
 
-
   {{if not .worker_is_off}}
   <div class="stat-card">
     <div class="stat-icon"><i data-lucide="clock" class="icon-md"></i></div>
@@ -93,68 +54,67 @@
   </div>
   {{end}}
 
-
-  <div class="stat-card {{if gt .sync_errors_30d 0}}has-errors{{end}}">
+  <div class="stat-card" id="stat-sync-errors">
     <div class="stat-icon"><i data-lucide="alert-circle" class="icon-md"></i></div>
-    <div class="stat-value">{{.sync_errors_30d}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Sync Errors (Last 30 days)</div>
     <a href="#recent-logs" class="stat-link">View Errors &rarr;</a>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-active-sources">
     <div class="stat-icon"><i data-lucide="server" class="icon-md"></i></div>
-    <div class="stat-value">{{.active_sources}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Active Sources</div>
     <a href="/sources" class="stat-link">Manage Sources &rarr;</a>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-active-targets">
     <div class="stat-icon"><i data-lucide="database" class="icon-md"></i></div>
-    <div class="stat-value">{{.active_targets}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Active Targets</div>
     <a href="/targets" class="stat-link">Manage Targets &rarr;</a>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-total-posts">
     <div class="stat-icon"><i data-lucide="file-text" class="icon-md"></i></div>
-    <div class="stat-value formatted-metric">{{.total_posts}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Total Posts Tracked</div>
     <a href="/posts" class="stat-link">View All Posts &rarr;</a>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-total-likes">
     <div class="stat-icon"><i data-lucide="heart" class="icon-md"></i></div>
-    <div class="stat-value formatted-metric">{{.total_likes}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Total Likes</div>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-total-shares">
     <div class="stat-icon"><i data-lucide="share-2" class="icon-md"></i></div>
-    <div class="stat-value formatted-metric">{{.total_shares}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Total Shares/Reposts</div>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-total-views">
     <div class="stat-icon"><i data-lucide="eye" class="icon-md"></i></div>
-    <div class="stat-value formatted-metric">{{.total_views}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Total Post Views</div>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-total-visitors">
     <div class="stat-icon"><i data-lucide="users" class="icon-md"></i></div>
-    <div class="stat-value formatted-metric">{{.total_visitors}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Website Visitors</div>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-total-page-views">
     <div class="stat-icon"><i data-lucide="mouse-pointer" class="icon-md"></i></div>
-    <div class="stat-value formatted-metric">{{.total_page_views}}</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Website Page Views</div>
   </div>
 
-  <div class="stat-card">
+  <div class="stat-card" id="stat-avg-session">
     <div class="stat-icon"><i data-lucide="hourglass" class="icon-md"></i></div>
-    <div class="stat-value formatted-metric">{{.average_website_session}}s</div>
+    <div class="stat-value"><span class="stat-skel"></span></div>
     <div class="stat-label">Average Website Session</div>
   </div>
 
@@ -166,7 +126,6 @@
     <canvas id="engagementChart"></canvas>
   </div>
 </div>
-
 
 <div class="card mb-8">
   <div class="card-header">Website Analytics Over Time</div>
@@ -184,499 +143,14 @@
       </button>
     </form>
   </div>
-  {{if not .recent_logs}}
-  <div class="text-center p-8 text-muted">
-    <i data-lucide="check-circle" class="icon-xl opacity-50 text-success"></i>
-    <p>No recent errors found.</p>
+  <div id="recent-logs-content" class="text-center p-8 text-muted">
+    <div class="dash-spinner"></div>
   </div>
-  {{else}}
-  <div style="overflow-x: auto;">
-    <table class="w-full border-collapse text-sm">
-      <thead>
-        <tr class="text-left border-b">
-          <th class="p-3">Time</th>
-          <th class="p-3">Source/Target</th>
-          <th class="p-3">Message</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{range .recent_logs}}
-        <tr class="border-b">
-          <td class="p-3 whitespace-nowrap text-muted">
-            {{.CreatedAt.Format "Jan 02 15:04"}}
-          </td>
-          <td class="p-3">
-            {{if .SourceNetwork.Valid}}
-            <div class="flex items-center gap-2">
-              <span class="badge badge-neutral">{{.SourceNetwork.String}}</span>
-              <span>{{.SourceUsername.String}}</span>
-            </div>
-            {{else if .TargetType.Valid}}
-            <div class="flex items-center gap-2">
-              <span class="badge badge-neutral">Target</span>
-              <span>{{.TargetType.String}}</span>
-            </div>
-            {{else}}
-            <span class="text-muted">System</span>
-            {{end}}
-          </td>
-          <td class="p-3 text-danger">
-            <div class="flex justify-between items-start gap-2">
-              <span>{{.Message}}</span>
-              <form method="POST" action="/logs/dismiss" class="m-0">
-                <input type="hidden" name="id" value="{{.ID}}">
-                <button type="submit" class="btn btn-sm btn-ghost btn-icon" title="Dismiss" class="p-0.5 h-auto">
-                  <i data-lucide="x" class="icon-sm"></i>
-                </button>
-              </form>
-            </div>
-          </td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table>
-  </div>
-  {{end}}
 </div>
 
 {{ template "footer.html" . }}
 
-
-
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    fetch('/analytics/website')
-      .then(response => response.json())
-      .then(data => {
-        if (!data || data.length === 0) {
-          return;
-        }
-
-        const ctx = document.getElementById('analyticsChart').getContext('2d');
-
-        const datasets = [];
-        const allDates = new Set();
-
-        Chart.defaults.color = '#a0a0a0';
-        Chart.defaults.borderColor = '#333';
-
-        const colorMap = {
-          "Website Visitors": "#f9ab00",
-          "Page Views": "#e37400"
-        };
-
-        data.forEach((series, index) => {
-          const points = series.points || [];
-          const dataPoints = points.map(p => {
-            const dateStr = p.date;
-            allDates.add(dateStr);
-            return {
-              x: dateStr,
-              y: p.value
-            };
-          });
-
-          let color = colorMap[series.label];
-          if (!color) {
-            const colors = ['#f87171', '#fbbf24', '#a78bfa', '#e879f9'];
-            color = colors[index % colors.length];
-          }
-
-          datasets.push({
-            label: '  ' + series.label,
-            data: dataPoints,
-            borderColor: color,
-            backgroundColor: color + '20',
-            fill: true,
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 3
-          });
-        });
-
-        const sortedDates = Array.from(allDates).sort();
-
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: sortedDates,
-            datasets: datasets
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-              mode: 'index',
-              intersect: false,
-            },
-            scales: {
-              x: {
-                type: 'category',
-                grid: { color: 'rgba(255, 255, 255, 0.05)' }
-              },
-              y: {
-                beginAtZero: true,
-                title: { display: true, text: 'Count' },
-                grid: { color: 'rgba(255, 255, 255, 0.05)' }
-              }
-            },
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: { padding: 20, usePointStyle: true }
-              },
-              tooltip: {
-                backgroundColor: 'rgba(20, 20, 30, 0.9)',
-                titleColor: '#fff',
-                bodyColor: '#ccc',
-                padding: 10,
-                cornerRadius: 8,
-                displayColors: true,
-                callbacks: {
-                  label: function (context) {
-                    let label = context.dataset.label.trim() || '';
-                    if (label) {
-                      label += ': ';
-                    }
-                    if (context.parsed.y !== null) {
-                      label += context.parsed.y;
-                    }
-                    return label;
-                  }
-                }
-              }
-            }
-          }
-        });
-      })
-      .catch(err => console.error("Error fetching analytics stats:", err));
-  });
-</script>
-
 <script id="network-colors-data" type="application/json">
   {{.network_colors | json}}
 </script>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    fetch('/analytics/engagement')
-      .then(response => response.json())
-      .then(data => {
-        if (!data || data.length === 0) {
-          return;
-        }
-
-        const ctx = document.getElementById('engagementChart').getContext('2d');
-
-        const allDates = new Set();
-        const networkGroups = {};
-
-        Chart.defaults.color = '#a0a0a0';
-        Chart.defaults.borderColor = '#333';
-
-        let networkColors = {};
-        try {
-          networkColors = JSON.parse(document.getElementById('network-colors-data').textContent);
-        } catch (e) {
-          console.error("Failed to parse network colors", e);
-        }
-
-        data.forEach(source => {
-          if (!networkGroups[source.network]) {
-            networkGroups[source.network] = new Map();
-          }
-          const points = source.points || [];
-          points.forEach(p => {
-            allDates.add(p.date);
-            const current = networkGroups[source.network].get(p.date) || 0;
-            networkGroups[source.network].set(p.date, current + p.likes + p.reposts);
-          });
-        });
-
-        const sortedDates = Array.from(allDates).sort();
-
-        const datasets = [];
-
-        Object.keys(networkGroups).forEach(network => {
-          const dateMap = networkGroups[network];
-          const dataPoints = [];
-
-          sortedDates.forEach(date => {
-            let val = 0;
-            if (dateMap.has(date)) {
-              val = dateMap.get(date);
-            }
-            dataPoints.push(val);
-          });
-
-          const color = networkColors[network] || '#9167e4';
-
-          datasets.push({
-            label: ' ' + network,
-            data: dataPoints,
-            backgroundColor: color,
-            borderColor: color,
-            borderWidth: 1,
-            fill: true,
-          });
-        });
-
-        const totalLabelsPlugin = {
-          id: 'totalLabels',
-          afterDatasetsDraw: (chart, args, options) => {
-            const { ctx, scales: { x, y } } = chart;
-            if (window.innerWidth < 768) return;
-            ctx.save();
-            ctx.font = 'bold 11px sans-serif';
-            ctx.fillStyle = '#a0a0a0';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-
-            chart.data.labels.forEach((label, index) => {
-              let total = 0;
-              let hasData = false;
-
-              chart.data.datasets.forEach((dataset, i) => {
-                if (chart.isDatasetVisible(i)) {
-                  const val = dataset.data[index];
-                  if (typeof val === 'number') {
-                    total += val;
-                    if (val > 0) hasData = true;
-                  }
-                }
-              });
-
-              if (hasData && total > 0) {
-                const meta = chart.getDatasetMeta(0);
-                if (meta.data[index]) {
-                  const xPos = meta.data[index].x;
-                  const yPos = y.getPixelForValue(total);
-                  ctx.fillText(total, xPos, yPos - 5);
-                }
-              }
-            });
-            ctx.restore();
-          }
-        };
-
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: sortedDates,
-            datasets: datasets
-          },
-          plugins: [totalLabelsPlugin],
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-              mode: 'index',
-              intersect: false,
-            },
-            scales: {
-              x: {
-                stacked: true,
-                type: 'category',
-                grid: { color: 'rgba(255, 255, 255, 0.05)' }
-              },
-              y: {
-                stacked: true,
-                beginAtZero: true,
-                grace: '5%',
-                title: { display: true, text: 'Posts Engagement' },
-                grid: { color: 'rgba(255, 255, 255, 0.05)' }
-              }
-            },
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: { padding: 20, usePointStyle: true }
-              },
-              tooltip: {
-                backgroundColor: 'rgba(20, 20, 30, 0.9)',
-                titleColor: '#fff',
-                bodyColor: '#ccc',
-                padding: 10,
-                cornerRadius: 8,
-                displayColors: true,
-                callbacks: {
-                  label: function (context) {
-                    let label = context.dataset.label || '';
-                    if (label) {
-                      label += ': ';
-                    }
-                    if (context.parsed.y !== null) {
-                      label += context.parsed.y;
-                    }
-                    return label;
-                  }
-                }
-              }
-            }
-          }
-        });
-      })
-      .catch(err => console.error("Error fetching stats:", err));
-  });
-</script>
-
-<script id="dashboard-summary-data" type="application/json">
-  {{.dashboard_summary | json}}
-</script>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    let data;
-    try {
-      const el = document.getElementById('dashboard-summary-data');
-      if (el && el.textContent.trim()) {
-        data = JSON.parse(el.textContent);
-      }
-    } catch (e) {
-      console.error("Failed to parse dashboard summary", e);
-      return;
-    }
-
-    if (!data) return;
-
-    function renderComparisonChart(ctxId, label, currentData, previousData, primaryColor) {
-      const ctx = document.getElementById(ctxId).getContext('2d');
-
-      const currentValues = currentData.map(p => p.value);
-      const previousValues = previousData.map(p => p.value);
-
-      const dayLabels = Array.from({ length: 7 }, (_, i) => `Day ${i + 1}`);
-
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: dayLabels,
-          datasets: [
-            {
-              label: '  Last 7 Days',
-              data: currentValues,
-              borderColor: primaryColor,
-              backgroundColor: primaryColor + '20',
-              fill: true,
-              tension: 0.3,
-              borderWidth: 2,
-              pointRadius: 2
-            },
-            {
-              label: '  Previous 7 Days',
-              data: previousValues,
-              borderColor: '#6B7280',
-              backgroundColor: 'transparent',
-              borderDash: [5, 5],
-              fill: false,
-              tension: 0.3,
-              borderWidth: 2,
-              pointRadius: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          scales: {
-            x: {
-              grid: { display: false },
-              ticks: { display: true, maxTicksLimit: 7 }
-            },
-            y: {
-              beginAtZero: false,
-              grid: { color: 'rgba(255, 255, 255, 0.05)' }
-            }
-          },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                usePointStyle: true,
-                boxWidth: 8
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(20, 20, 30, 0.9)',
-              titleColor: '#fff',
-              bodyColor: '#ccc',
-              padding: 10,
-              cornerRadius: 8,
-              callbacks: {
-                label: function (context) {
-                  let idx = context.dataIndex;
-                  let val = context.parsed.y;
-                  let dateStr = '';
-                  if (context.datasetIndex === 0 && currentData[idx]) {
-                    dateStr = ` (${currentData[idx].date})`;
-                  } else if (context.datasetIndex === 1 && previousData[idx]) {
-                    dateStr = ` (${previousData[idx].date})`;
-                  }
-                  return `${context.dataset.label.trim()}: ${val}${dateStr}`;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    if (data.engagement) {
-      renderComparisonChart(
-        'engagementComparisonChart',
-        'Engagement',
-        data.engagement.current_period,
-        data.engagement.previous_period,
-        '#9167e4'
-      );
-    }
-
-    if (data.followers) {
-      renderComparisonChart(
-        'followersComparisonChart',
-        'Followers',
-        data.followers.current_period,
-        data.followers.previous_period,
-        '#9167e4'
-      );
-    }
-  });
-</script>
-
-<script>
-  (function() {
-    const grid = document.getElementById('top-sources-grid');
-    if (!grid) return;
-
-    const tiles = grid.querySelectorAll('.source-tile');
-    if (tiles.length === 0) return;
-
-    const firstTileTop = tiles[0].offsetTop;
-    let firstRowCount = 0;
-    for (let i = 0; i < tiles.length; i++) {
-      if (tiles[i].offsetTop === firstTileTop) {
-        firstRowCount++;
-      } else {
-        break;
-      }
-    }
-
-    const visibleCount = Math.max(firstRowCount, 2);
-
-    let hasHidden = false;
-    for (let i = visibleCount; i < tiles.length; i++) {
-      tiles[i].classList.add('hidden');
-      hasHidden = true;
-    }
-
-    const btn = document.getElementById('show-all-sources-btn');
-    if (hasHidden && btn) {
-      btn.classList.remove('hidden');
-      btn.addEventListener('click', function() {
-        grid.querySelectorAll('.source-tile.hidden').forEach(t => t.classList.remove('hidden'));
-        btn.remove();
-      });
-    }
-  })();
-</script>
+<script src="/static/js/dashboard.js" defer></script>

@@ -122,6 +122,11 @@ func (h *Handler) FacebookCallbackHandler(c *gin.Context) {
 		"app_secret": appSecret.(string),
 	}
 
+	_, _, _, oldTokenID, err := authhelp.GetSourceToken(context.Background(), h.DB, h.Config.TokenEncryptionKey, sid)
+	if err == nil {
+		_ = h.DB.DeleteTokenById(context.Background(), oldTokenID)
+	}
+
 	err = authhelp.InsertSourceToken(context.Background(), h.DB, sid, tokenStr, pid, sourceAppData, h.Config.TokenEncryptionKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store token", "details": err.Error()})
@@ -133,6 +138,40 @@ func (h *Handler) FacebookCallbackHandler(c *gin.Context) {
 	session.Save()
 
 	c.Redirect(http.StatusSeeOther, "/sources")
+}
+
+func (h *Handler) FacebookReloginHandler(c *gin.Context) {
+	sidStr := c.PostForm("source_id")
+	if sidStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "source_id is required"})
+		return
+	}
+
+	sid, err := uuid.Parse(sidStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid source_id"})
+		return
+	}
+
+	_, pid, sourceAppData, _, err := authhelp.GetSourceToken(context.Background(), h.DB, h.Config.TokenEncryptionKey, sid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve source token", "details": err.Error()})
+		return
+	}
+
+	appID, ok1 := sourceAppData["app_id"].(string)
+	appSecret, ok2 := sourceAppData["app_secret"].(string)
+	if !ok1 || !ok2 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "App ID and Secret not found in token metadata"})
+		return
+	}
+
+	session := sessions.Default(c)
+	session.Set("app_id_"+sid.String(), appID)
+	session.Set("app_secret_"+sid.String(), appSecret)
+	session.Save()
+
+	c.Redirect(http.StatusSeeOther, "/auth/facebook/login?sid="+sid.String()+"&pid="+pid)
 }
 
 func (h *Handler) FacebookRefreshTokenHandler(c *gin.Context) {
@@ -166,7 +205,11 @@ func (h *Handler) FacebookRefreshTokenHandler(c *gin.Context) {
 
 	newLongLivedToken, err := authhelp.ExchangeLongLivedToken(currentAccessToken, fbConfig, h.Config.InstagramAPIVersion)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to refresh token with Facebook", "details": err.Error()})
+		session := sessions.Default(c)
+		session.Set("app_id_"+sid.String(), appID)
+		session.Set("app_secret_"+sid.String(), appSecret)
+		session.Save()
+		c.Redirect(http.StatusSeeOther, "/auth/facebook/login?sid="+sid.String()+"&pid="+profileID)
 		return
 	}
 

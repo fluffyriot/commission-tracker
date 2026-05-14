@@ -81,10 +81,13 @@ func SyncBySource(sid uuid.UUID, dbQueries *database.Queries, c *common.Client, 
 			if err := sources.FetchInstagramTags(dbQueries, c, source.ID, ver, encryptionKey); err != nil {
 				return err
 			}
+			if err := sources.FetchInstagramCollabs(dbQueries, c, source.ID, ver, encryptionKey); err != nil {
+				return err
+			}
 			return sources.FetchInstagramPosts(dbQueries, c, source.ID, ver, encryptionKey)
 
 		case "Murrtube":
-			return sources.FetchMurrtubePosts(source.UserID, dbQueries, c, source.ID)
+			return sources.FetchMurrtubePosts(dbQueries, c, source.ID, encryptionKey)
 
 		case "BadPups":
 			return sources.FetchBadpupsPosts(source.UserID, dbQueries, c, source.ID)

@@ -42,6 +42,7 @@ SELECT calendar.date::date as period_date,
                         JOIN posts p ON prh.post_id = p.id
                         JOIN sources s ON p.source_id = s.id
                     WHERE s.user_id = $1
+                        AND prh.synced_at >= $2
                         AND prh.synced_at < calendar.date + INTERVAL '1 day'
                     ORDER BY prh.post_id,
                         prh.synced_at DESC
@@ -65,6 +66,7 @@ SELECT calendar.date::date as period_date,
                     FROM sources_stats ss
                         JOIN sources s ON ss.source_id = s.id
                     WHERE s.user_id = $1
+                        AND ss.date >= $2 - INTERVAL '1 day'
                         AND ss.date < calendar.date + INTERVAL '1 day'
                     ORDER BY ss.source_id,
                         ss.date DESC

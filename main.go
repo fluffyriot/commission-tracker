@@ -91,6 +91,7 @@ func main() {
 		"add": func(a, b int32) int32 {
 			return a + b
 		},
+		"contains": strings.Contains,
 	})
 
 	r.LoadHTMLGlob("templates/*.html")
@@ -173,6 +174,8 @@ func main() {
 	authorized.POST("/setup/password", h.PasswordSetupSubmitHandler)
 
 	authorized.GET("/", h.RootHandler)
+	authorized.GET("/api/dashboard/stats", h.DashboardStatsHandler)
+	authorized.GET("/api/dashboard/logs", h.DashboardLogsHandler)
 	authorized.POST("/logs/dismiss", h.DismissLogHandler)
 	authorized.POST("/logs/dismiss-all", h.DismissAllLogsHandler)
 
@@ -203,6 +206,7 @@ func main() {
 	authorized.GET("/auth/facebook/login", h.FacebookLoginHandler)
 	authorized.GET("/auth/facebook/callback", h.FacebookCallbackHandler)
 	authorized.POST("/auth/facebook/refresh", h.FacebookRefreshTokenHandler)
+	authorized.POST("/auth/facebook/relogin", h.FacebookReloginHandler)
 
 	authorized.GET("/auth/tiktok/login", h.TikTokLoginHandler)
 	authorized.GET("/auth/tiktok/check", h.TikTokCheckHandler)

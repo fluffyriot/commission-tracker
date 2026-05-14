@@ -118,7 +118,7 @@ func fetchWatcherCount(c *common.Client, accessToken, username string) (int, err
 
 		if resp.StatusCode == 429 {
 			log.Printf("DeviantArt: Rate limited on watchers, waiting...")
-			time.Sleep(5 * time.Second)
+			time.Sleep(common.RateLimitWait)
 			continue
 		}
 		if resp.StatusCode != 200 {
@@ -136,7 +136,7 @@ func fetchWatcherCount(c *common.Client, accessToken, username string) (int, err
 			break
 		}
 		offset = watchResp.NextOffset
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 	}
 	return total, nil
 }
@@ -266,7 +266,7 @@ func FetchDeviantArtPosts(dbQueries *database.Queries, encryptionKey []byte, sou
 	const maxItems = 5000
 
 	for offset < maxItems {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 
 		apiURL := fmt.Sprintf(
 			"https://www.deviantart.com/api/v1/oauth2/gallery/all?username=%s&limit=%d&offset=%d&mature_content=true",
@@ -291,7 +291,7 @@ func FetchDeviantArtPosts(dbQueries *database.Queries, encryptionKey []byte, sou
 
 		if resp.StatusCode == 429 {
 			log.Printf("DeviantArt: Rate limited, waiting...")
-			time.Sleep(5 * time.Second)
+			time.Sleep(common.RateLimitWait)
 			continue
 		}
 

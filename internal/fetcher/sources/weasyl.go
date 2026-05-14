@@ -132,7 +132,7 @@ func FetchWeasylPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 	const maxPages = 500
 
 	for range maxPages {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 
 		apiURL := fmt.Sprintf("https://www.weasyl.com/api/users/%s/gallery?count=100", username)
 		if nextID > 0 {
@@ -158,7 +158,7 @@ func FetchWeasylPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 
 		if resp.StatusCode == 429 {
 			log.Printf("Weasyl: Rate limited, waiting...")
-			time.Sleep(5 * time.Second)
+			time.Sleep(common.RateLimitWait)
 			continue
 		}
 
@@ -193,7 +193,7 @@ func FetchWeasylPosts(dbQueries *database.Queries, encryptionKey []byte, sourceI
 				postedAt = time.Now()
 			}
 
-			time.Sleep(200 * time.Millisecond)
+			time.Sleep(common.APIRateLimit)
 			var likes, views sql.NullInt64
 			var tags []string
 			if detail, err := fetchWeasylSubmissionView(c, sub.SubmitID, apiKey); err != nil {

@@ -232,6 +232,9 @@ func ReplaceSourceToken(
 ) error {
 	_, profileID, _, tokenID, err := GetSourceToken(ctx, db, encryptionKey, sid)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return InsertSourceToken(ctx, db, sid, newAccessToken, "", nil, encryptionKey)
+		}
 		return err
 	}
 

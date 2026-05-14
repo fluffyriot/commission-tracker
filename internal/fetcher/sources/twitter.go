@@ -289,7 +289,7 @@ func FetchTwitterPosts(dbQueries *database.Queries, c *common.Client, username s
 	const maxScrolls = 50
 
 	for i := 0; i < maxScrolls; i++ {
-		time.Sleep(2 * time.Second)
+		time.Sleep(common.ScraperRateLimit)
 		drainChan(&allEntries)
 
 		currentCount := len(allEntries)
@@ -306,7 +306,7 @@ func FetchTwitterPosts(dbQueries *database.Queries, c *common.Client, username s
 		chromedp.Run(ctx, chromedp.Evaluate(`window.scrollTo(0, document.body.scrollHeight)`, nil)) //nolint:errcheck
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(common.ScraperRateLimit)
 	drainChan(&allEntries)
 
 	processedLinks := make(map[string]struct{})

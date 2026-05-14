@@ -205,7 +205,7 @@ func FetchThreadsPosts(dbQueries *database.Queries, encryptionKey []byte, source
 	const maxPages = 100
 
 	for page := 0; page < maxPages && nextURL != ""; page++ {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(common.APIRateLimit)
 
 		req, err := http.NewRequest("GET", nextURL, nil)
 		if err != nil {
@@ -225,7 +225,7 @@ func FetchThreadsPosts(dbQueries *database.Queries, encryptionKey []byte, source
 
 		if resp.StatusCode == 429 {
 			log.Printf("Threads: Rate limited, waiting...")
-			time.Sleep(5 * time.Second)
+			time.Sleep(common.RateLimitWait)
 			continue
 		}
 

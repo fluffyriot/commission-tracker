@@ -3,6 +3,7 @@ package authhelp
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -45,6 +46,11 @@ func ExchangeLongLivedToken(shortLivedToken string, config *oauth2.Config, apiVe
 	defer resp.Body.Close()
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to get a successfull response. %d: %s. Body: %s", resp.StatusCode, resp.Status, string(bodyBytes))
+	}
+
 	var res struct {
 		AccessToken string `json:"access_token"`
 		TokenType   string `json:"token_type"`
@@ -52,6 +58,10 @@ func ExchangeLongLivedToken(shortLivedToken string, config *oauth2.Config, apiVe
 	}
 	if err := json.Unmarshal(bodyBytes, &res); err != nil {
 		return "", err
+	}
+
+	if res.AccessToken == "" {
+		return "", fmt.Errorf("facebook returned empty access token")
 	}
 
 	return res.AccessToken, nil

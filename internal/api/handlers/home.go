@@ -7,7 +7,6 @@ import (
 
 	"github.com/fluffyriot/rpsync/internal/database"
 	"github.com/fluffyriot/rpsync/internal/helpers"
-	"github.com/fluffyriot/rpsync/internal/stats"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -59,73 +58,87 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		return
 	}
 
+	workerStatus := "Off"
+	workerIsOff := true
+	if h.Worker.IsActive() {
+		workerStatus = "On"
+		workerIsOff = false
+	}
+
+	c.HTML(http.StatusOK, "index.html", h.CommonData(c, gin.H{
+		"worker_status": workerStatus,
+		"worker_is_off": workerIsOff,
+		"sync_period":   user.SyncPeriod,
+		"title":         "Dashboard",
+	}))
+}
+
+func (h *Handler) DashboardStatsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
 	var (
-		activeSources int64
-		activeTargets int64
-		totalPosts    int64
-		reactions     database.GetTotalReactionsRow
-		siteStats     int64
-		pageViews     int64
-		siteAvSession int64
-		syncErrors30d int64
-		recentLogs    []database.GetRecentLogsRow
-		topSourcesDB  []database.GetTopSourcesRow
-		dashSummary   *stats.DashboardSummary
+		resp         DashboardStatsResponse
+		topSourcesDB []database.GetTopSourcesRow
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
 		var err error
-		activeSources, err = h.DB.GetActiveSourcesCount(ctx, user.ID)
+		resp.ActiveSources, err = h.DB.GetActiveSourcesCount(ctx, user.ID)
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		activeTargets, err = h.DB.GetActiveTargetsCount(ctx, user.ID)
+		resp.ActiveTargets, err = h.DB.GetActiveTargetsCount(ctx, user.ID)
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		totalPosts, err = h.DB.GetTotalPostsCount(ctx, user.ID)
+		resp.TotalPosts, err = h.DB.GetTotalPostsCount(ctx, user.ID)
+		return err
+	})
+
+	g.Go(func() error {
+		reactions, err := h.DB.GetTotalReactions(ctx, user.ID)
+		if err != nil {
+			return err
+		}
+		resp.TotalLikes = reactions.TotalLikes
+		resp.TotalShares = reactions.TotalShares
+		resp.TotalViews = reactions.TotalViews
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		resp.TotalVisitors, err = h.DB.GetTotalSiteStats(ctx, user.ID)
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		reactions, err = h.DB.GetTotalReactions(ctx, user.ID)
+		resp.TotalPageViews, err = h.DB.GetTotalPageViews(ctx, user.ID)
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		siteStats, err = h.DB.GetTotalSiteStats(ctx, user.ID)
+		resp.AverageWebsiteSession, err = h.DB.GetAverageWebsiteSession(ctx, user.ID)
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		pageViews, err = h.DB.GetTotalPageViews(ctx, user.ID)
-		return err
-	})
-
-	g.Go(func() error {
-		var err error
-		siteAvSession, err = h.DB.GetAverageWebsiteSession(ctx, user.ID)
-		return err
-	})
-
-	g.Go(func() error {
-		var err error
-		syncErrors30d, err = h.DB.GetSyncErrorsCountLast30Days(ctx, user.ID)
-		return err
-	})
-
-	g.Go(func() error {
-		var err error
-		recentLogs, err = h.DB.GetRecentLogs(ctx, user.ID)
+		resp.SyncErrors30d, err = h.DB.GetSyncErrorsCountLast30Days(ctx, user.ID)
 		return err
 	})
 
@@ -135,24 +148,10 @@ func (h *Handler) RootHandler(c *gin.Context) {
 		return err
 	})
 
-	g.Go(func() error {
-		var err error
-		dashSummary, err = stats.GetDashboardSummary(h.DB, user.ID)
-		return err
-	})
-
 	if err := g.Wait(); err != nil {
-		log.Printf("Error getting dashboard data: %v", err)
+		log.Printf("Error getting dashboard stats: %v", err)
 	}
 
-	workerStatus := "Off"
-	workerIsOff := true
-	if h.Worker.IsActive() {
-		workerStatus = "On"
-		workerIsOff = false
-	}
-
-	var topSources []TopSourceViewModel
 	for _, src := range topSourcesDB {
 		caps := helpers.GetSourceByName(src.Network)
 		if caps != nil && !caps.EngagementSupported && !caps.ViewsSupported && !caps.FollowersTracked {
@@ -173,30 +172,46 @@ func (h *Handler) RootHandler(c *gin.Context) {
 			vm.ViewsSupported = caps.ViewsSupported
 			vm.FollowersTracked = caps.FollowersTracked
 		}
-		topSources = append(topSources, vm)
+		resp.TopSources = append(resp.TopSources, vm)
 	}
 
-	c.HTML(http.StatusOK, "index.html", h.CommonData(c, gin.H{
-		"username":                user.Username,
-		"user_id":                 user.ID,
-		"active_sources":          activeSources,
-		"active_targets":          activeTargets,
-		"total_posts":             totalPosts,
-		"total_likes":             reactions.TotalLikes,
-		"total_shares":            reactions.TotalShares,
-		"total_views":             reactions.TotalViews,
-		"total_visitors":          siteStats,
-		"total_page_views":        pageViews,
-		"average_website_session": siteAvSession,
-		"sync_errors_30d":         syncErrors30d,
-		"recent_logs":             recentLogs,
-		"worker_status":           workerStatus,
-		"worker_is_off":           workerIsOff,
-		"sync_period":             user.SyncPeriod,
-		"top_sources":             topSources,
-		"dashboard_summary":       dashSummary,
-		"title":                   "Dashboard",
-	}))
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) DashboardLogsHandler(c *gin.Context) {
+	user, loggedIn := h.GetAuthenticatedUser(c)
+	if !loggedIn {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	rows, err := h.DB.GetRecentLogs(c.Request.Context(), user.ID)
+	if err != nil {
+		log.Printf("Error getting recent logs: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch logs"})
+		return
+	}
+
+	var items []DashboardLogItem
+	for _, r := range rows {
+		item := DashboardLogItem{
+			ID:        r.ID.String(),
+			CreatedAt: r.CreatedAt.Format("Jan 02 15:04"),
+			Message:   r.Message,
+		}
+		if r.SourceNetwork.Valid {
+			item.SourceNetwork = r.SourceNetwork.String
+		}
+		if r.SourceUsername.Valid {
+			item.SourceUsername = r.SourceUsername.String
+		}
+		if r.TargetType.Valid {
+			item.TargetType = r.TargetType.String
+		}
+		items = append(items, item)
+	}
+
+	c.JSON(http.StatusOK, items)
 }
 
 func (h *Handler) DismissAllLogsHandler(c *gin.Context) {
