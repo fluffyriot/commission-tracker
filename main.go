@@ -174,6 +174,8 @@ func main() {
 	authorized.POST("/setup/password", h.PasswordSetupSubmitHandler)
 
 	authorized.GET("/", h.RootHandler)
+	authorized.GET("/api/dashboard/stats", h.DashboardStatsHandler)
+	authorized.GET("/api/dashboard/logs", h.DashboardLogsHandler)
 	authorized.POST("/logs/dismiss", h.DismissLogHandler)
 	authorized.POST("/logs/dismiss-all", h.DismissAllLogsHandler)
 

@@ -1238,6 +1238,56 @@ a:hover {
   color: var(--color-danger);
 }
 
+@keyframes skel-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.stat-skel {
+  display: block;
+  height: 1.75rem;
+  width: 55%;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+  animation: skel-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skel-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 90px;
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--color-border) 50%, transparent 100%);
+  animation: skel-shimmer 1.6s ease-in-out infinite;
+}
+
+.top-sources-loading {
+  pointer-events: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.dash-spinner {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
 .dashboard-comparison-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
